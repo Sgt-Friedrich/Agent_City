@@ -23,12 +23,15 @@ export function ReplaySpanList({ trace }: ReplaySpanListProps) {
         {trace.spans.map((span, index) => {
           const active = replay.cursor - 1 === index;
           const done = replay.cursor - 1 > index;
+          const errorLike = span.status === "error" || span.retry_count > 0 || Boolean(span.fallback_from);
           return (
             <button
               key={span.span_id}
               className={`w-full rounded border px-2 py-1 text-left text-xs ${
                 active
                   ? "border-sky-400 bg-[#14304f]"
+                  : errorLike
+                    ? "border-rose-500/60 bg-[#2a1318]"
                   : done
                     ? "border-line bg-[#10233a]"
                     : "border-line bg-[#0a1626]"
@@ -48,6 +51,11 @@ export function ReplaySpanList({ trace }: ReplaySpanListProps) {
               <div className="mt-1 text-[10px] text-slate-400">
                 {span.from_node} -&gt; {span.to_node}
               </div>
+              {(span.retry_count > 0 || span.fallback_from) && (
+                <div className="mt-0.5 text-[10px] text-amber-300">
+                  {span.retry_count > 0 ? `retry #${span.retry_count}` : `fallback from ${span.fallback_from}`}
+                </div>
+              )}
             </button>
           );
         })}

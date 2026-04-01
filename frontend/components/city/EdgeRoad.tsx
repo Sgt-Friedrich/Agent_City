@@ -1,7 +1,11 @@
-﻿"use client";
+"use client";
+
+import { useMemo } from "react";
 
 import { Line } from "@react-three/drei";
+import * as THREE from "three";
 
+import { DiagnosticMode, edgeStyle } from "@/lib/visualTheme";
 import { Edge, Node } from "@/types/schema";
 
 interface EdgeRoadProps {
@@ -10,26 +14,60 @@ interface EdgeRoadProps {
   toNode: Node;
   dimmed?: boolean;
   highlighted?: boolean;
+  diagnosticMode?: DiagnosticMode;
 }
 
-export function EdgeRoad({ edge, fromNode, toNode, dimmed, highlighted }: EdgeRoadProps) {
-  const color = highlighted ? "#90d3ff" : edge.status === "observed" ? "#7fb6dc" : "#446988";
-  const opacity = dimmed ? 0.08 : highlighted ? 0.95 : 0.36;
+export function EdgeRoad({
+  edge,
+  fromNode,
+  toNode,
+  dimmed,
+  highlighted,
+  diagnosticMode = "realtime",
+}: EdgeRoadProps) {
+  const style = edgeStyle(edge, { highlighted, dimmed, diagnosticMode });
+
+  const points = useMemo<[number, number, number][]>(() => {
+    const start: [number, number, number] = [fromNode.position.x, 0.6, fromNode.position.z];
+    const end: [number, number, number] = [toNode.position.x, 0.6, toNode.position.z];
+    return [start, end];
+  }, [fromNode.position.x, fromNode.position.z, toNode.position.x, toNode.position.z]);
+
+  const arrow = useMemo(() => {
+    const start = new THREE.Vector3(fromNode.position.x, 0.8, fromNode.position.z);
+    const end = new THREE.Vector3(toNode.position.x, 0.8, toNode.position.z);
+    const position = start.clone().lerp(end, 0.64);
+    const direction = end.clone().sub(start);
+    direction.y = 0;
+    const angle = Math.atan2(direction.x, direction.z);
+    return { position, angle };
+  }, [fromNode.position.x, fromNode.position.z, toNode.position.x, toNode.position.z]);
 
   return (
-    <Line
-      points={[
-        [fromNode.position.x, 0.6, fromNode.position.z],
-        [toNode.position.x, 0.6, toNode.position.z],
-      ]}
-      color={color}
-      lineWidth={highlighted ? 2.5 : 1.3}
-      transparent
-      opacity={opacity}
-      dashed={edge.kind === "dependency"}
-      dashScale={12}
-      dashSize={1.1}
-      gapSize={0.9}
-    />
+    <group>
+      <Line
+        points={points}
+        color={style.color}
+        lineWidth={style.width}
+        transparent
+        opacity={style.opacity}
+        dashed={style.dashed}
+        dashScale={11}
+        dashSize={1.1}
+        gapSize={0.9}
+      />
+      <Line
+        points={points}
+        color={style.glowColor}
+        lineWidth={style.width + 0.9}
+        transparent
+        opacity={style.glowOpacity}
+        dashed={false}
+      />
+      <mesh position={arrow.position} rotation={[Math.PI / 2, 0, -arrow.angle]} scale={[1, 1, 1]}>
+        <coneGeometry args={[0.48, 1.4, 6]} />
+        <meshStandardMaterial color={style.glowColor} emissive={style.glowColor} emissiveIntensity={0.18} transparent opacity={style.opacity} />
+      </mesh>
+    </group>
   );
 }

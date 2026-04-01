@@ -1,10 +1,13 @@
 ﻿"use client";
 
 import { prettyMs, prettyPct } from "@/lib/utils";
+import { DashboardMode, DiagnosticMode } from "@/lib/visualTheme";
 import { MetricsSummary } from "@/types/schema";
 
 interface MetricsHeaderProps {
   metrics?: MetricsSummary;
+  mode?: DashboardMode;
+  diagnosticMode?: DiagnosticMode;
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
@@ -16,10 +19,19 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function MetricsHeader({ metrics }: MetricsHeaderProps) {
+const modeLabel: Record<DashboardMode, string> = {
+  live: "Live",
+  replay: "Replay",
+  diagnostics: "Diagnostics",
+};
+
+export function MetricsHeader({ metrics, mode = "live", diagnosticMode = "realtime" }: MetricsHeaderProps) {
+  const modeDetail = mode === "diagnostics" ? ` (${diagnosticMode})` : "";
+
   return (
     <header className="border-b border-line bg-[#081323cc] backdrop-blur-sm">
       <div className="flex flex-wrap items-stretch">
+        <Metric label="Mode" value={`${modeLabel[mode]}${modeDetail}`} />
         <Metric label="Total Traces" value={String(metrics?.total_traces ?? 0)} />
         <Metric label="Active Flows" value={String(metrics?.active_flows ?? 0)} />
         <Metric label="Avg Latency" value={prettyMs(metrics?.avg_latency_ms ?? 0)} />

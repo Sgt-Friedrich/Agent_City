@@ -1,19 +1,36 @@
-﻿"use client";
+"use client";
 
 import { useEffect } from "react";
 
 import { shortId } from "@/lib/utils";
 import { useDashboardStore } from "@/store/useDashboardStore";
-import { TraceRecord } from "@/types/schema";
+import { SpanKind, TraceRecord } from "@/types/schema";
 
 interface ReplayControllerProps {
   trace?: TraceRecord;
 }
 
+const spanSubtitle: Record<SpanKind, string> = {
+  AGENT: "planner is decomposing task",
+  CHAIN: "orchestrator is chaining execution",
+  LLM: "llm is generating",
+  TOOL: "tool execution in progress",
+  RETRIEVER: "retriever is searching",
+  RERANKER: "reranker is ranking",
+  EMBEDDING: "embedding context vectors",
+  GUARDRAIL: "guardrail is checking output",
+  EVALUATOR: "evaluator is scoring response",
+  MEMORY: "memory is reading/writing state",
+  MCP: "mcp bridge is resolving tools",
+};
+
+const replaySpeeds = [0.5, 1, 1.5, 2, 4];
+
 export function ReplayController({ trace }: ReplayControllerProps) {
   const replay = useDashboardStore((state) => state.replay);
   const setReplayCursor = useDashboardStore((state) => state.setReplayCursor);
   const setReplayPlaying = useDashboardStore((state) => state.setReplayPlaying);
+  const setReplaySpeed = useDashboardStore((state) => state.setReplaySpeed);
 
   const spans = trace?.spans ?? [];
   const current = spans[Math.max(0, Math.min(replay.cursor - 1, spans.length - 1))];
@@ -29,10 +46,10 @@ export function ReplayController({ trace }: ReplayControllerProps) {
     const nextSpan = trace.spans[replay.cursor];
     const timeout = window.setTimeout(() => {
       setReplayCursor(replay.cursor + 1);
-    }, Math.max(120, Math.min(800, nextSpan.latency_ms / 2)));
+    }, Math.max(80, Math.min(900, nextSpan.latency_ms / (1.8 * replay.speed))));
 
     return () => window.clearTimeout(timeout);
-  }, [replay.cursor, replay.playing, setReplayCursor, setReplayPlaying, trace]);
+  }, [replay.cursor, replay.playing, replay.speed, setReplayCursor, setReplayPlaying, trace]);
 
   if (!trace) {
     return (
@@ -50,7 +67,7 @@ export function ReplayController({ trace }: ReplayControllerProps) {
         <span className="text-slate-500">{trace.envelope.user_input}</span>
       </div>
 
-      <div className="mt-3 flex items-center gap-2">
+      <div className="mt-3 flex flex-wrap items-center gap-2">
         <button
           className="rounded border border-line bg-[#0c1f33] px-2 py-1 text-xs text-slate-200 hover:bg-[#14304f]"
           onClick={() => setReplayPlaying(!replay.playing)}
@@ -66,17 +83,44 @@ export function ReplayController({ trace }: ReplayControllerProps) {
         >
           Reset
         </button>
+        <button
+          className="rounded border border-line bg-[#0c1f33] px-2 py-1 text-xs text-slate-200 hover:bg-[#14304f]"
+          onClick={() => {
+            setReplayCursor(0);
+            setReplayPlaying(true);
+          }}
+        >
+          Replay
+        </button>
+
         <input
           type="range"
           min={0}
           max={Math.max(spans.length, 1)}
           value={Math.min(replay.cursor, spans.length)}
           onChange={(event) => setReplayCursor(Number(event.target.value))}
-          className="w-64"
+          className="w-56"
         />
         <span className="text-xs text-slate-400">
           {Math.min(replay.cursor, spans.length)} / {spans.length}
         </span>
+
+        <div className="ml-2 flex items-center gap-1">
+          {replaySpeeds.map((speed) => (
+            <button
+              key={speed}
+              type="button"
+              className={`rounded border px-1.5 py-0.5 text-[11px] ${
+                replay.speed === speed
+                  ? "border-cyan-400 bg-[#17344e] text-slate-100"
+                  : "border-line bg-[#0b1828] text-slate-400 hover:text-slate-200"
+              }`}
+              onClick={() => setReplaySpeed(speed)}
+            >
+              {speed}x
+            </button>
+          ))}
+        </div>
       </div>
 
       {current && (
@@ -89,6 +133,9 @@ export function ReplayController({ trace }: ReplayControllerProps) {
           </div>
           <div className="rounded border border-line bg-[#0b1828] px-2 py-1">
             status/latency: {current.status} / {current.latency_ms} ms
+          </div>
+          <div className="rounded border border-line bg-[#10233a] px-2 py-1 text-[11px] text-cyan-200 md:col-span-3">
+            {spanSubtitle[current.span_kind]}
           </div>
         </div>
       )}

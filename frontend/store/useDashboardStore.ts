@@ -14,15 +14,19 @@ import {
   TopologyGraph,
   TraceRecord,
 } from "@/types/schema";
+import { DashboardMode, DiagnosticMode } from "@/lib/visualTheme";
 
 interface ReplayState {
   active: boolean;
   traceId?: string;
   cursor: number;
   playing: boolean;
+  speed: number;
 }
 
 interface DashboardState {
+  viewMode: DashboardMode;
+  diagnosticMode: DiagnosticMode;
   target: string;
   targets: TargetOption[];
   topology?: TopologyGraph;
@@ -35,6 +39,8 @@ interface DashboardState {
   selectedTraceId?: string;
   filters: Filters;
   replay: ReplayState;
+  setViewMode: (mode: DashboardMode) => void;
+  setDiagnosticMode: (mode: DiagnosticMode) => void;
   setTarget: (target: string) => void;
   setTargets: (targets: TargetOption[]) => void;
   setTopology: (topology: TopologyGraph) => void;
@@ -57,6 +63,7 @@ interface DashboardState {
   stopReplay: () => void;
   setReplayCursor: (cursor: number) => void;
   setReplayPlaying: (playing: boolean) => void;
+  setReplaySpeed: (speed: number) => void;
 }
 
 const defaultFilters: Filters = {
@@ -68,6 +75,8 @@ const defaultFilters: Filters = {
 };
 
 export const useDashboardStore = create<DashboardState>((set, get) => ({
+  viewMode: "live",
+  diagnosticMode: "realtime",
   target: "mock",
   targets: [],
   traces: [],
@@ -79,7 +88,14 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     traceId: undefined,
     cursor: 0,
     playing: false,
+    speed: 1,
   },
+  setViewMode: (mode) => set({ viewMode: mode }),
+  setDiagnosticMode: (mode) =>
+    set({
+      diagnosticMode: mode,
+      viewMode: mode === "realtime" ? "live" : "diagnostics",
+    }),
 
   setTarget: (target) =>
     set({
@@ -92,6 +108,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       selectedSpanId: undefined,
       selectedTraceId: undefined,
       filters: defaultFilters,
+      viewMode: get().replay.active ? "replay" : get().diagnosticMode === "realtime" ? "live" : "diagnostics",
     }),
 
   setTargets: (targets) => set({ targets }),
@@ -155,21 +172,25 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
   startReplay: (traceId) =>
     set({
+      viewMode: "replay",
       replay: {
         active: true,
         traceId,
         cursor: 0,
         playing: true,
+        speed: 1,
       },
     }),
 
   stopReplay: () =>
     set({
+      viewMode: get().diagnosticMode === "realtime" ? "live" : "diagnostics",
       replay: {
         active: false,
         traceId: undefined,
         cursor: 0,
         playing: false,
+        speed: 1,
       },
     }),
 
@@ -186,6 +207,14 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       replay: {
         ...get().replay,
         playing,
+      },
+    }),
+
+  setReplaySpeed: (speed) =>
+    set({
+      replay: {
+        ...get().replay,
+        speed: Math.max(0.5, Math.min(8, speed)),
       },
     }),
 }));

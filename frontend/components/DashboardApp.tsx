@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CityScene } from "@/components/city/CityScene";
 import { FilterPanel } from "@/components/panels/FilterPanel";
 import { DetailDrawer } from "@/components/panels/DetailDrawer";
+import { FlowEventHoverCard } from "@/components/panels/FlowEventHoverCard";
 import { MetricsHeader } from "@/components/panels/MetricsHeader";
 import { TimelinePanel } from "@/components/panels/TimelinePanel";
 import { api } from "@/lib/api";
@@ -25,6 +26,8 @@ export function DashboardApp() {
   const [registering, setRegistering] = useState(false);
 
   const metrics = useDashboardStore((state) => state.metrics);
+  const viewMode = useDashboardStore((state) => state.viewMode);
+  const diagnosticMode = useDashboardStore((state) => state.diagnosticMode);
   const target = useDashboardStore((state) => state.target);
   const targets = useDashboardStore((state) => state.targets);
   const setTarget = useDashboardStore((state) => state.setTarget);
@@ -33,9 +36,16 @@ export function DashboardApp() {
   const selectedSpanId = useDashboardStore((state) => state.selectedSpanId);
   const setSelectedNode = useDashboardStore((state) => state.setSelectedNode);
   const setSelectedSpan = useDashboardStore((state) => state.setSelectedSpan);
+  const setViewMode = useDashboardStore((state) => state.setViewMode);
   const traces = useDashboardStore((state) => state.traces);
 
   const { topology, nodes, edges, events } = useFilteredTopology();
+  const nodesById = useMemo(() => {
+    return nodes.reduce<Record<string, (typeof nodes)[number]>>((acc, node) => {
+      acc[node.id] = node;
+      return acc;
+    }, {});
+  }, [nodes]);
 
   const replayTarget = useMemo(() => traces[0]?.envelope.trace_id, [traces]);
 
@@ -45,6 +55,10 @@ export function DashboardApp() {
       setTarget(searchTarget);
     }
   }, [searchTarget, setTarget, target]);
+
+  useEffect(() => {
+    setViewMode("live");
+  }, [setViewMode]);
 
   const handleRegisterTarget = async () => {
     if (registering) return;
@@ -93,7 +107,7 @@ export function DashboardApp() {
   return (
     <main className="h-screen w-screen overflow-hidden bg-transparent text-slate-100">
       <div className="mx-auto flex h-full max-w-[1700px] flex-col border-x border-line">
-        <MetricsHeader metrics={metrics} />
+        <MetricsHeader metrics={metrics} mode={viewMode} diagnosticMode={diagnosticMode} />
 
         <div className="flex items-center justify-between border-b border-line bg-[#071120cc] px-4 py-2 text-xs text-slate-300">
           <div className="panel-title text-sm uppercase tracking-wide">Agent City Runtime Monitor</div>
@@ -139,12 +153,18 @@ export function DashboardApp() {
               nodes={nodes}
               edges={edges}
               events={events}
+              diagnosticMode={diagnosticMode}
               selectedNodeId={selectedNodeId}
               selectedSpanId={selectedSpanId}
               onSelectNode={(nodeId) => setSelectedNode(nodeId)}
               onSelectEvent={(event) => setSelectedSpan(event.span_id, event.trace_id)}
               onHoverEvent={(event) => setHoveredEvent(event)}
             />
+            {hoveredEvent && (
+              <div className="pointer-events-none absolute left-3 top-3 z-10 w-[320px]">
+                <FlowEventHoverCard event={hoveredEvent} nodesById={nodesById} />
+              </div>
+            )}
           </section>
 
           <DetailDrawer hoveredEvent={hoveredEvent} />

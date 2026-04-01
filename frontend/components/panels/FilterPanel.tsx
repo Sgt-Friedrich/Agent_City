@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 
+import { DiagnosticMode, flowLegend } from "@/lib/visualTheme";
 import { useDashboardStore } from "@/store/useDashboardStore";
 import { NodeType, SpanKind } from "@/types/schema";
 
@@ -31,17 +32,25 @@ export function FilterPanel() {
   const topology = useDashboardStore((state) => state.topology);
   const traces = useDashboardStore((state) => state.traces);
   const filters = useDashboardStore((state) => state.filters);
+  const diagnosticMode = useDashboardStore((state) => state.diagnosticMode);
   const setDistrictFilter = useDashboardStore((state) => state.setDistrictFilter);
   const setNodeTypeFilter = useDashboardStore((state) => state.setNodeTypeFilter);
   const setSpanKindFilter = useDashboardStore((state) => state.setSpanKindFilter);
   const setStatusFilter = useDashboardStore((state) => state.setStatusFilter);
   const setTraceFilter = useDashboardStore((state) => state.setTraceFilter);
+  const setDiagnosticMode = useDashboardStore((state) => state.setDiagnosticMode);
   const resetFilters = useDashboardStore((state) => state.resetFilters);
 
   const nodeTypes = useMemo<NodeType[]>(() => {
     if (!topology) return [];
     return Array.from(new Set(topology.nodes.map((node) => node.type))).sort();
   }, [topology]);
+
+  const diagnosticModes: Array<{ id: DiagnosticMode; label: string }> = [
+    { id: "realtime", label: "real-time" },
+    { id: "heatmap", label: "heatmap" },
+    { id: "errors", label: "errors" },
+  ];
 
   return (
     <aside className="h-full overflow-y-auto border-r border-line bg-[#081320cc] p-3 scrollbar-thin">
@@ -55,6 +64,26 @@ export function FilterPanel() {
           reset
         </button>
       </div>
+
+      <section className="mt-4 space-y-2 rounded border border-line bg-[#0a1829] p-2">
+        <h3 className="text-xs uppercase tracking-wide text-slate-400">Diagnostic Mode</h3>
+        <div className="grid grid-cols-3 gap-1">
+          {diagnosticModes.map((mode) => (
+            <button
+              key={mode.id}
+              type="button"
+              className={`rounded border px-2 py-1 text-[11px] uppercase tracking-wide ${
+                diagnosticMode === mode.id
+                  ? "border-sky-400 bg-[#123251] text-slate-100"
+                  : "border-line bg-[#0b1a2e] text-slate-400 hover:text-slate-200"
+              }`}
+              onClick={() => setDiagnosticMode(mode.id)}
+            >
+              {mode.label}
+            </button>
+          ))}
+        </div>
+      </section>
 
       <section className="mt-4 space-y-2">
         <h3 className="text-xs uppercase tracking-wide text-slate-400">District</h3>
@@ -132,6 +161,18 @@ export function FilterPanel() {
             </option>
           ))}
         </select>
+      </section>
+
+      <section className="mt-4 space-y-2 rounded border border-line bg-[#0a1829] p-2">
+        <h3 className="text-xs uppercase tracking-wide text-slate-400">Flow Legend</h3>
+        <div className="grid grid-cols-1 gap-1">
+          {flowLegend.map((item) => (
+            <div key={item.label} className="flex items-center justify-between text-[11px] text-slate-300">
+              <span>{item.label}</span>
+              <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+            </div>
+          ))}
+        </div>
       </section>
     </aside>
   );

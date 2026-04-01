@@ -40,7 +40,7 @@ agent-city-mvp/
     app/replay/[traceId]/page.tsx
     components/{city,panels,replay}/*.tsx
     hooks/{useBootstrapData,useLiveFlowSocket,useFilteredTopology}.ts
-    lib/{api,config,colorMaps,utils}.ts
+    lib/{api,config,colorMaps,visualTheme,utils}.ts
     store/useDashboardStore.ts
     types/schema.ts
   samples/*.json
@@ -162,18 +162,42 @@ Main page `/`:
 - Center 3D city scene
 - Right detail drawer
 - Bottom timeline
+- Flow hover card + city mini-map
+- Diagnostic mode switch (`realtime` / `heatmap` / `errors`)
 
 Replay page `/replay/[traceId]?target=...`:
 
-- Play/pause/reset/scrub
+- Play/pause/reset/replay/scrub
+- Speed control (`0.5x/1x/1.5x/2x/4x`)
 - Highlight current span path in city
 - Span list + current span details
+- Cinematic darkening + current step subtitle
 
 Target switching:
 
 - Header dropdown selects `mock / claude / codex`.
 - Frontend refetches topology/traces/metrics and reconnects WS for selected target.
 - Header `+ add repo` button registers unseen repositories and switches target automatically.
+
+Visual style layer:
+
+- Theme tokens and mapping helpers: `frontend/lib/visualTheme.ts`
+- Business-to-visual mapping:
+  - district color: architecture domain (planning/retrieval/memory/tools/llm/safety/runtime/boundary)
+  - node height: module scale/weight and hotness
+  - node color: health status (`healthy/warning/error/idle`)
+  - flow color: span kind (`LLM/retrieval/tool+MCP/memory/runtime/error`)
+  - flow density: throughput hint
+  - flow speed: latency inverse (slower motion = bottleneck)
+- Diagnostic animations:
+  - pulse status lamp: active node
+  - dashed/curved flow: retry/fallback
+  - red blink flow: error/rejection
+  - replay dark mode + single-trace highlight: demo and troubleshooting readability
+- Demo readability effects:
+  - district border + hover summary
+  - close-range labels, far-range declutter
+  - mini-map overview for quick spatial orientation
 
 ## 7) How To Run
 

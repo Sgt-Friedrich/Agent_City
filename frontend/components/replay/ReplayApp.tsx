@@ -4,12 +4,13 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { CityScene } from "@/components/city/CityScene";
+import { FlowEventHoverCard } from "@/components/panels/FlowEventHoverCard";
 import { ReplayController } from "@/components/replay/ReplayController";
 import { ReplaySpanList } from "@/components/replay/ReplaySpanList";
 import { api } from "@/lib/api";
 import { useBootstrapData } from "@/hooks/useBootstrapData";
 import { useDashboardStore } from "@/store/useDashboardStore";
-import { FlowEvent, TraceRecord } from "@/types/schema";
+import { FlowEvent, Node, TraceRecord } from "@/types/schema";
 
 interface ReplayAppProps {
   traceId: string;
@@ -25,21 +26,24 @@ export function ReplayApp({ traceId, target }: ReplayAppProps) {
   const setSelectedNode = useDashboardStore((state) => state.setSelectedNode);
   const setSelectedSpan = useDashboardStore((state) => state.setSelectedSpan);
   const setTarget = useDashboardStore((state) => state.setTarget);
+  const setViewMode = useDashboardStore((state) => state.setViewMode);
 
   const replay = useDashboardStore((state) => state.replay);
   const startReplay = useDashboardStore((state) => state.startReplay);
   const stopReplay = useDashboardStore((state) => state.stopReplay);
+  const diagnosticMode = useDashboardStore((state) => state.diagnosticMode);
 
   useEffect(() => {
     setTarget(target);
   }, [setTarget, target]);
 
   useEffect(() => {
+    setViewMode("replay");
     startReplay(traceId);
     return () => {
       stopReplay();
     };
-  }, [startReplay, stopReplay, traceId]);
+  }, [setViewMode, startReplay, stopReplay, traceId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -61,6 +65,10 @@ export function ReplayApp({ traceId, target }: ReplayAppProps) {
   }, [target, traceId]);
 
   const events = trace?.spans ?? [];
+  const nodesById = (topology?.nodes ?? []).reduce<Record<string, Node>>((acc, node) => {
+    acc[node.id] = node;
+    return acc;
+  }, {});
 
   return (
     <main className="h-screen w-screen overflow-hidden bg-[#03070d] text-slate-100">
@@ -76,13 +84,14 @@ export function ReplayApp({ traceId, target }: ReplayAppProps) {
         <ReplayController trace={trace} />
 
         <div className="grid min-h-0 flex-1 grid-cols-[1fr_320px]">
-          <section className="min-h-0 border-r border-line">
+          <section className="relative min-h-0 border-r border-line">
             {!loading && (
               <CityScene
                 topology={topology}
                 nodes={topology?.nodes ?? []}
                 edges={topology?.edges ?? []}
                 events={events}
+                diagnosticMode={diagnosticMode}
                 replay={{
                   enabled: replay.active,
                   traceId: replay.traceId,
@@ -93,16 +102,15 @@ export function ReplayApp({ traceId, target }: ReplayAppProps) {
                 onHoverEvent={(event) => setHoveredEvent(event)}
               />
             )}
+            <div className="pointer-events-none absolute inset-0 bg-[#02071066]" />
+            {hoveredEvent && (
+              <div className="pointer-events-none absolute left-3 top-3 z-10 w-[320px]">
+                <FlowEventHoverCard event={hoveredEvent} nodesById={nodesById} />
+              </div>
+            )}
           </section>
           <ReplaySpanList trace={trace} />
         </div>
-
-        {hoveredEvent && (
-          <div className="border-t border-line bg-[#060f1cee] px-3 py-2 text-xs text-slate-300">
-            {hoveredEvent.from_node} -&gt; {hoveredEvent.to_node} | {hoveredEvent.span_kind} | {hoveredEvent.protocol} |
-            latency {hoveredEvent.latency_ms} ms | {hoveredEvent.status}
-          </div>
-        )}
       </div>
     </main>
   );
