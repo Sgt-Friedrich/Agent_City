@@ -1,18 +1,18 @@
----
+﻿---
 name: frontend-fix
-description: Apply minimal high-confidence frontend fixes aligned with existing design system and architecture.
+description: Apply minimal, high-confidence fixes to Agent_City desktop workbench UI issues while preserving architecture and visual semantics.
 ---
 
-Fix rules:
-- Reuse existing tokens, components, and layout primitives.
-- Keep patch scope minimal and directly tied to root cause.
-- Do not create parallel style systems.
-- Avoid broad refactors unless required for correctness.
-- Keep accessibility and responsive behavior intact.
+Rules:
+- Reuse current tokens/components/layout primitives.
+- Keep patch scope minimal and well-justified.
+- Do not introduce parallel styling systems.
+- Preserve mode-switch consistency across overview/live/diagnostics/parser/reports/replay.
 
-Before coding:
-- State root cause in 1-3 sentences.
-- State exact files to change.
+Before patching:
+1. State root cause in 1-3 sentences.
+2. List files to change.
 
-After coding:
-- Re-run validation and summarize impacts.
+After patching:
+1. Re-run validation flow.
+2. Document behavior before/after.

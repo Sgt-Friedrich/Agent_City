@@ -16,6 +16,7 @@ import {
   TargetOption,
   TopologyGraph,
   TraceRecord,
+  DesktopAppStatus,
 } from "@/types/schema";
 import { DashboardMode, DiagnosticMode } from "@/lib/visualTheme";
 
@@ -41,6 +42,7 @@ interface DashboardState {
   metrics?: MetricsSummary;
   diagnosticsSummary?: DiagnosticsSummary;
   parserAnalysis?: ParserAnalysisReport;
+  desktopStatus?: DesktopAppStatus;
   liveEvents: FlowEvent[];
   selectedNodeId?: string;
   selectedSpanId?: string;
@@ -62,6 +64,7 @@ interface DashboardState {
   setMetrics: (metrics: MetricsSummary) => void;
   setDiagnosticsSummary: (summary: DiagnosticsSummary | undefined) => void;
   setParserAnalysis: (report: ParserAnalysisReport | undefined) => void;
+  setDesktopStatus: (status: DesktopAppStatus | undefined) => void;
   pushLiveEvent: (event: FlowEvent) => void;
   setSelectedNode: (nodeId?: string) => void;
   setSelectedSpan: (spanId?: string, traceId?: string) => void;
@@ -99,6 +102,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   traceDetails: {},
   diagnosticsSummary: undefined,
   parserAnalysis: undefined,
+  desktopStatus: undefined,
   liveEvents: [],
   filters: defaultFilters,
   replay: {
@@ -138,7 +142,9 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       filters: defaultFilters,
       viewMode:
         get().viewMode === "parser_analysis"
-            ? "parser_analysis"
+          ? "parser_analysis"
+          : get().viewMode === "reports"
+            ? "reports"
           : get().replay.active
             ? "replay"
             : get().diagnosticMode === "realtime"
@@ -194,6 +200,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   setMetrics: (metrics) => set({ metrics }),
   setDiagnosticsSummary: (diagnosticsSummary) => set({ diagnosticsSummary }),
   setParserAnalysis: (parserAnalysis) => set({ parserAnalysis }),
+  setDesktopStatus: (desktopStatus) => set({ desktopStatus }),
 
   pushLiveEvent: (event) => {
     const next = [event, ...get().liveEvents].slice(0, 500);

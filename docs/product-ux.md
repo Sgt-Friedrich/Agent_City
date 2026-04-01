@@ -1,98 +1,116 @@
-﻿# Agent_City Product UX
+﻿# Product UX
 
-## 1. Product UX Goals
-1. First screen explains the system without training.
-2. Common actions are one-step reachable.
-3. Drill-down path stays coherent from global to payload detail.
-4. Diagnostic signals are explicit, not hidden in logs.
+## 1. UX Objective
 
-## 2. Information Architecture
-- Top bar: KPI + mode status + target switch
-- Left panel: filters/search/legend
-- Center canvas: city rendering and live behavior
-- Right panel: detail inspector or diagnostics focus
-- Bottom panel: timeline and event stream
+Agent_City is a desktop analysis workbench. The UX goal is:
 
-## 3. Modes and Intent
+1. Understand architecture quickly.
+2. Observe runtime behavior continuously.
+3. Diagnose issues with minimal interaction friction.
+4. Close the loop from issue -> fix -> regression -> report.
 
-| Mode | Primary user question | Main visual behavior |
-|---|---|---|
-| `overview` | What is the structure and current health? | full city, balanced overlays |
-| `live` | What is executing right now? | active flows and event emphasis |
-| `diagnostics` | Where are slow/error/retry/fallback hotspots? | heat/error emphasis, unstable edges |
-| `parser_analysis` | How trustworthy is parsed topology? | confidence/coverage/issues panel |
-| `replay` | How did one request execute over time? | city dim + single trace highlight |
+## 2. Workbench Navigation Model
 
-## 4. Interaction Model
-- Hover node: summary card (status, qps, p95, error)
-- Hover flow: from/to, protocol, span kind, latency, status
-- Click node: sync with detail drawer and dependency context
-- Click trace/span: filter timeline and enter replay
-- Search/filter: district, node type, status, span kind, trace
+The left navigation provides direct mode switching:
+
+- Overview
+- Live
+- Diagnostics
+- Parser Analysis
+- Reports
+
+This avoids deep nested menus and keeps mode transitions explicit.
+
+## 3. Main Window Information Hierarchy
+
+### Top strip
+- KPI summary
+- active mode
+- desktop shell status
+- local service readiness
+
+### Left panel
+- mode switch
+- filters
+- search
+- diagnostic toggles
+
+### Center workspace
+- city view (overview/live/diagnostics)
+- parser analysis surface
+- reports document center
+
+### Right inspector
+- node/span details
+- diagnostics hotspot list
+
+### Bottom timeline
+- request path progression
+- event stream context
+
+## 4. Interaction Principles
+
+1. Default simple, drill-down rich.
+2. Hover for summary, click for detail.
+3. Mode-specific emphasis:
+   - overview: structure first
+   - live: motion first
+   - diagnostics: anomaly first
+   - parser analysis: confidence first
+   - reports: evidence first
 
 ## 5. Visual Semantics
 
-### 5.1 District Layout
-- Planning/orchestration is central
-- Retrieval and memory are side clusters
-- Tool/MCP/external integrations are boundary/industrial zones
-- LLM is landmark-like tower cluster
-- Safety/guardrail nodes are placed near critical paths
+### District
+- clear semantic zoning, not random placement.
 
-### 5.2 Node Mapping
-- Height -> activity/heat
-- Footprint -> ownership/scope
-- Color -> status
-  - healthy: green
-  - warning: yellow
-  - error: red
-  - idle: gray-blue
+### Building
+- height = activity/heat
+- footprint = component scope
+- color = health status
 
-### 5.3 Flow Mapping
-- LLM: blue
-- Retrieval: green
-- Tool/MCP: purple
-- Memory: yellow
-- Error/retry/fallback/reject: red
+### Flow
+- color by span kind/status
+- speed and trail convey latency/load
+- retry/fallback/error with explicit visual patterns
 
 ## 6. Diagnostics UX
-- Slow nodes: latency-driven scoring
-- Error nodes: status + error-rate + runtime errors
-- Congestion nodes: queue depth + active count
-- Unstable edges: retries/fallback/errors + latency
-- Notes section: interpretation hints for current window
+
+Diagnostics is designed for quick triage:
+- slow nodes
+- error nodes
+- congested nodes
+- unstable edges (retry/fallback/error)
+- trace handles for focused follow-up
 
 ## 7. Parser Analysis UX
-- Confidence and grade are shown at top
-- Source coverage matrix exposes missing evidence sources
-- Issues provide category + severity + actionable suggestion
-- Low-confidence edges enable direct jump to diagnostics
-- Unresolved symbols are explicit, not hidden
 
-## 8. Replay UX
-- Global dimming to reduce visual noise
-- Current span/node pulse highlight
-- Timeline cursor tracks progression
-- Span detail is synchronized with right panel
-- Speed control and step navigation support demos and debugging
+Parser analysis emphasizes explainability:
+- parser confidence and grade
+- source coverage map
+- unresolved symbols
+- low-confidence edges
+- issue list with suggestions
 
-## 9. Frontend Self-Debug Loop
-Built-in workflow (`AGENTS.md` + `.agents/skills/frontend-*`):
-1. Reproduce issue at desktop/tablet/mobile.
-2. Capture screenshots and console/page errors.
-3. Classify root cause (layout/state/runtime/3D layer).
-4. Apply minimal fix.
-5. Run Playwright regression.
-6. Produce fix report.
+## 8. Reports UX
 
-## 10. Accessibility and Readability
-- High-contrast dark theme with restrained neon accents
-- Motion used for diagnostics, not decoration
-- Dense views keep text readable at zoom levels
-- Key interactions remain keyboard reachable where practical
+Reports center supports:
+- artifact catalog
+- inline content preview
+- export selected document
+- export live analysis report
+- open docs directory from desktop shell
 
-## 11. UX Boundaries
-Current known limits:
-- Parser analysis relies on heuristic + regex-first extraction
-- Very dynamic runtime-generated graphs may still need adapter help
-- Massive topologies may require clustering/virtualization in future
+## 9. Desktop-first Behavior
+
+Compared with browser-only tools, this workbench adds:
+- local service orchestration awareness
+- desktop save/open capabilities
+- stable long-session operation context
+- consistent local environment assumptions
+
+## 10. Known UX Boundaries
+
+- Extremely large topologies may require future clustering strategy.
+- Parser confidence remains heuristic-driven for unknown frameworks.
+- Desktop shell currently uses Electron; Tauri migration is planned through shell boundaries.

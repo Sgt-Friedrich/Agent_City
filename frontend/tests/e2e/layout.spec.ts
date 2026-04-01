@@ -46,6 +46,9 @@ test("dashboard renders core zones and replay route is reachable", async ({ page
   await page.getByRole("button", { name: /parser/i }).click();
   await expect(page.getByTestId("parser-analysis-center")).toBeVisible();
 
+  await page.getByRole("button", { name: /reports/i }).click();
+  await expect(page.getByTestId("reports-center")).toBeVisible();
+
   await page.getByRole("button", { name: /overview/i }).click();
   await expect(page.getByTestId("city-scene")).toBeVisible();
 

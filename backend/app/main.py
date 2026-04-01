@@ -14,6 +14,7 @@ from app.routers.analysis import router as analysis_router
 from app.routers.metrics import router as metrics_router
 from app.routers.nodes import router as nodes_router
 from app.routers.parsing import router as parsing_router
+from app.routers.reports import router as reports_router
 from app.routers.topology import router as topology_router
 from app.routers.traces import router as traces_router
 from app.services.platform_service import PlatformService
@@ -71,6 +72,7 @@ app.include_router(nodes_router)
 app.include_router(metrics_router)
 app.include_router(parsing_router)
 app.include_router(analysis_router)
+app.include_router(reports_router)
 
 
 @app.get("/healthz")

@@ -1,0 +1,17 @@
+﻿{
+  "name": "agent_city_desktop",
+  "private": true,
+  "version": "0.2.0",
+  "description": "Agent_City Desktop Workbench shell",
+  "main": "main.js",
+  "scripts": {
+    "dev": "cross-env NODE_ENV=development electron .",
+    "start": "cross-env NODE_ENV=production electron .",
+    "smoke": "cross-env NODE_ENV=development AGENT_CITY_DESKTOP_SMOKE=1 electron .",
+    "test:smoke": "node tests/smoke.js"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "electron": "^31.7.7"
+  }
+}

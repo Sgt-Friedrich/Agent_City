@@ -1,43 +1,55 @@
-﻿# Frontend Fix Report (2026-04-02)
+﻿# App UI Fix Report (2026-04-02)
 
 ## Scope
-Stabilize the productized dashboard modes (`overview/diagnostics/parser`) and remove runtime regressions discovered by Playwright.
+Stabilize workbench mode switching and analysis surfaces in the desktop-app-oriented Agent_City UI.
 
 ## Issues Found
 
-1. Parser Analysis mode runtime crash:
-   - Cause: `ParserAnalysisCenter` assumed edge fields are always `from/to` and called `.split()` on `undefined`.
-2. Diagnostics mode console error warning:
-   - Cause: duplicate React keys in Recent Trace Handles list (`trace_id` duplicates).
+1. Parser Analysis runtime crash:
+   - Cause: mixed edge payload fields (`from/to` vs `from_node/to_node`) produced `undefined.split(...)`.
+2. Diagnostics panel warning noise:
+   - Cause: duplicate React keys in trace-handle rendering.
+3. Workbench mode coverage gap:
+   - Cause: reports mode and desktop shell status were missing in main window flow.
 
 ## Fixes Applied
 
-### 1) API + Frontend edge field compatibility
+### 1) Analysis payload compatibility hardening
 - Backend: `backend/app/routers/analysis.py`
-  - analysis endpoints now serialize with `by_alias=True`.
-- Frontend: `frontend/components/analysis/ParserAnalysisCenter.tsx`
-  - added endpoint resolver (`from/to` with `from_node/to_node` fallback).
-  - added safe short-name formatting.
+  - analysis endpoints now use `model_dump(by_alias=True)`.
+- UI: `frontend/components/analysis/ParserAnalysisCenter.tsx`
+  - tolerant endpoint mapping + safe formatting.
 
-### 2) Duplicate key warning elimination
+### 2) Diagnostics rendering cleanup
 - `frontend/components/analysis/DiagnosticsCenter.tsx`
-  - dedupe trace handles via `Set` before rendering.
-  - hardened key generation for notes list.
-- `frontend/components/analysis/ParserAnalysisCenter.tsx`
-  - hardened unresolved symbol keys with index suffix.
+  - dedupe trace handles via `Set`
+  - hardened key generation
 
-## Added Regression Test
+### 3) Workbench feature completion
+- Added `Reports` mode and report center:
+  - `frontend/components/analysis/ReportsCenter.tsx`
+  - `backend/app/routers/reports.py`
+  - `backend/app/services/report_service.py`
+- Added desktop shell status polling:
+  - `frontend/hooks/useDesktopAppStatus.ts`
+- Reworked main window shell composition:
+  - `frontend/components/DashboardApp.tsx`
+
+## Added Regression Tests
 
 - `tests/parser/test_analysis_api.py`
-  - verifies `/api/analysis/parser` exposes edge fields as `from/to`.
+- `tests/parser/test_reports_api.py`
+- updated app UI automation: `frontend/tests/e2e/layout.spec.ts` (reports mode assertion)
 
 ## Validation
 
-- Backend compile: `python -m compileall backend/app` (pass)
-- Parser unit tests: `python -m unittest discover -s tests/parser -p "test_*.py" -v` (11/11 pass)
-- Frontend build: `npm --prefix frontend run build` (pass)
-- Frontend e2e: `npm --prefix frontend run e2e` (4/4 pass)
+- Backend compile: pass
+- Parser unit tests: `12/12` pass
+- Workbench build (`build:clean`): pass
+- App UI automation tests: `4/4` pass
+- Desktop shell contract smoke: pass (`npm --prefix desktop run test:smoke`)
 
 ## Remaining Risks
 
-- Next.js dev warning about future `allowedDevOrigins` config remains non-blocking.
+- `next build` may intermittently fail with `/_document` cache artifact if stale `.next` exists; `build:clean` mitigates this in CI and local checks.
+- Desktop shell currently uses Electron; production packaging hardening (signing/notarization) is out of current scope.

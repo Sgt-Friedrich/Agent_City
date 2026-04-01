@@ -13,7 +13,8 @@ export type DashboardMode =
   | "live"
   | "replay"
   | "diagnostics"
-  | "parser_analysis";
+  | "parser_analysis"
+  | "reports";
 
 export const themeTokens = {
   surface: "#050a12",

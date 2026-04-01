@@ -383,3 +383,18 @@ class AnalysisReportExport(BaseModel):
     target: str
     generated_at: datetime
     markdown: str
+
+
+class ReportArtifact(BaseModel):
+    id: str
+    title: str
+    category: str
+    file_name: str
+    absolute_path: str
+    size_bytes: int
+    updated_at: datetime
+
+
+class ReportContent(BaseModel):
+    artifact: ReportArtifact
+    content: str

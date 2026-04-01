@@ -1,143 +1,158 @@
-﻿# Agent_City
+﻿# Agent_City Desktop App
 
-Agent_City 是一个面向 Agent 系统的“城市化可视化 + 运行时监控”项目。  
-Agent_City is a city-style visualization and runtime observability platform for agent systems.
-
----
-
-## 1) 项目简介 | Overview
-
-**中文**
-- 目标：把 Agent 系统的静态架构和运行时链路统一展示在一个 3D 城市视图中。
-- 城市隐喻：街区=模块域，建筑=组件节点，道路=依赖关系，流动=trace/span/event。
-- 核心价值：不仅看“结构”，还能看“行为”和“诊断”。
-
-**English**
-- Goal: unify static architecture and runtime traces in one 3D city view.
-- City metaphor: district = domain, building = component node, road = dependency edge, flow = trace/span/event.
-- Value: show structure, behavior, and diagnostics together.
+Agent_City 是一个本地桌面应用工作台，用于 Agent 系统的**架构解析、运行时追踪、城市化可视表达、诊断、回放与报告闭环**。  
+Agent_City is a local desktop workbench for **architecture parsing, runtime tracing, city-style observability, diagnostics, replay, and reporting closure**.
 
 ---
 
-## 1.1) 为什么不是普通拓扑图 | Why It Is Not Just a Topology Viewer
+## 1) 这不是普通网页 | Why This Is Not a Typical Web Dashboard
 
 **中文**
-- 不是静态图：支持 live trace + replay + diagnostics。
-- 不是一次性 demo：包含 parser 回归、前端自调试技能链、清理脚本与报告模板。
-- 不是单点功能：从“解析 -> 展示 -> 诊断 -> 修复 -> 回归”形成闭环。
+- 这是桌面 App 工作台，主窗口内集成了本地服务编排状态、报告导出和长期分析路径。
+- 不只是静态拓扑图，支持 live/replay/diagnostics/parser analysis/reports 全链路视图。
+- 支持从“解析 -> 追踪 -> 可视诊断 -> 修复回归 -> 报告沉淀”的闭环。
 
 **English**
-- Not static-only: includes live trace, replay, and diagnostics views.
-- Not a one-off demo: includes parser regression, frontend self-debug skills, cleanup tooling, and report templates.
-- Not a point solution: closes the loop from parsing to visualization, diagnosis, fixes, and regression.
+- This is a desktop app workbench with local service orchestration awareness and local report export.
+- It is not a static topology graph; it provides live/replay/diagnostics/parser-analysis/reports views.
+- It closes the loop from parse -> trace -> diagnose -> fix -> regression -> report.
 
 ---
 
 ## 2) 核心能力 | Core Capabilities
 
-**中文**
-1. 静态解析：Topology Discovery + Normalizer（支持未知仓库智能解析）。
-2. 运行时解析：Trace Resolver（含 retry/fallback/mcp/tool/retrieval 路径模拟与映射）。
-3. 图绑定：Topology + Trace Binding（declared/observed/inferred/fallback/retry）。
-4. 前端可视化：3D 城市 + 实时流动 + replay 回放 + 诊断模式。
-5. 回归体系：多语言解析回归 + 前端 Playwright 响应式回归。
+1. **静态架构解析 | Static Architecture Parsing**
+- Topology Discovery + Normalizer
+- Multi-language parsing (Python / TypeScript / Go / Rust / Java / C# / config)
+- Provenance + confidence + graceful degradation
 
-**English**
-1. Static parsing: Topology Discovery + Normalizer (including intelligent parsing for unseen repos).
-2. Runtime parsing: Trace Resolver (retry/fallback/mcp/tool/retrieval path modeling and mapping).
-3. Graph binding: Topology + Trace Binding (declared/observed/inferred/fallback/retry).
-4. Frontend visualization: 3D city + live flows + replay mode + diagnostics mode.
-5. Regression: multi-language parser regression + responsive frontend regression with Playwright.
+2. **运行时追踪 | Runtime Tracing**
+- TraceEnvelope / SpanEvent / FlowEvent
+- retry / fallback / error / rejection handling
+- topology binding with declared/observed/inferred edges
+
+3. **城市化表达 | City-style Visualization**
+- district = module domain
+- building = component
+- road = dependency/runtime path
+- flow = runtime data movement
+
+4. **诊断与回放 | Diagnostics and Replay**
+- slow/error/congested nodes
+- unstable edges
+- trace replay with timeline
+
+5. **解析能力分析 | Parser Analysis**
+- parser confidence, coverage, unresolved symbols, low-confidence edges
+
+6. **报告中心 | Reports Center**
+- parser/app/system report catalog
+- document preview + export
+- desktop file save/open actions
 
 ---
 
-## 3) 展示截图 | Screenshots
+## 3) 应用形态 | App Form
 
-### Dashboard (Desktop)
+- Desktop shell: **Electron** (shell boundary is isolated for future Tauri migration)
+- Workbench UI: Next.js + React + TypeScript + Tailwind + React Three Fiber + Zustand
+- Local service: FastAPI + WebSocket
+
+---
+
+## 4) 展示截图 | Screenshots
+
+### Main Workbench (Desktop)
 ![Agent_City Dashboard Desktop](docs/screenshots/dashboard-desktop.png)
 
-### Dashboard (Mobile)
+### Main Workbench (Mobile Preview)
 ![Agent_City Dashboard Mobile](docs/screenshots/dashboard-mobile.png)
 
-### Replay (Desktop)
+### Replay View
 ![Agent_City Replay Desktop](docs/screenshots/replay-desktop.png)
 
 ---
 
-## 4) 架构分层 | Architecture Layers
-
-### 静态解析层 | Static Parsing Layer
-- `backend/app/services/topology_discovery.py`
-- `backend/app/services/topology_normalizer.py`
-- `backend/app/sources/repo_topology_source.py`
-- `backend/app/sources/intelligent_topology_source.py`
-- `backend/app/parsers/*` (Python/TS/Go/Rust/Java/C# + config/docs parser)
-
-### 运行时解析层 | Runtime Parsing Layer
-- `backend/app/services/runtime_trace_resolver.py`
-- `backend/app/services/topology_binding.py`
-- `backend/app/generators/live_event_generator.py`
-
-### 可视化表达层 | Visualization Layer
-- `frontend/components/city/*`
-- `frontend/components/panels/*`
-- `frontend/components/replay/*`
-- `frontend/store/useDashboardStore.ts`
-
----
-
-## 5) 目录结构 | Project Structure
+## 5) 应用结构 | Application Structure
 
 ```text
 Agent_City/
-  backend/
-  frontend/
-  docs/
-  tests/
-  scripts/
-  .agents/
-  plugins/frontend-ops/
-  AGENTS.md
+  desktop/                     # desktop shell
+    main.js
+    preload.js
+    src/serviceManager.js
+  frontend/                    # workbench UI
+  backend/                     # local FastAPI service
+  docs/                        # architecture/ux/reports
+  tests/                       # parser regression tests
+  scripts/                     # automation, cleanup, full-system tests
+  .agents/                     # Codex self-debug workflow
 ```
 
 ---
 
-## 6) 快速启动 | Quick Start
+## 6) 工作台视图 | Workbench Views
 
-### Backend
+- `Overview`
+- `Live`
+- `Replay`
+- `Diagnostics`
+- `Parser Analysis`
+- `Reports`
+
+窗口信息架构：
+- 顶部：KPI + 模式状态 + 本地服务状态
+- 左侧：导航 + 过滤
+- 中部：城市/分析工作区
+- 右侧：检查器
+- 底部：时间线
+
+---
+
+## 7) 启动方式 | How To Run
+
+### 7.1 安装依赖 | Install
+
 ```bash
+npm --prefix frontend install
+npm --prefix desktop install
+python -m pip install -r backend/requirements.txt
+```
+
+### 7.2 启动桌面应用 | Start Desktop App
+
+```bash
+npm --prefix desktop run dev
+```
+
+桌面壳会尝试：
+1. 复用已在本机运行的 frontend/backend 服务；
+2. 若不存在则自动拉起本地服务（backend + frontend）。
+
+### 7.3 可选：独立启动本地服务 | Optional standalone local services
+
+```bash
+# backend
 cd backend
-python -m pip install -r requirements.txt
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+
+# frontend
+npm --prefix frontend run dev
 ```
-
-### Frontend
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-### 打开页面 | Open URLs
-- Dashboard: `http://127.0.0.1:3000`
-- Replay: `http://127.0.0.1:3000/replay/<trace_id>?target=mock`
-
-### 自动解析工作流 | Auto Parse Workflow
-**中文**
-1. 启动后端和前端后，把任意 Agent 源码目录复制到：`refs/agent_drop/`
-2. 页面顶部会出现解析进度条（queued -> discovery -> normalization -> runtime -> completed）
-3. 解析完成后会自动切换到新 target，并刷新城市视图
-
-**English**
-1. After backend/frontend start, copy any agent source directory into `refs/agent_drop/`
-2. The dashboard top bar shows parsing progress (queued -> discovery -> normalization -> runtime -> completed)
-3. When parsing finishes, the UI auto-switches to the new target and expands the city view
 
 ---
 
-## 7) API 与实时流 | API and Live Stream
+## 8) 自动解析投递目录 | Drop-in Parse Workflow
 
-### REST
+1. 启动应用后，将待解析 agent 目录复制到：`refs/agent_drop/`
+2. 主窗口顶部显示解析进度条
+3. 解析完成后自动切换 target 并展开城市工作区
+
+---
+
+## 9) 后端接口 | Local Service APIs
+
+### Topology & Runtime
 - `GET /api/targets`
 - `POST /api/targets/register`
 - `GET /api/topology?target=...`
@@ -145,92 +160,128 @@ npm run dev
 - `GET /api/traces/{trace_id}?target=...`
 - `GET /api/nodes/{node_id}?target=...`
 - `GET /api/metrics/summary?target=...`
+- `GET /ws/live?target=...`
+
+### Parsing Jobs
 - `GET /api/parse-jobs`
 - `POST /api/parse-jobs/scan`
 
-### WebSocket
-- `GET /ws/live?target=...`
+### Analysis
+- `GET /api/analysis/diagnostics?target=...`
+- `GET /api/analysis/parser?target=...`
+- `GET /api/analysis/report?target=...&fmt=markdown|json`
+
+### Reports Catalog
+- `GET /api/reports`
+- `GET /api/reports/{report_id}`
 
 ---
 
-## 8) 测试与回归 | Testing and Regression
+## 10) 解析器结构 | Parser Architecture
 
-### 解析器测试 | Parser Tests
+核心模块：
+- `backend/app/services/topology_discovery.py`
+- `backend/app/services/topology_normalizer.py`
+- `backend/app/services/runtime_trace_resolver.py`
+- `backend/app/services/topology_binding.py`
+- `backend/app/parsers/*.py`
+- `backend/app/services/confidence_scoring.py`
+
+语义支持：
+- declared / observed / inferred edges
+- fallback / retry loop
+- unresolved symbols + confidence
+
+---
+
+## 11) 自调试工具链 | Self-Debug Toolchain
+
+仓库内置调试流程（面向 App 界面问题）：
+- `AGENTS.md`
+- `.agents/skills/frontend-repro`
+- `.agents/skills/frontend-visual-debug`
+- `.agents/skills/frontend-fix`
+- `.agents/skills/frontend-regression`
+- `.agents/skills/frontend-report`
+
+目标：
+1. 复现问题
+2. 采集证据（截图/控制台/日志）
+3. 根因分类
+4. 最小修复
+5. 回归验证
+6. 输出修复报告
+
+---
+
+## 12) 测试与闭环验证 | Testing and Closure
+
+### Parser regression
 ```bash
 python -m unittest discover -s tests/parser -p "test_*.py" -v
 python scripts/run_parser_retest.py
 ```
 
-### 前端 E2E | Frontend E2E
+### App UI automation
 ```bash
-npm --prefix frontend run e2e:install
 npm --prefix frontend run e2e
-npm --prefix frontend run build
+npm --prefix frontend run build:clean
 ```
 
-当前回归报告 | Current reports:
-- `docs/parser-fix-report.md`
-- `docs/parser-regression-summary.md`
-- `docs/frontend-e2e-test-report.md`
+### Desktop shell smoke
+```bash
+npm --prefix desktop run test:smoke
+```
+
+### Full system closure test
+```bash
+python scripts/run_full_system_tests.py
+```
+
+输出：`docs/full-system-test-report.md`
 
 ---
 
-## 8.1) 文档入口 | Documentation Index
+## 13) 文档入口 | Docs Index
 
 - `docs/architecture.md`
 - `docs/product-ux.md`
+- `docs/app-workbench-design.md`
 - `docs/parser-test-plan.md`
 - `docs/parser-test-results.md`
 - `docs/parser-capability-summary.md`
 - `docs/parser-fix-report-template.md`
-- `docs/parser-fix-report.md`
 - `docs/frontend-debug-playbook.md`
-- `docs/frontend-fix-report.md`
 - `docs/frontend-fix-report-template.md`
+- `docs/full-system-test-report.md`
 - `docs/reference-notes.md`
 
 ---
 
-## 9) 前端排障工具链 | Frontend Debug Toolchain
-
-本仓库内置可复用技能链：  
-This repo includes a reusable skills chain:
-
-- `frontend-repro`
-- `frontend-visual-debug`
-- `frontend-fix`
-- `frontend-regression`
-- `frontend-report`
-
-相关文件 | Related files:
-- `AGENTS.md`
-- `.agents/skills/frontend-*`
-- `.agents/plugins/marketplace.json`
-- `plugins/frontend-ops/.codex-plugin/plugin.json`
-- `plugins/frontend-ops/skills/frontend-*`
-
----
-
-## 10) 参考仓清理规则 | Reference Repository Cleanup
+## 14) 清理机制 | Cleanup Mechanism
 
 ```bash
 python scripts/cleanup_refs.py --root . --targets refs --threshold-mb 200 --keep-list-file docs/parser-tested-keep.txt --delete-unlisted --dry-run
 ```
 
-规则：任何单个参考目录 > 200MB 必须清理。  
-Rule: any single reference repo directory > 200MB must be removed.
-
-说明：`refs/agent_drop/` 已加入保留清单，用于运行时自动解析投递目录。  
-Note: `refs/agent_drop/` is now included in keep-list as the runtime drop-in ingest folder.
+规则：
+- 任意单个参考目录 > 200MB 必须删除
+- 未列入保留清单且无测试价值目录可删除
+- `refs/agent_drop` 作为运行时投递目录保留
 
 ---
 
-## 11) 后续扩展 | Future Extensions
+## 15) 已知边界 | Known Boundaries
 
-**中文**
-- 可接入 OpenTelemetry / OpenInference / Jaeger / Langfuse / Phoenix。
-- 可替换 mock trace source 为真实 telemetry adapter。
+1. 当前桌面壳采用 Electron（为了与 Next.js + FastAPI 集成效率）。
+2. 解析器是实用主义多策略方案，不是全语言 AST 完整编译器。
+3. 极大规模拓扑尚未做聚类/分层折叠优化。
 
-**English**
-- Can be extended to OpenTelemetry / OpenInference / Jaeger / Langfuse / Phoenix.
-- Mock runtime sources can be replaced by real telemetry adapters.
+---
+
+## 16) 后续扩展 | Future Extensions
+
+- Tauri shell migration (reuse existing shell-service boundary)
+- OTel / Jaeger / Phoenix / Langfuse adapters
+- richer desktop shortcuts/menu integration
+- CI pipeline for full-system closure tests

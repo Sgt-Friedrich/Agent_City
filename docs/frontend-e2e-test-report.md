@@ -1,28 +1,27 @@
-﻿# Frontend E2E Test Report
+﻿# App UI Automation Test Report
 
 ## Scope
 
-This run validates the full frontend interaction surface for:
+This run validates the desktop workbench UI surface for:
 
-- Dashboard shell and core panels
-- Mode switch (`overview` / `diagnostics` / `parser_analysis`)
-- Replay route availability and panel visibility
-- Responsive behavior at desktop/tablet/mobile
-- Runtime console/page error sanity checks
+- Main window shell layout
+- Mode switching (`overview` / `diagnostics` / `parser_analysis` / `reports`)
+- Replay route availability
+- Responsive behavior at desktop/tablet/mobile previews
+- Console/page runtime error sanity
 
 ## Environment
 
-- Frontend: Next.js dev server
-- Backend: FastAPI (uvicorn)
-- Browser: Playwright Chromium
+- Workbench UI: Next.js dev server
+- Local service: FastAPI (uvicorn)
+- Automation engine: Playwright Chromium
 - Date: 2026-04-02
 
-## Commands Executed
+## Commands
 
 ```bash
-npm --prefix frontend run e2e:install
 npm --prefix frontend run e2e
-npm --prefix frontend run build
+npm --prefix frontend run build:clean
 ```
 
 ## Test Files
@@ -38,38 +37,26 @@ npm --prefix frontend run build
 
 ## Assertions Covered
 
-- Dashboard core zones are visible:
+- Main shell regions are visible:
   - `metrics-header`
   - `parse-progress-banner`
   - `filter-panel`
   - `city-scene`
   - `detail-drawer`
   - `timeline-panel`
-- Mode transitions are functional:
-  - diagnostics center visible after switching to diagnostics mode
-  - parser analysis center visible after switching to parser mode
-  - city scene visible after switching back to overview
-- Replay link opens replay page successfully.
-- Replay core zones are visible:
-  - `replay-controller`
-  - `replay-city-panel`
-  - `replay-span-list`
+- Mode transitions:
+  - diagnostics center visible
+  - parser analysis center visible
+  - reports center visible
+  - return to overview shows city scene
+- Replay route opens and replay components are visible.
 - Responsive checks at:
   - 1440x900
   - 1024x768
   - 390x844
 - Horizontal overflow guard (<= 2px tolerance).
 
-## Regressions Fixed In This Run
+## Notes
 
-1. Parser Analysis runtime crash due mixed edge field names (`from/to` vs `from_node/to_node`).
-2. Diagnostics panel duplicate React keys causing console error warnings.
-
-## Observations
-
-- Next.js dev server emits a non-blocking warning about future `allowedDevOrigins` behavior.
-- No blocking runtime/frontend regression remained after fixes.
-
-## Follow-up
-
-- Optional hardening: add `allowedDevOrigins` in `frontend/next.config.mjs` to silence future compatibility warning.
+- Next.js dev warning about `allowedDevOrigins` is non-blocking.
+- Build stability uses `build:clean` to avoid stale `.next` cache artifacts.

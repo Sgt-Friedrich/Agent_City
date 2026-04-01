@@ -1,15 +1,14 @@
----
+﻿---
 name: frontend-regression
-description: Re-validate frontend fixes with responsive checks and Playwright regression runs.
+description: Run regression checks for Agent_City desktop workbench UI after fixes, covering window states and key workbench interactions.
 ---
 
-After a fix:
-1. Re-open affected page.
-2. Re-check desktop/tablet/mobile.
-3. Run Playwright tests for affected flows.
-4. Add minimal regression test when coverage is missing.
-5. Verify adjacent UI has no obvious regression.
-6. Summarize before/after and residual risks.
-
-Use project script:
-- `npm --prefix frontend run e2e`
+Validation checklist:
+1. Re-open affected workbench mode(s).
+2. Verify at 1440x900 / 1024x768 / 390x844.
+3. Run app UI automation tests.
+4. Add or update minimal regression test when needed.
+5. Summarize:
+   - before vs after
+   - pass/fail status
+   - residual risk

@@ -25,6 +25,7 @@ const modeLabel: Record<DashboardMode, string> = {
   replay: "Replay",
   diagnostics: "Diagnostics",
   parser_analysis: "Parser Analysis",
+  reports: "Reports",
 };
 
 export function MetricsHeader({ metrics, mode = "live", diagnosticMode = "realtime" }: MetricsHeaderProps) {

@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 
-import { DiagnosticMode, flowLegend } from "@/lib/visualTheme";
+import { DashboardMode, DiagnosticMode, flowLegend } from "@/lib/visualTheme";
 import { useDashboardStore } from "@/store/useDashboardStore";
 import { NodeType, SpanKind } from "@/types/schema";
 
@@ -32,6 +32,7 @@ export function FilterPanel() {
   const topology = useDashboardStore((state) => state.topology);
   const traces = useDashboardStore((state) => state.traces);
   const filters = useDashboardStore((state) => state.filters);
+  const viewMode = useDashboardStore((state) => state.viewMode);
   const diagnosticMode = useDashboardStore((state) => state.diagnosticMode);
   const searchQuery = useDashboardStore((state) => state.searchQuery);
   const setDistrictFilter = useDashboardStore((state) => state.setDistrictFilter);
@@ -40,6 +41,7 @@ export function FilterPanel() {
   const setStatusFilter = useDashboardStore((state) => state.setStatusFilter);
   const setTraceFilter = useDashboardStore((state) => state.setTraceFilter);
   const setSearchQuery = useDashboardStore((state) => state.setSearchQuery);
+  const setViewMode = useDashboardStore((state) => state.setViewMode);
   const setDiagnosticMode = useDashboardStore((state) => state.setDiagnosticMode);
   const resetFilters = useDashboardStore((state) => state.resetFilters);
 
@@ -52,6 +54,13 @@ export function FilterPanel() {
     { id: "realtime", label: "real-time" },
     { id: "heatmap", label: "heatmap" },
     { id: "errors", label: "errors" },
+  ];
+  const workbenchViews: Array<{ id: DashboardMode; label: string }> = [
+    { id: "overview", label: "overview" },
+    { id: "live", label: "live" },
+    { id: "diagnostics", label: "diagnostics" },
+    { id: "parser_analysis", label: "parser analysis" },
+    { id: "reports", label: "reports" },
   ];
 
   return (
@@ -66,6 +75,26 @@ export function FilterPanel() {
           reset
         </button>
       </div>
+
+      <section className="mt-4 space-y-2 rounded border border-line bg-[#0a1829] p-2">
+        <h3 className="text-xs uppercase tracking-wide text-slate-400">Workbench Views</h3>
+        <div className="grid grid-cols-1 gap-1">
+          {workbenchViews.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => setViewMode(item.id)}
+              className={`rounded border px-2 py-1 text-left text-[11px] uppercase tracking-wide ${
+                viewMode === item.id
+                  ? "border-sky-400 bg-[#123251] text-slate-100"
+                  : "border-line bg-[#0b1a2e] text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </section>
 
       <section className="mt-4 space-y-2 rounded border border-line bg-[#0a1829] p-2">
         <h3 className="text-xs uppercase tracking-wide text-slate-400">Diagnostic Mode</h3>

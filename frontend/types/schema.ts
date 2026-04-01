@@ -332,6 +332,42 @@ export interface ParserAnalysisReport {
   issues: ParserAnalysisIssue[];
 }
 
+export interface ReportArtifact {
+  id: string;
+  title: string;
+  category: string;
+  file_name: string;
+  absolute_path: string;
+  size_bytes: number;
+  updated_at: string;
+}
+
+export interface ReportContentResponse {
+  artifact: ReportArtifact;
+  content: string;
+}
+
+export interface ReportsResponse {
+  items: ReportArtifact[];
+  docs_root: string;
+}
+
+export interface DesktopServiceStatus {
+  url: string;
+  ready: boolean;
+  managed: boolean;
+  pid?: number | null;
+  message: string;
+}
+
+export interface DesktopAppStatus {
+  shellMode: "desktop" | "browser";
+  backend: DesktopServiceStatus;
+  frontend: DesktopServiceStatus;
+  lastError?: string | null;
+  updatedAt: string;
+}
+
 export interface Filters {
   districtIds: string[];
   nodeTypes: NodeType[];

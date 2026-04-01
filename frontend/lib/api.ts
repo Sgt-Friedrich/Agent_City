@@ -5,8 +5,10 @@ import {
   MetricsSummary,
   ParseJobsResponse,
   ParserAnalysisReport,
+  ReportContentResponse,
   RegisterTargetRequest,
   RegisterTargetResponse,
+  ReportsResponse,
   TopologyGraph,
   TargetsResponse,
   TracesResponse,
@@ -81,4 +83,7 @@ export const api = {
       }
       return response.text();
     }),
+  getReports: (category?: string) => request<ReportsResponse>("/api/reports", { category }),
+  getReportContent: (reportId: string) =>
+    request<ReportContentResponse>(`/api/reports/${encodeURIComponent(reportId)}`),
 };
