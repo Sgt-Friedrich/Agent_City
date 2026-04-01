@@ -16,6 +16,8 @@ from app.models.schemas import (
     Position,
     SourceProvenance,
     TopologyGraph,
+    RawComponent,
+    RawRelation,
 )
 
 
@@ -134,20 +136,28 @@ class TopologyNormalizer:
     """Normalizes discovered architecture into a unified topology schema."""
 
     def normalize(self, discovery: DiscoveryResult) -> TopologyGraph:
-        districts = self._build_districts(discovery)
-        nodes = self._build_nodes(discovery, districts)
-        edges = self._build_edges(discovery)
+        components = self._augment_with_relation_placeholders(discovery.components, discovery.relations)
+        districts = self._build_districts(components)
+        nodes = self._build_nodes(components, districts)
+        node_ids = {node.id for node in nodes}
+        edges = self._build_edges(discovery.relations, node_ids=node_ids)
 
         return TopologyGraph(
             generated_at=datetime.now(timezone.utc),
             districts=districts,
             nodes=nodes,
             edges=edges,
+            metadata={
+                "parser_confidence": discovery.parser_confidence,
+                "parser_grade": discovery.parser_grade,
+                "unresolved_symbols": discovery.unresolved_symbols,
+                "source_coverage": discovery.source_coverage,
+            },
         )
 
-    def _build_districts(self, discovery: DiscoveryResult) -> list[District]:
+    def _build_districts(self, components: list[RawComponent]) -> list[District]:
         counts = defaultdict(int)
-        for component in discovery.components:
+        for component in components:
             district_id = ROLE_TO_DISTRICT.get(component.role, "district.runtime")
             counts[district_id] += 1
 
@@ -166,11 +176,11 @@ class TopologyNormalizer:
             )
         return districts
 
-    def _build_nodes(self, discovery: DiscoveryResult, districts: list[District]) -> list[Node]:
+    def _build_nodes(self, components: list[RawComponent], districts: list[District]) -> list[Node]:
         district_map = {district.id: district for district in districts}
         by_district: dict[str, list] = defaultdict(list)
 
-        for component in discovery.components:
+        for component in components:
             district_id = ROLE_TO_DISTRICT.get(component.role, "district.runtime")
             by_district[district_id].append(component)
 
@@ -212,6 +222,39 @@ class TopologyNormalizer:
 
         return nodes
 
+    def _augment_with_relation_placeholders(
+        self,
+        components: list[RawComponent],
+        relations: list[RawRelation],
+    ) -> list[RawComponent]:
+        component_map = {component.id: component for component in components}
+        augmented = list(components)
+
+        for relation in relations:
+            for endpoint in (relation.source, relation.target):
+                if endpoint in component_map:
+                    continue
+
+                placeholder = RawComponent(
+                    id=endpoint,
+                    name=endpoint.replace("node.", "").replace("_", " ").title(),
+                    role="runtime_node",
+                    summary="Provisional node synthesized from unresolved relation endpoint.",
+                    source_type="normalizer_provisional",
+                    source_location=endpoint,
+                    tags=["provisional", "unresolved"],
+                    metadata={
+                        "weight": 0.85,
+                        "status": "idle",
+                        "synthetic": True,
+                        "unresolved_reason": f"referenced by relation {relation.id}",
+                    },
+                )
+                component_map[endpoint] = placeholder
+                augmented.append(placeholder)
+
+        return augmented
+
     def _layout_positions(self, district: District, count: int) -> list[Position]:
         if count <= 0:
             return []
@@ -237,10 +280,11 @@ class TopologyNormalizer:
             )
         return positions
 
-    def _build_edges(self, discovery: DiscoveryResult) -> list[Edge]:
+    def _build_edges(self, relations: list[RawRelation], node_ids: set[str]) -> list[Edge]:
         edges: list[Edge] = []
-        for relation in discovery.relations:
+        for relation in relations:
             edge_kind = RELATION_TO_EDGE_KIND.get(relation.relation_type, EdgeKind.DEPENDENCY)
+            has_missing_endpoint = relation.source not in node_ids or relation.target not in node_ids
             edge = Edge(
                 id=relation.id,
                 **{
@@ -250,12 +294,13 @@ class TopologyNormalizer:
                 kind=edge_kind,
                 protocol=relation.protocol,
                 status="declared",
-                confidence=relation.confidence,
+                confidence=relation.confidence if not has_missing_endpoint else min(relation.confidence, 0.45),
                 inferred_from=relation.inferred_from,
                 metrics={"latency_hint_ms": relation.metadata.get("latency_hint_ms", 80)},
                 metadata={
                     "relation_type": relation.relation_type,
                     "is_evidence": bool(relation.metadata.get("evidence_only", False)),
+                    "missing_endpoint": has_missing_endpoint,
                 },
             )
             edges.append(edge)

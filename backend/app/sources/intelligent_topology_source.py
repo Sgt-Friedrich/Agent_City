@@ -8,6 +8,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from app.parsers import ParserRegistry, default_parser_registry
+
 
 @dataclass
 class ClusterStat:
@@ -53,7 +55,9 @@ class IntelligentTopologySource:
         ".java",
         ".kt",
         ".scala",
+        ".cs",
         ".swift",
+        ".xml",
         ".yaml",
         ".yml",
         ".json",
@@ -63,6 +67,8 @@ class IntelligentTopologySource:
     }
 
     ROLE_HINTS: dict[str, list[str]] = {
+        "agent": ["agent", "assistant", "worker", "handoff"],
+        "sub_agent": ["subagent", "sub-agent", "delegate"],
         "planner": ["planner", "plan", "orchestr", "workflow", "graph", "router", "dispatch", "coordinator"],
         "retriever": ["retriev", "search", "query", "rag", "index"],
         "reranker": ["rerank", "ranker", "ranking"],
@@ -79,6 +85,8 @@ class IntelligentTopologySource:
     }
 
     SUMMARY_BY_ROLE = {
+        "agent": "Agent runtime/executor inferred from repository signals.",
+        "sub_agent": "Delegated sub-agent subsystem inferred from coordination signals.",
         "planner": "Planning and orchestration subsystem inferred from repository signals.",
         "retriever": "Retrieval subsystem inferred from code and config structure.",
         "reranker": "Reranking/ordering subsystem inferred from architecture hints.",
@@ -95,6 +103,8 @@ class IntelligentTopologySource:
     }
 
     STATUS_BY_ROLE = {
+        "agent": "healthy",
+        "sub_agent": "healthy",
         "planner": "healthy",
         "retriever": "healthy",
         "reranker": "healthy",
@@ -110,30 +120,23 @@ class IntelligentTopologySource:
         "external": "warning",
     }
 
-    IMPORT_PATTERNS = [
-        re.compile(r"from\s+[\"']([^\"']+)[\"']", re.IGNORECASE),
-        re.compile(r"require\(\s*[\"']([^\"']+)[\"']\s*\)", re.IGNORECASE),
-        re.compile(r"import\(\s*[\"']([^\"']+)[\"']\s*\)", re.IGNORECASE),
-        re.compile(r"^\s*from\s+([A-Za-z0-9_\.]+)\s+import\s+", re.IGNORECASE),
-        re.compile(r"^\s*import\s+([A-Za-z0-9_\.]+)", re.IGNORECASE),
-        re.compile(r"^\s*use\s+([A-Za-z0-9_:]+)", re.IGNORECASE),
-        re.compile(r"^\s*mod\s+([A-Za-z0-9_]+)", re.IGNORECASE),
-    ]
-
-    REGISTRATION_PATTERN = re.compile(
-        r"register|registry|planner|workflow|tool|mcp|memory|model|prompt|policy|guard|fallback|retry",
-        re.IGNORECASE,
-    )
-
-    def __init__(self, repo_root: Path, target_hint: str = "intelligent", max_files: int = 2800):
+    def __init__(
+        self,
+        repo_root: Path,
+        target_hint: str = "intelligent",
+        max_files: int = 2800,
+        parser_registry: ParserRegistry | None = None,
+    ):
         self.repo_root = repo_root
         self.target_hint = target_hint
         self.max_files = max_files
+        self._parser_registry = parser_registry or default_parser_registry()
 
         self._scanned = False
         self._components_cache: list[dict[str, Any]] = []
         self._relations_cache: list[dict[str, Any]] = []
         self._snippets_cache: list[dict[str, Any]] = []
+        self._unresolved_hints_cache: list[str] = []
 
     def config_components(self) -> list[dict[str, Any]]:
         self._ensure_scan()
@@ -147,6 +150,10 @@ class IntelligentTopologySource:
         self._ensure_scan()
         return self._snippets_cache
 
+    def unresolved_hints(self) -> list[str]:
+        self._ensure_scan()
+        return self._unresolved_hints_cache
+
     def _ensure_scan(self) -> None:
         if self._scanned:
             return
@@ -155,6 +162,7 @@ class IntelligentTopologySource:
         cluster_stats: dict[str, ClusterStat] = defaultdict(ClusterStat)
         raw_snippets: list[tuple[str, str, str]] = []
         import_signals: list[tuple[str, str, str]] = []
+        unresolved_hints: set[str] = set()
 
         for file_path in file_paths:
             rel_path = file_path.relative_to(self.repo_root)
@@ -167,18 +175,25 @@ class IntelligentTopologySource:
                 stat.sample_file = rel_str
 
             content = self._read_file_head(file_path)
-            scores = self._score_roles(rel_str, content)
-            for role, score in scores.items():
+            signal = self._parser_registry.parse(
+                rel_path=rel_str,
+                suffix=file_path.suffix.lower(),
+                content=content,
+            )
+            for role, score in signal.role_scores.items():
                 if score > 0:
                     stat.role_scores[role] += score
 
-            for ref in self._extract_import_refs(content):
+            for ref in signal.import_refs:
                 protocol = self._infer_protocol_from_ref(ref)
                 import_signals.append((cluster_key, ref, protocol))
 
-            first_registration_line = self._find_registration_line(content)
+            first_registration_line = signal.registration_line
             if first_registration_line:
                 raw_snippets.append((cluster_key, first_registration_line, rel_str))
+
+            for hint in signal.unresolved_hints:
+                unresolved_hints.add(hint)
 
         components, cluster_to_component = self._build_components(cluster_stats)
         relations = self._build_relations(cluster_stats, cluster_to_component, import_signals)
@@ -187,6 +202,7 @@ class IntelligentTopologySource:
         self._components_cache = components
         self._relations_cache = relations
         self._snippets_cache = snippets
+        self._unresolved_hints_cache = sorted(unresolved_hints)[:24]
         self._scanned = True
 
     def _collect_candidate_files(self) -> list[Path]:
@@ -248,44 +264,6 @@ class IntelligentTopologySource:
         except OSError:
             return ""
 
-    def _score_roles(self, rel_path: str, content: str) -> dict[str, float]:
-        rel_lower = rel_path.lower()
-        content_lower = content.lower()
-        scores: dict[str, float] = {}
-
-        for role, hints in self.ROLE_HINTS.items():
-            score = 0.0
-            for hint in hints:
-                if hint in rel_lower:
-                    score += 1.25
-                if hint in content_lower:
-                    score += 0.25
-            scores[role] = score
-
-        if rel_lower.endswith(("/main.py", "/main.ts", "/main.rs", "/index.ts", "/index.js")):
-            scores["runtime_node"] = scores.get("runtime_node", 0) + 2.0
-
-        return scores
-
-    def _extract_import_refs(self, content: str) -> list[str]:
-        refs: list[str] = []
-        lines = content.splitlines()[:220]
-
-        for line in lines:
-            stripped = line.strip()
-            if not stripped or stripped.startswith("#"):
-                continue
-            for pattern in self.IMPORT_PATTERNS:
-                match = pattern.search(stripped)
-                if not match:
-                    continue
-                value = match.group(1).strip()
-                if not value:
-                    continue
-                refs.append(value)
-
-        return refs[:60]
-
     def _infer_protocol_from_ref(self, ref: str) -> str:
         lower = ref.lower()
         if "mcp" in lower:
@@ -301,15 +279,6 @@ class IntelligentTopologySource:
         if "tool" in lower:
             return "tool-call"
         return "internal/module"
-
-    def _find_registration_line(self, content: str) -> str | None:
-        for line in content.splitlines()[:220]:
-            stripped = line.strip()
-            if not stripped:
-                continue
-            if self.REGISTRATION_PATTERN.search(stripped):
-                return stripped[:180]
-        return None
 
     def _build_components(
         self,
@@ -386,22 +355,38 @@ class IntelligentTopologySource:
         cluster_to_component: dict[str, str],
         used_ids: set[str],
     ) -> None:
+        # Keep graceful degradation without overfitting:
+        # only runtime is hard-required; other roles need concrete evidence.
         role_to_components: dict[str, list[dict[str, Any]]] = defaultdict(list)
         for component in components:
             role_to_components[component["role"]].append(component)
 
-        required_roles = ["runtime_node", "planner", "tool", "llm"]
-        optional_roles = ["memory", "retriever", "mcp", "guardrail", "prompt"]
+        required_roles = ["runtime_node"]
+        conditional_roles = ["planner", "tool", "llm", "memory", "retriever", "mcp", "guardrail", "prompt"]
+        threshold_by_role = {
+            "planner": 1.9,
+            "tool": 2.1,
+            "llm": 2.0,
+            "memory": 2.2,
+            "retriever": 2.2,
+            "mcp": 2.1,
+            "guardrail": 2.0,
+            "prompt": 2.0,
+        }
 
-        for role in required_roles + optional_roles:
+        for role in required_roles + conditional_roles:
             if role in role_to_components:
                 continue
 
-            cluster = self._best_cluster_for_role(cluster_stats, role)
+            cluster, score = self._best_cluster_for_role(cluster_stats, role)
             if not cluster and role in required_roles:
                 cluster = "root"
 
             if not cluster:
+                continue
+
+            if role not in required_roles and score < threshold_by_role.get(role, 2.0):
+                # Avoid forcing weakly-supported optional roles that cause false positives.
                 continue
 
             source_location = str(self.repo_root / cluster) if cluster != "root" else str(self.repo_root)
@@ -417,12 +402,14 @@ class IntelligentTopologySource:
                 "summary": self.SUMMARY_BY_ROLE.get(role, "Auto-discovered architecture component."),
                 "source_type": "intelligent_repo_scan",
                 "source_location": source_location,
-                "tags": ["intelligent", "auto", role, "coverage"],
+                "tags": ["intelligent", "auto", role, "coverage", "provisional"],
                 "metadata": {
-                    "weight": 1.05,
-                    "status": self.STATUS_BY_ROLE.get(role, "healthy"),
+                    "weight": 0.92 if role in required_roles else 0.98,
+                    "status": "idle" if role not in required_roles else "healthy",
                     "file_count": cluster_stats.get(cluster, ClusterStat()).file_count,
                     "synthetic": True,
+                    "provisional_reason": "coverage fallback due sparse static evidence",
+                    "coverage_score": round(score, 2),
                 },
             }
             components.append(component)
@@ -431,7 +418,7 @@ class IntelligentTopologySource:
             if cluster != "root" and cluster not in cluster_to_component:
                 cluster_to_component[cluster] = component_id
 
-    def _best_cluster_for_role(self, cluster_stats: dict[str, ClusterStat], role: str) -> str | None:
+    def _best_cluster_for_role(self, cluster_stats: dict[str, ClusterStat], role: str) -> tuple[str | None, float]:
         best: tuple[float, str] | None = None
         for cluster, stat in cluster_stats.items():
             score = stat.role_scores.get(role, 0.0)
@@ -440,7 +427,9 @@ class IntelligentTopologySource:
             candidate = (score, cluster)
             if best is None or candidate > best:
                 best = candidate
-        return best[1] if best else None
+        if best is None:
+            return (None, 0.0)
+        return (best[1], best[0])
 
     def _build_relations(
         self,
@@ -475,13 +464,14 @@ class IntelligentTopologySource:
                 inferred_from=[f"import:{source_cluster}:{import_ref}"],
             )
 
-        role_nodes = self._role_node_index(cluster_to_component)
+        role_nodes = self._role_node_index()
         self._add_semantic_edges(edges_by_key, role_nodes)
 
         return list(edges_by_key.values())
 
     def _resolve_target_cluster(self, import_ref: str, known_clusters: list[str]) -> str | None:
         normalized = import_ref.lower().replace("\\", "/").replace("::", "/").replace(".", "/")
+        generic_leaves = {"src", "lib", "app", "core", "services", "modules", "internal", "pkg", "cmd"}
 
         best_cluster: str | None = None
         best_score = 0.0
@@ -492,7 +482,7 @@ class IntelligentTopologySource:
             score = 0.0
             if cluster_norm in normalized:
                 score += 3.0
-            if leaf and leaf in normalized:
+            if leaf and len(leaf) >= 4 and leaf not in generic_leaves and leaf in normalized:
                 score += 1.2
             if score > best_score:
                 best_score = score
@@ -503,7 +493,7 @@ class IntelligentTopologySource:
 
         return best_cluster
 
-    def _role_node_index(self, cluster_to_component: dict[str, str]) -> dict[str, list[str]]:
+    def _role_node_index(self) -> dict[str, list[str]]:
         role_index: dict[str, list[str]] = defaultdict(list)
 
         for component in self._components_cache:

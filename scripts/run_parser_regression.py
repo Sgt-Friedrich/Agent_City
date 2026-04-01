@@ -59,7 +59,10 @@ def dedup(items,keyf):
 
 
 def clone(repo:str,dst:Path):
- if dst.exists() and any(dst.iterdir()): return True,'already-present'
+ if dst.exists() and any(dst.iterdir()):
+  if (dst/'.git').exists():
+   return True,'already-present'
+  shutil.rmtree(dst,ignore_errors=True)
  url=f"https://github.com/{repo}.git";env=os.environ.copy();env['GIT_TERMINAL_PROMPT']='0'
  cmds=[["git","clone","--depth=1","--filter=blob:none",url,str(dst)],["git","clone","--depth=1",url,str(dst)]]
  err='clone failed'

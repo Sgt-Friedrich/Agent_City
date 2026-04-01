@@ -250,12 +250,20 @@ Parser regression artifacts:
 - `docs/parser-test-plan.md`
 - `docs/parser-test-results.md`
 - `docs/parser-capability-summary.md`
+- `docs/parser-fix-report.md`
+- `docs/parser-regression-summary.md`
 - `tests/fixtures/parsed_samples/*.json`
 
 Run parser regression:
 
 ```bash
 python scripts/run_parser_regression.py
+```
+
+Run representative parser retest:
+
+```bash
+python scripts/run_parser_retest.py
 ```
 
 ## 9) Real Repo Validation (Claude/Codex)

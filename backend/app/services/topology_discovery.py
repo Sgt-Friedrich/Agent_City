@@ -3,6 +3,7 @@
 from collections import OrderedDict
 
 from app.models.schemas import DiscoveryResult, RawComponent, RawRelation
+from app.services.confidence_scoring import ConfidenceScoringService
 from app.sources.topology_source_protocol import TopologySignalSource
 
 
@@ -11,6 +12,7 @@ class TopologyDiscovery:
 
     def __init__(self, source: TopologySignalSource):
         self._source = source
+        self._confidence = ConfidenceScoringService()
 
     def discover(self) -> DiscoveryResult:
         components: OrderedDict[str, RawComponent] = OrderedDict()
@@ -22,11 +24,28 @@ class TopologyDiscovery:
         for relation in self._discover_from_workflow_graph():
             relations[relation.id] = relation
 
-        self._augment_with_python_registration_hints(components, relations)
+        snippet_count = self._augment_with_python_registration_hints(components, relations)
+
+        component_list = list(components.values())
+        relation_list = list(relations.values())
+
+        source_hint_fn = getattr(self._source, "unresolved_hints", None)
+        source_hints = source_hint_fn() if callable(source_hint_fn) else []
+
+        score = self._confidence.score(
+            components=component_list,
+            relations=relation_list,
+            snippet_count=snippet_count,
+            source_hints=source_hints,
+        )
 
         return DiscoveryResult(
-            components=list(components.values()),
-            relations=list(relations.values()),
+            components=component_list,
+            relations=relation_list,
+            parser_confidence=score.score,
+            parser_grade=score.grade,
+            unresolved_symbols=score.unresolved_symbols,
+            source_coverage=score.source_coverage,
         )
 
     def _discover_from_agent_configs(self) -> list[RawComponent]:
@@ -39,7 +58,7 @@ class TopologyDiscovery:
         self,
         components: OrderedDict[str, RawComponent],
         relations: OrderedDict[str, RawRelation],
-    ) -> None:
+    ) -> int:
         """Attach provenance evidence from decorators/factories in code snippets."""
 
         snippets = self._source.python_registration_snippets()
@@ -69,6 +88,8 @@ class TopologyDiscovery:
                 inferred_from=[snippet["source_location"], snippet["symbol"]],
                 metadata={"evidence_only": True},
             )
+
+        return len(snippets)
 
     def _find_entry_component_id(self, components: OrderedDict[str, RawComponent]) -> str:
         for component in components.values():

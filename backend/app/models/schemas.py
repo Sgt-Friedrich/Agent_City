@@ -144,6 +144,7 @@ class TopologyGraph(BaseModel):
     districts: list[District]
     nodes: list[Node]
     edges: list[Edge]
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class TraceEnvelope(BaseModel):
@@ -236,6 +237,10 @@ class RawRelation(BaseModel):
 class DiscoveryResult(BaseModel):
     components: list[RawComponent]
     relations: list[RawRelation]
+    parser_confidence: float | None = None
+    parser_grade: str | None = None
+    unresolved_symbols: list[str] = Field(default_factory=list)
+    source_coverage: dict[str, bool] = Field(default_factory=dict)
 
 
 class LiveMessage(BaseModel):
