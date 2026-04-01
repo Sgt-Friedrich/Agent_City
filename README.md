@@ -12,6 +12,8 @@ The system follows **two parsing layers + one rendering layer**:
 
 ```text
 agent-city-mvp/
+  docs/
+    reference-notes.md
   backend/
     app/
       main.py
@@ -44,6 +46,8 @@ agent-city-mvp/
     store/useDashboardStore.ts
     types/schema.ts
   samples/*.json
+  scripts/
+    cleanup_refs.py
 ```
 
 ## 2) Data Models and Types
@@ -222,7 +226,26 @@ Open:
 - Dashboard: `http://localhost:3000`
 - Replay: `http://localhost:3000/replay/<trace_id>?target=claude`
 
-## 8) Real Repo Validation (Claude/Codex)
+## 8) Reference Cleanup Rule (>=200MB)
+
+Reference cleanup script:
+
+```bash
+python scripts/cleanup_refs.py --root . --dry-run
+python scripts/cleanup_refs.py --root . --threshold-mb 200
+```
+
+Behavior:
+
+- Scans `refs/`, `tmp/`, `external_examples/`
+- Prints each subdirectory size
+- Deletes directories larger than 200MB (unless `--dry-run`)
+
+Reference notes and executed cleanup log:
+
+- `docs/reference-notes.md`
+
+## 9) Real Repo Validation (Claude/Codex)
 
 Implemented and validated with local repos:
 
@@ -250,7 +273,7 @@ Generated target-specific sample data:
 - `samples/codex.*.sample.json`
 - `samples/mock.*.sample.json`
 
-## 9) OpenTelemetry / OpenInference / Jaeger / Langfuse / Phoenix Extension
+## 10) OpenTelemetry / OpenInference / Jaeger / Langfuse / Phoenix Extension
 
 Reserved integration seam:
 
@@ -263,7 +286,7 @@ Migration path:
 3. Keep `TopologyBindingService` and frontend schema contract unchanged.
 4. Replace WS generator input with adapter stream for real-time production telemetry.
 
-## 10) Layer Mapping Summary
+## 11) Layer Mapping Summary
 
 Static Parsing Layer:
 
@@ -284,3 +307,32 @@ Visualization Layer:
 - `frontend/components/panels/*`
 - `frontend/components/replay/*`
 - `frontend/store/useDashboardStore.ts`
+
+## 12) Visual Mapping Semantics
+
+Business-to-visual mapping used in the city view:
+
+- District color: architecture domain (`planning/retrieval/memory/tools/llm/safety/runtime/boundary`)
+- Building base size: module scope / weight
+- Building height: module hotness / activity
+- Building color: node health status
+  - healthy: green
+  - warning: yellow
+  - error: red
+  - idle: gray-blue
+- Status lamp pulse: active node
+- Flow color:
+  - LLM: blue
+  - Retrieval: green
+  - Tool/MCP: purple
+  - Memory: yellow
+  - Error/Retry/Fallback: red
+- Flow density: throughput hint
+- Flow speed/trail: latency and blocking hint
+
+Diagnostic-oriented effects:
+
+- Retry/fallback: dashed / loop-like curved flow styling
+- Error: red highlighted flow + timeline emphasis
+- Replay: city dimming + focused trace path
+- Diagnostic mode: `realtime` / `heatmap` / `errors`
