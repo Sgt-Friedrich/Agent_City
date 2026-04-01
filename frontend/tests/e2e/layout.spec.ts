@@ -34,6 +34,7 @@ test("dashboard renders core zones and replay route is reachable", async ({ page
 
   await expect(page.getByTestId("dashboard-root")).toBeVisible();
   await expect(page.getByTestId("metrics-header")).toBeVisible();
+  await expect(page.getByTestId("parse-progress-banner")).toBeVisible();
   await expect(page.getByTestId("filter-panel")).toBeVisible();
   await expect(page.getByTestId("city-scene")).toBeVisible();
   await expect(page.getByTestId("detail-drawer")).toBeVisible();

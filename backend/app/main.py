@@ -1,8 +1,9 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import asyncio
+import logging
 import random
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,15 +12,42 @@ from app.dependencies import get_platform_service
 from app.generators.live_event_generator import LiveEventGenerator
 from app.routers.metrics import router as metrics_router
 from app.routers.nodes import router as nodes_router
+from app.routers.parsing import router as parsing_router
 from app.routers.topology import router as topology_router
 from app.routers.traces import router as traces_router
+from app.services.platform_service import PlatformService
+
+logger = logging.getLogger(__name__)
+
+
+async def _auto_ingest_loop(service: PlatformService, stop_event: asyncio.Event) -> None:
+    while not stop_event.is_set():
+        try:
+            await asyncio.to_thread(service.scan_ingest_directory)
+        except Exception:  # pragma: no cover - safety guard for background loop
+            logger.exception("auto ingest scan failed")
+
+        try:
+            await asyncio.wait_for(stop_event.wait(), timeout=1.5)
+        except asyncio.TimeoutError:
+            continue
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     # Warm up discovery/normalizer/runtime cache once at startup.
-    get_platform_service()
-    yield
+    service = get_platform_service()
+
+    stop_event = asyncio.Event()
+    ingest_task = asyncio.create_task(_auto_ingest_loop(service, stop_event))
+
+    try:
+        yield
+    finally:
+        stop_event.set()
+        ingest_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await ingest_task
 
 
 app = FastAPI(
@@ -40,6 +68,7 @@ app.include_router(topology_router)
 app.include_router(traces_router)
 app.include_router(nodes_router)
 app.include_router(metrics_router)
+app.include_router(parsing_router)
 
 
 @app.get("/healthz")

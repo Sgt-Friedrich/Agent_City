@@ -275,3 +275,26 @@ class RegisterTargetRequest(BaseModel):
     target_id: str | None = None
     label: str | None = None
     force: bool = False
+
+
+class ParseJobStatus(str, Enum):
+    QUEUED = "queued"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class ParseJob(BaseModel):
+    id: str
+    source: str
+    repo_path: str
+    repo_name: str
+    target_id: str | None = None
+    status: ParseJobStatus
+    progress: int = Field(default=0, ge=0, le=100)
+    step: str
+    message: str | None = None
+    error: str | None = None
+    created_at: datetime
+    started_at: datetime | None = None
+    ended_at: datetime | None = None

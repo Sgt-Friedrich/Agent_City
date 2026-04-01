@@ -230,6 +230,29 @@ export interface RegisterTargetResponse {
   target: TargetOption;
 }
 
+export type ParseJobStatus = "queued" | "running" | "completed" | "failed";
+
+export interface ParseJob {
+  id: string;
+  source: string;
+  repo_path: string;
+  repo_name: string;
+  target_id?: string | null;
+  status: ParseJobStatus;
+  progress: number;
+  step: string;
+  message?: string | null;
+  error?: string | null;
+  created_at: string;
+  started_at?: string | null;
+  ended_at?: string | null;
+}
+
+export interface ParseJobsResponse {
+  items: ParseJob[];
+  drop_directory: string;
+}
+
 export interface Filters {
   districtIds: string[];
   nodeTypes: NodeType[];

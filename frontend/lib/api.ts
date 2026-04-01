@@ -2,6 +2,7 @@
 import {
   BoundTraceResponse,
   MetricsSummary,
+  ParseJobsResponse,
   RegisterTargetRequest,
   RegisterTargetResponse,
   TopologyGraph,
@@ -63,4 +64,6 @@ export const api = {
     request<BoundTraceResponse>(`/api/traces/${traceId}`, { target }),
   getMetricsSummary: (target: string) => request<MetricsSummary>("/api/metrics/summary", { target }),
   getNode: (nodeId: string, target: string) => request(`/api/nodes/${nodeId}`, { target }),
+  getParseJobs: () => request<ParseJobsResponse>("/api/parse-jobs"),
+  scanParseJobs: () => requestPost<{ count: number; drop_directory: string }>("/api/parse-jobs/scan", {}),
 };

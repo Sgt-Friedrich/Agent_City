@@ -9,6 +9,7 @@ import {
   FlowEvent,
   MetricsSummary,
   NodeType,
+  ParseJob,
   SpanKind,
   TargetOption,
   TopologyGraph,
@@ -29,6 +30,8 @@ interface DashboardState {
   diagnosticMode: DiagnosticMode;
   target: string;
   targets: TargetOption[];
+  parseJobs: ParseJob[];
+  ingestDirectory?: string;
   topology?: TopologyGraph;
   traces: TraceRecord[];
   traceDetails: Record<string, BoundTraceResponse>;
@@ -43,6 +46,8 @@ interface DashboardState {
   setDiagnosticMode: (mode: DiagnosticMode) => void;
   setTarget: (target: string) => void;
   setTargets: (targets: TargetOption[]) => void;
+  setParseJobs: (jobs: ParseJob[]) => void;
+  setIngestDirectory: (path?: string) => void;
   setTopology: (topology: TopologyGraph) => void;
   mergeObservedEdges: (edges: Edge[]) => void;
   setTraces: (traces: TraceRecord[]) => void;
@@ -79,6 +84,8 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   diagnosticMode: "realtime",
   target: "mock",
   targets: [],
+  parseJobs: [],
+  ingestDirectory: undefined,
   traces: [],
   traceDetails: {},
   liveEvents: [],
@@ -112,6 +119,10 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     }),
 
   setTargets: (targets) => set({ targets }),
+
+  setParseJobs: (parseJobs) => set({ parseJobs }),
+
+  setIngestDirectory: (ingestDirectory) => set({ ingestDirectory }),
 
   setTopology: (topology) => set({ topology }),
 

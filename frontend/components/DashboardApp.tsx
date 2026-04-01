@@ -14,6 +14,7 @@ import { api } from "@/lib/api";
 import { useBootstrapData } from "@/hooks/useBootstrapData";
 import { useFilteredTopology } from "@/hooks/useFilteredTopology";
 import { useLiveFlowSocket } from "@/hooks/useLiveFlowSocket";
+import { useParseJobs } from "@/hooks/useParseJobs";
 import { useDashboardStore } from "@/store/useDashboardStore";
 import { FlowEvent } from "@/types/schema";
 
@@ -21,6 +22,7 @@ export function DashboardApp() {
   const searchParams = useSearchParams();
   const { loading, error } = useBootstrapData();
   useLiveFlowSocket();
+  useParseJobs();
 
   const [hoveredEvent, setHoveredEvent] = useState<FlowEvent>();
   const [registering, setRegistering] = useState(false);
@@ -38,6 +40,8 @@ export function DashboardApp() {
   const setSelectedSpan = useDashboardStore((state) => state.setSelectedSpan);
   const setViewMode = useDashboardStore((state) => state.setViewMode);
   const traces = useDashboardStore((state) => state.traces);
+  const parseJobs = useDashboardStore((state) => state.parseJobs);
+  const ingestDirectory = useDashboardStore((state) => state.ingestDirectory);
 
   const { topology, nodes, edges, events } = useFilteredTopology();
   const nodesById = useMemo(() => {
@@ -48,6 +52,15 @@ export function DashboardApp() {
   }, [nodes]);
 
   const replayTarget = useMemo(() => traces[0]?.envelope.trace_id, [traces]);
+  const activeParseJob = useMemo(
+    () => parseJobs.find((job) => job.status === "running" || job.status === "queued"),
+    [parseJobs],
+  );
+  const recentParseJob = useMemo(
+    () => parseJobs.find((job) => job.status === "completed" || job.status === "failed"),
+    [parseJobs],
+  );
+  const displayParseJob = activeParseJob ?? recentParseJob;
 
   const searchTarget = searchParams.get("target");
   useEffect(() => {
@@ -142,6 +155,54 @@ export function DashboardApp() {
               </Link>
             )}
           </div>
+        </div>
+
+        <div data-testid="parse-progress-banner" className="border-b border-line bg-[#06111dcc] px-4 py-2 text-[11px] text-slate-300">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              auto parse folder:
+              <span className="ml-1 rounded bg-[#0f2238] px-1.5 py-0.5 font-mono text-[10px] text-sky-200">
+                {ingestDirectory ?? "loading..."}
+              </span>
+            </div>
+            <div className="text-slate-400">复制 agent 目录到此路径后会自动解析并切换目标</div>
+          </div>
+
+          {displayParseJob && (
+            <div className="mt-2">
+              <div className="mb-1 flex items-center justify-between text-[11px]">
+                <span className="text-slate-200">
+                  parsing: {displayParseJob.repo_name} ({displayParseJob.step})
+                </span>
+                <span className="font-mono text-sky-300">{displayParseJob.progress}%</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded bg-[#0b1a2c]">
+                <div
+                  className={`h-full transition-all duration-300 ${
+                    displayParseJob.status === "failed"
+                      ? "bg-gradient-to-r from-rose-500 to-rose-300"
+                      : displayParseJob.status === "completed"
+                        ? "bg-gradient-to-r from-emerald-500 to-green-300"
+                        : "bg-gradient-to-r from-sky-500 to-cyan-400"
+                  }`}
+                  style={{ width: `${Math.max(6, displayParseJob.progress)}%` }}
+                />
+              </div>
+              <div className="mt-1 text-[10px] text-slate-400">{displayParseJob.message ?? "running..."}</div>
+            </div>
+          )}
+
+          {!activeParseJob && recentParseJob?.status === "completed" && (
+            <div className="mt-1 text-[10px] text-emerald-300">
+              latest parse finished: {recentParseJob.repo_name} {"->"} {recentParseJob.target_id}
+            </div>
+          )}
+
+          {!activeParseJob && recentParseJob?.status === "failed" && (
+            <div className="mt-1 text-[10px] text-rose-300">
+              parse failed: {recentParseJob.repo_name} ({recentParseJob.error ?? recentParseJob.message})
+            </div>
+          )}
         </div>
 
         <div data-testid="dashboard-layout" className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[270px_1fr_320px]">
