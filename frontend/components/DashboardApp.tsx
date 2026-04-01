@@ -110,7 +110,7 @@ export function DashboardApp() {
         <MetricsHeader metrics={metrics} mode={viewMode} diagnosticMode={diagnosticMode} />
 
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-[#071120cc] px-4 py-2 text-xs text-slate-300">
-          <div className="panel-title text-sm uppercase tracking-wide">Agent City Runtime Monitor</div>
+          <div className="panel-title text-sm uppercase tracking-wide">Agent_City Runtime Monitor</div>
           <div className="flex flex-wrap items-center justify-end gap-2">
             <span className="hidden text-slate-400 md:inline">static topology + runtime trace overlay</span>
             <button

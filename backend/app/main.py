@@ -23,7 +23,7 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(
-    title="Agent City Visual Observability Platform",
+    title="Agent_City Visual Observability Platform",
     version="0.2.0",
     lifespan=lifespan,
 )
@@ -44,7 +44,7 @@ app.include_router(metrics_router)
 
 @app.get("/healthz")
 def healthz() -> dict:
-    return {"ok": True, "service": "agent-city-backend"}
+    return {"ok": True, "service": "agent_city-backend"}
 
 
 @app.websocket("/ws/live")

@@ -3,7 +3,7 @@
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Agent City Visual Observability",
+  title: "Agent_City Visual Observability",
   description: "Architecture parsing and runtime flow visualization for agent systems",
 };
 

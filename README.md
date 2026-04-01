@@ -1,392 +1,190 @@
-ï»¿# Agent City Visual Observability MVP
+# Agent_City
 
-A runnable MVP for **agent architecture parsing + runtime flow monitoring + city-style visualization**.
+Agent_City ÊÇÒ»¸öÃæÏò Agent ÏµÍ³µÄ¡°³ÇÊÐ»¯¿ÉÊÓ»¯ + ÔËÐÐÊ±¼à¿Ø¡±ÏîÄ¿¡£  
+Agent_City is a city-style visualization and runtime observability platform for agent systems.
 
-The system follows **two parsing layers + one rendering layer**:
+---
 
-- Static Parsing Layer: discover architecture from config/registry/code and normalize to topology.
-- Runtime Parsing Layer: resolve request execution to traces/spans/events and bind to topology.
-- Visualization Layer: render districts/buildings/roads and overlay live/replay flow animations.
+## 1) ÏîÄ¿¼ò½é | Overview
 
-## 1) Project Structure
+**ÖÐÎÄ**
+- Ä¿±ê£º°Ñ Agent ÏµÍ³µÄ¾²Ì¬¼Ü¹¹ºÍÔËÐÐÊ±Á´Â·Í³Ò»Õ¹Ê¾ÔÚÒ»¸ö 3D ³ÇÊÐÊÓÍ¼ÖÐ¡£
+- ³ÇÊÐÒþÓ÷£º½ÖÇø=Ä£¿éÓò£¬½¨Öþ=×é¼þ½Úµã£¬µÀÂ·=ÒÀÀµ¹ØÏµ£¬Á÷¶¯=trace/span/event¡£
+- ºËÐÄ¼ÛÖµ£º²»½ö¿´¡°½á¹¹¡±£¬»¹ÄÜ¿´¡°ÐÐÎª¡±ºÍ¡°Õï¶Ï¡±¡£
 
-```text
-agent-city-mvp/
-  docs/
-    reference-notes.md
-    frontend-debug-playbook.md
-    frontend-fix-report-template.md
-    frontend-e2e-test-report.md
-  .agents/
-    skills/frontend-*/
-    plugins/marketplace.json
-  plugins/frontend-ops/
-    .codex-plugin/plugin.json
-    skills/frontend-*/
-    .mcp.json
-  backend/
-    app/
-      main.py
-      dependencies.py
-      models/schemas.py
-      routers/{topology,traces,nodes,metrics}.py
-      services/
-        topology_discovery.py
-        topology_normalizer.py
-        runtime_trace_resolver.py
-        topology_binding.py
-        telemetry_adapters.py
-        platform_service.py
-      sources/
-        topology_source_protocol.py
-        mock_topology_source.py
-        repo_topology_source.py
-        intelligent_topology_source.py
-        mock_trace_source.py
-        mock_metrics_source.py
-      generators/live_event_generator.py
-    requirements.txt
-    sample_data/*.json
-  frontend/
-    app/{layout,page,globals}.tsx
-    app/replay/[traceId]/page.tsx
-    components/{city,panels,replay}/*.tsx
-    hooks/{useBootstrapData,useLiveFlowSocket,useFilteredTopology}.ts
-    lib/{api,config,colorMaps,visualTheme,utils}.ts
-    store/useDashboardStore.ts
-    types/schema.ts
-  samples/*.json
-  scripts/
-    cleanup_refs.py
-    dev-frontend.sh
-    playwright-smoke.sh
-    collect-console-errors.sh
-```
+**English**
+- Goal: unify static architecture and runtime traces in one 3D city view.
+- City metaphor: district = domain, building = component node, road = dependency edge, flow = trace/span/event.
+- Value: show structure, behavior, and diagnostics together.
 
-## 2) Data Models and Types
+---
 
-Canonical schema:
+## 2) ºËÐÄÄÜÁ¦ | Core Capabilities
 
-- Backend: `backend/app/models/schemas.py`
-- Frontend: `frontend/types/schema.ts`
+**ÖÐÎÄ**
+1. ¾²Ì¬½âÎö£ºTopology Discovery + Normalizer£¨Ö§³ÖÎ´Öª²Ö¿âÖÇÄÜ½âÎö£©¡£
+2. ÔËÐÐÊ±½âÎö£ºTrace Resolver£¨º¬ retry/fallback/mcp/tool/retrieval Â·¾¶Ä£ÄâÓëÓ³Éä£©¡£
+3. Í¼°ó¶¨£ºTopology + Trace Binding£¨declared/observed/inferred/fallback/retry£©¡£
+4. Ç°¶Ë¿ÉÊÓ»¯£º3D ³ÇÊÐ + ÊµÊ±Á÷¶¯ + replay »Ø·Å + Õï¶ÏÄ£Ê½¡£
+5. »Ø¹éÌåÏµ£º¶àÓïÑÔ½âÎö»Ø¹é + Ç°¶Ë Playwright ÏìÓ¦Ê½»Ø¹é¡£
 
-Includes:
+**English**
+1. Static parsing: Topology Discovery + Normalizer (including intelligent parsing for unseen repos).
+2. Runtime parsing: Trace Resolver (retry/fallback/mcp/tool/retrieval path modeling and mapping).
+3. Graph binding: Topology + Trace Binding (declared/observed/inferred/fallback/retry).
+4. Frontend visualization: 3D city + live flows + replay mode + diagnostics mode.
+5. Regression: multi-language parser regression + responsive frontend regression with Playwright.
 
-- `District`
-- `Node`
-- `Edge`
-- `TraceEnvelope`
-- `SpanEvent` / `FlowEvent`
-- `NodeMetricSnapshot`
-- `TraceRecord`
-- `BoundTrace`
+---
 
-`SpanKind` includes:
+## 3) Õ¹Ê¾½ØÍ¼ | Screenshots
 
-- `AGENT`, `CHAIN`, `LLM`, `TOOL`, `RETRIEVER`, `RERANKER`, `EMBEDDING`, `GUARDRAIL`, `EVALUATOR`, `MEMORY`, `MCP`
+### Dashboard (Desktop)
+![Agent_City Dashboard Desktop](docs/screenshots/dashboard-desktop.png)
 
-## 3) Static Parsing Layer (Architecture Parsing Core)
+### Dashboard (Mobile)
+![Agent_City Dashboard Mobile](docs/screenshots/dashboard-mobile.png)
 
-Files:
+### Replay (Desktop)
+![Agent_City Replay Desktop](docs/screenshots/replay-desktop.png)
 
+---
+
+## 4) ¼Ü¹¹·Ö²ã | Architecture Layers
+
+### ¾²Ì¬½âÎö²ã | Static Parsing Layer
 - `backend/app/services/topology_discovery.py`
 - `backend/app/services/topology_normalizer.py`
-- `backend/app/sources/topology_source_protocol.py`
 - `backend/app/sources/repo_topology_source.py`
 - `backend/app/sources/intelligent_topology_source.py`
+- `backend/app/parsers/*` (Python/TS/Go/Rust/Java/C# + config/docs parser)
 
-Capabilities:
-
-- Topology Discovery
-  - Reads agent config/workflow/tool registry/MCP-related code signals.
-  - Supports repository targets: `mock`, `claude`, `codex`.
-  - Supports unknown repositories via heuristic intelligent parsing:
-    - path/content role scoring
-    - registration snippet extraction
-    - import/call based relation inference
-    - semantic edge completion (planner/retrieval/tool/memory/llm/guardrail/runtime)
-- Topology Normalizer
-  - Normalizes to `District / Node / Edge`.
-  - Adds layout coordinates for city rendering.
-- Provenance
-  - `source_type`, `source_location`, `inferred_from`, `confidence` retained in normalized objects.
-
-## 4) Runtime Parsing Layer
-
-Files:
-
+### ÔËÐÐÊ±½âÎö²ã | Runtime Parsing Layer
 - `backend/app/services/runtime_trace_resolver.py`
 - `backend/app/services/topology_binding.py`
 - `backend/app/generators/live_event_generator.py`
 
-Capabilities:
+### ¿ÉÊÓ»¯±í´ï²ã | Visualization Layer
+- `frontend/components/city/*`
+- `frontend/components/panels/*`
+- `frontend/components/replay/*`
+- `frontend/store/useDashboardStore.ts`
 
-- Runtime Trace Resolver
-  - Builds traces from semantic paths and maps aliases to real topology nodes.
-  - Simulates required 5 path families:
-    1. `chat -> planner -> retriever -> reranker -> llm -> final`
-    2. `chat -> planner -> tool -> llm -> final`
-    3. `chat -> planner -> memory -> llm -> guardrail -> final`
-    4. `chat -> planner -> tool -> retry -> fallback -> final`
-    5. `chat -> planner -> mcp -> tool result -> llm -> final`
-- Topology + Trace Binding
-  - Binds spans to declared edges.
-  - Emits inferred observed/fallback/retry edges when absent.
+---
 
-## 5) Backend APIs
+## 5) Ä¿Â¼½á¹¹ | Project Structure
 
-FastAPI entry: `backend/app/main.py`
-
-REST:
-
-- `GET /api/targets`
-- `POST /api/targets/register`
-- `GET /api/topology?target=mock|claude|codex`
-- `GET /api/traces?target=...`
-- `GET /api/traces/{trace_id}?target=...`
-- `GET /api/nodes/{node_id}?target=...`
-- `GET /api/metrics/summary?target=...`
-
-WebSocket:
-
-- `/ws/live?target=mock|claude|codex`
-- Stream: `trace_started -> flow_event* -> trace_completed -> heartbeat`
-
-Register unknown repository target:
-
-```bash
-curl -X POST "http://localhost:8000/api/targets/register" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "repo_path": "D:/path/to/new-agent-repo",
-    "target_id": "new_agent",
-    "label": "New Agent",
-    "force": true
-  }'
+```text
+Agent_City/
+  backend/
+  frontend/
+  docs/
+  tests/
+  scripts/
+  .agents/
+  plugins/frontend-ops/
+  AGENTS.md
 ```
 
-Then use:
+---
 
-- `GET /api/topology?target=new_agent`
-- `/ws/live?target=new_agent`
-
-## 6) Frontend Visualization Layer
-
-Main page `/`:
-
-- KPI header
-- Left filter panel
-- Center 3D city scene
-- Right detail drawer
-- Bottom timeline
-- Flow hover card + city mini-map
-- Diagnostic mode switch (`realtime` / `heatmap` / `errors`)
-
-Replay page `/replay/[traceId]?target=...`:
-
-- Play/pause/reset/replay/scrub
-- Speed control (`0.5x/1x/1.5x/2x/4x`)
-- Highlight current span path in city
-- Span list + current span details
-- Cinematic darkening + current step subtitle
-
-Target switching:
-
-- Header dropdown selects `mock / claude / codex`.
-- Frontend refetches topology/traces/metrics and reconnects WS for selected target.
-- Header `+ add repo` button registers unseen repositories and switches target automatically.
-
-Visual style layer:
-
-- Theme tokens and mapping helpers: `frontend/lib/visualTheme.ts`
-- Business-to-visual mapping:
-  - district color: architecture domain (planning/retrieval/memory/tools/llm/safety/runtime/boundary)
-  - node height: module scale/weight and hotness
-  - node color: health status (`healthy/warning/error/idle`)
-  - flow color: span kind (`LLM/retrieval/tool+MCP/memory/runtime/error`)
-  - flow density: throughput hint
-  - flow speed: latency inverse (slower motion = bottleneck)
-- Diagnostic animations:
-  - pulse status lamp: active node
-  - dashed/curved flow: retry/fallback
-  - red blink flow: error/rejection
-  - replay dark mode + single-trace highlight: demo and troubleshooting readability
-- Demo readability effects:
-  - district border + hover summary
-  - close-range labels, far-range declutter
-  - mini-map overview for quick spatial orientation
-
-## 7) How To Run
+## 6) ¿ìËÙÆô¶¯ | Quick Start
 
 ### Backend
-
 ```bash
 cd backend
 python -m pip install -r requirements.txt
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 ### Frontend
-
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-Open:
+### ´ò¿ªÒ³Ãæ | Open URLs
+- Dashboard: `http://127.0.0.1:3000`
+- Replay: `http://127.0.0.1:3000/replay/<trace_id>?target=mock`
 
-- Dashboard: `http://localhost:3000`
-- Replay: `http://localhost:3000/replay/<trace_id>?target=claude`
+---
 
-### Frontend E2E (Playwright)
+## 7) API ÓëÊµÊ±Á÷ | API and Live Stream
 
+### REST
+- `GET /api/targets`
+- `POST /api/targets/register`
+- `GET /api/topology?target=...`
+- `GET /api/traces?target=...`
+- `GET /api/traces/{trace_id}?target=...`
+- `GET /api/nodes/{node_id}?target=...`
+- `GET /api/metrics/summary?target=...`
+
+### WebSocket
+- `GET /ws/live?target=...`
+
+---
+
+## 8) ²âÊÔÓë»Ø¹é | Testing and Regression
+
+### ½âÎöÆ÷²âÊÔ | Parser Tests
+```bash
+python -m unittest discover -s tests/parser -p "test_*.py" -v
+python scripts/run_parser_retest.py
+```
+
+### Ç°¶Ë E2E | Frontend E2E
 ```bash
 npm --prefix frontend run e2e:install
 npm --prefix frontend run e2e
+npm --prefix frontend run build
 ```
 
-Playwright config:
-
-- `frontend/playwright.config.ts`
-- test cases: `frontend/tests/e2e/layout.spec.ts`, `frontend/tests/e2e/responsive.spec.ts`
-
-## 8) Reference Cleanup Rule (>=200MB)
-
-Reference cleanup script:
-
-```bash
-python scripts/cleanup_refs.py --root . --dry-run
-python scripts/cleanup_refs.py --root . --threshold-mb 200
-```
-
-Behavior:
-
-- Scans `refs/`, `tmp/`, `external_examples/`
-- Prints each subdirectory size
-- Deletes directories larger than 200MB (unless `--dry-run`)
-
-Reference notes and executed cleanup log:
-
-- `docs/reference-notes.md`
-
-Parser regression artifacts:
-
-- `docs/parser-test-plan.md`
-- `docs/parser-test-results.md`
-- `docs/parser-capability-summary.md`
+µ±Ç°»Ø¹é±¨¸æ | Current reports:
 - `docs/parser-fix-report.md`
 - `docs/parser-regression-summary.md`
-- `tests/fixtures/parsed_samples/*.json`
+- `docs/frontend-e2e-test-report.md`
 
-Frontend debugging workflow assets:
+---
 
+## 9) Ç°¶ËÅÅÕÏ¹¤¾ßÁ´ | Frontend Debug Toolchain
+
+±¾²Ö¿âÄÚÖÃ¿É¸´ÓÃ¼¼ÄÜÁ´£º  
+This repo includes a reusable skills chain:
+
+- `frontend-repro`
+- `frontend-visual-debug`
+- `frontend-fix`
+- `frontend-regression`
+- `frontend-report`
+
+Ïà¹ØÎÄ¼þ | Related files:
 - `AGENTS.md`
 - `.agents/skills/frontend-*`
 - `.agents/plugins/marketplace.json`
 - `plugins/frontend-ops/.codex-plugin/plugin.json`
 - `plugins/frontend-ops/skills/frontend-*`
 
-Run parser regression:
+---
+
+## 10) ²Î¿¼²ÖÇåÀí¹æÔò | Reference Repository Cleanup
 
 ```bash
-python scripts/run_parser_regression.py
+python scripts/cleanup_refs.py --root . --targets refs --threshold-mb 200 --keep-list-file docs/parser-tested-keep.txt --delete-unlisted --dry-run
 ```
 
-Run representative parser retest:
+¹æÔò£ºÈÎºÎµ¥¸ö²Î¿¼Ä¿Â¼ > 200MB ±ØÐëÇåÀí¡£  
+Rule: any single reference repo directory > 200MB must be removed.
 
-```bash
-python scripts/run_parser_retest.py
-```
+---
 
-## 9) Real Repo Validation (Claude/Codex)
+## 11) ºóÐøÀ©Õ¹ | Future Extensions
 
-Implemented and validated with local repos:
+**ÖÐÎÄ**
+- ¿É½ÓÈë OpenTelemetry / OpenInference / Jaeger / Langfuse / Phoenix¡£
+- ¿ÉÌæ»» mock trace source ÎªÕæÊµ telemetry adapter¡£
 
-- `../claude-code-src-main`
-- `../codex-main`
-- current project path as unseen repository target (intelligent parser)
-
-Validation checks performed:
-
-- Target discovery: `/api/targets` returns `mock`, `claude`, `codex`.
-- Topology parsing:
-  - `claude`: nodes and edges discovered from real paths/registries.
-  - `codex`: workspace crates and Cargo dependency edges parsed.
-- Runtime flow binding:
-  - For all 5 scenarios, generated spans map to existing nodes.
-- WebSocket stream:
-  - `/ws/live?target=claude|codex` emits valid flow events.
-- Unknown target intelligent parsing:
-  - `POST /api/targets/register` -> `source_type=intelligent_repo_scan`.
-  - topology/trace/ws endpoints work on registered unseen target.
-
-Generated target-specific sample data:
-
-- `samples/claude.*.sample.json`
-- `samples/codex.*.sample.json`
-- `samples/mock.*.sample.json`
-
-## 10) OpenTelemetry / OpenInference / Jaeger / Langfuse / Phoenix Extension
-
-Reserved integration seam:
-
-- `backend/app/services/telemetry_adapters.py`
-
-Migration path:
-
-1. Implement concrete `TelemetryAdapter` for OTLP/Jaeger/Tempo/Langfuse/Phoenix.
-2. Feed real spans into `RuntimeTraceResolver` instead of mock source.
-3. Keep `TopologyBindingService` and frontend schema contract unchanged.
-4. Replace WS generator input with adapter stream for real-time production telemetry.
-
-## 11) Layer Mapping Summary
-
-Static Parsing Layer:
-
-- `topology_discovery.py`
-- `topology_normalizer.py`
-- `repo_topology_source.py`
-- `intelligent_topology_source.py`
-
-Runtime Parsing Layer:
-
-- `runtime_trace_resolver.py`
-- `topology_binding.py`
-- `live_event_generator.py`
-
-Visualization Layer:
-
-- `frontend/components/city/*`
-- `frontend/components/panels/*`
-- `frontend/components/replay/*`
-- `frontend/store/useDashboardStore.ts`
-
-## 12) Visual Mapping Semantics
-
-Business-to-visual mapping used in the city view:
-
-- District color: architecture domain (`planning/retrieval/memory/tools/llm/safety/runtime/boundary`)
-- Building base size: module scope / weight
-- Building height: module hotness / activity
-- Building color: node health status
-  - healthy: green
-  - warning: yellow
-  - error: red
-  - idle: gray-blue
-- Status lamp pulse: active node
-- Flow color:
-  - LLM: blue
-  - Retrieval: green
-  - Tool/MCP: purple
-  - Memory: yellow
-  - Error/Retry/Fallback: red
-- Flow density: throughput hint
-- Flow speed/trail: latency and blocking hint
-
-Diagnostic-oriented effects:
-
-- Retry/fallback: dashed / loop-like curved flow styling
-- Error: red highlighted flow + timeline emphasis
-- Replay: city dimming + focused trace path
-- Diagnostic mode: `realtime` / `heatmap` / `errors`
+**English**
+- Can be extended to OpenTelemetry / OpenInference / Jaeger / Langfuse / Phoenix.
+- Mock runtime sources can be replaced by real telemetry adapters.
