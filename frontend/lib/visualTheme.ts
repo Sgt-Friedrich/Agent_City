@@ -8,7 +8,12 @@ import {
 } from "@/types/schema";
 
 export type DiagnosticMode = "realtime" | "heatmap" | "errors";
-export type DashboardMode = "live" | "replay" | "diagnostics";
+export type DashboardMode =
+  | "overview"
+  | "live"
+  | "replay"
+  | "diagnostics"
+  | "parser_analysis";
 
 export const themeTokens = {
   surface: "#050a12",

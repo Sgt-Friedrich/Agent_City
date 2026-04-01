@@ -20,9 +20,11 @@ function Metric({ label, value }: { label: string; value: string }) {
 }
 
 const modeLabel: Record<DashboardMode, string> = {
+  overview: "Overview",
   live: "Live",
   replay: "Replay",
   diagnostics: "Diagnostics",
+  parser_analysis: "Parser Analysis",
 };
 
 export function MetricsHeader({ metrics, mode = "live", diagnosticMode = "realtime" }: MetricsHeaderProps) {

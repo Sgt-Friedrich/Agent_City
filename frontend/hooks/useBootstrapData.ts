@@ -15,6 +15,8 @@ export function useBootstrapData(): { loading: boolean; error?: string } {
   const setTopology = useDashboardStore((state) => state.setTopology);
   const setTraces = useDashboardStore((state) => state.setTraces);
   const setMetrics = useDashboardStore((state) => state.setMetrics);
+  const setDiagnosticsSummary = useDashboardStore((state) => state.setDiagnosticsSummary);
+  const setParserAnalysis = useDashboardStore((state) => state.setParserAnalysis);
 
   useEffect(() => {
     let cancelled = false;
@@ -22,11 +24,13 @@ export function useBootstrapData(): { loading: boolean; error?: string } {
     async function run() {
       try {
         setLoading(true);
-        const [targets, topology, traces, metrics] = await Promise.all([
+        const [targets, topology, traces, metrics, diagnostics, parserAnalysis] = await Promise.all([
           api.getTargets(),
           api.getTopology(target),
           api.getTraces(target),
           api.getMetricsSummary(target),
+          api.getDiagnosticsSummary(target),
+          api.getParserAnalysis(target),
         ]);
 
         if (cancelled) return;
@@ -39,6 +43,8 @@ export function useBootstrapData(): { loading: boolean; error?: string } {
         setTopology(topology);
         setTraces(traces.items);
         setMetrics(metrics);
+        setDiagnosticsSummary(diagnostics);
+        setParserAnalysis(parserAnalysis);
       } catch (err) {
         if (cancelled) return;
         const message = err instanceof Error ? err.message : "bootstrap failed";
@@ -55,7 +61,16 @@ export function useBootstrapData(): { loading: boolean; error?: string } {
     return () => {
       cancelled = true;
     };
-  }, [setMetrics, setTarget, setTargets, setTopology, setTraces, target]);
+  }, [
+    setDiagnosticsSummary,
+    setMetrics,
+    setParserAnalysis,
+    setTarget,
+    setTargets,
+    setTopology,
+    setTraces,
+    target,
+  ]);
 
   return { loading, error };
 }

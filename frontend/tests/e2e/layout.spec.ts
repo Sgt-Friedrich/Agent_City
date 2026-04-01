@@ -40,6 +40,15 @@ test("dashboard renders core zones and replay route is reachable", async ({ page
   await expect(page.getByTestId("detail-drawer")).toBeVisible();
   await expect(page.getByTestId("timeline-panel")).toBeVisible();
 
+  await page.getByRole("button", { name: /diagnostics/i }).click();
+  await expect(page.getByTestId("diagnostics-center")).toBeVisible();
+
+  await page.getByRole("button", { name: /parser/i }).click();
+  await expect(page.getByTestId("parser-analysis-center")).toBeVisible();
+
+  await page.getByRole("button", { name: /overview/i }).click();
+  await expect(page.getByTestId("city-scene")).toBeVisible();
+
   const replayLink = page.getByRole("link", { name: /open replay/i });
   await expect(replayLink).toBeVisible();
   await replayLink.click();

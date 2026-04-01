@@ -1,45 +1,64 @@
-# Reference Notes And Cleanup Log
+﻿# Reference Notes And Cleanup Log
 
-Date: 2026-04-02  
-Scope: Agent City Visual Observability MVP
+Date: 2026-04-02
+Scope: Agent_City full product baseline
 
 ## 1) Reference Approach
 
-This project uses references at the **interaction and architecture pattern** level only.
-No third-party repository source code is copied into this project.
+This project uses references at the **architecture and interaction pattern** level only.
+No third-party source files are copied into this repository.
 
-Main inspirations:
+Reference inspirations:
 
-- CodeCharta / CodeCity style "software city" semantics
-- Jaeger style trace timeline + span drill-down
-- Langfuse / Phoenix style LLM trace detail and cost-centric observability views
-- MCP Inspector style tool/MCP runtime debugging mental model
+- CodeCharta / CodeCity style software-city semantics
+- Jaeger style trace timeline and span drill-down
+- Langfuse / Phoenix style LLM observability and cost-centric views
+- MCP Inspector style tool/MCP runtime debugging model
 
-## 2) Practical Borrowed Ideas
+## 2) Borrowed Product Ideas
 
-- Spatial mapping: domain district -> module node -> dependency road
-- Runtime overlay: trace/span/event as directional animated flow
-- Replay UX: play/pause/speed + current-step subtitle + span list
-- Diagnostics UX: error/retry/fallback visual differentiation + mode toggles
+- Semantic city mapping: district -> node -> edge
+- Runtime flow overlays with direction and status semantics
+- Replay flow: play/pause/speed + timeline-linked span details
+- Diagnostics mode: explicit error/retry/fallback and congestion signals
+- Parser analysis mode: confidence/coverage/issues as first-class UX
 
-## 3) Repository Cleanup Policy
+## 3) Cleanup Policy
 
-Policy used during development:
+During development, external repositories are placed under `refs/`.
 
-1. If any temporary reference repositories are created under `refs/`, `tmp/`, or `external_examples/`, scan them.
-2. Any single reference directory over **200MB** is removed.
-3. Before final delivery, run cleanup check and confirm no oversized reference folders remain.
+Rules:
+
+1. Any single reference directory > 200MB must be removed.
+2. Unlisted reference directories can be removed via keep-list mode.
+3. Final deliverable keeps only required reference samples and reports.
 
 Cleanup utility:
 
 - `scripts/cleanup_refs.py`
 
-## 4) Cleanup Execution Result
+## 4) Cleanup Execution (Actual Run)
 
 Executed on: 2026-04-02
 
-- Command:
-  - `python scripts/cleanup_refs.py --root . --dry-run`
-- Result:
-  - No reference directories found under `refs/`, `tmp/`, `external_examples`.
-  - No oversized (>200MB) reference directories remained in deliverable structure.
+Command:
+
+```bash
+python scripts/cleanup_refs.py --root . --targets refs --threshold-mb 200 --keep-list-file docs/parser-tested-keep.txt --delete-unlisted
+```
+
+Result:
+
+- Removed oversized refs (>200MB): 0
+- Removed unlisted refs: 0
+- Kept refs: 13 directories (including `refs/agent_drop` for auto-ingest)
+- Largest kept ref: `refs/mastra-ai__mastra` at 172.49MB (below threshold)
+
+## 5) Keep-list Notes
+
+`docs/parser-tested-keep.txt` includes:
+
+- 12 parser-tested repositories
+- `agent_drop` (runtime auto-parse drop-in folder)
+
+This prevents accidental deletion of the runtime ingest path while still enforcing cleanup constraints.

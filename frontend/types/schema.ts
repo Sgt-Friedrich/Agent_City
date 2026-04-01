@@ -253,6 +253,85 @@ export interface ParseJobsResponse {
   drop_directory: string;
 }
 
+export interface NodeDiagnosticItem {
+  node_id: string;
+  name: string;
+  status: string;
+  district_id: string;
+  qps: number;
+  p95_ms: number;
+  error_rate: number;
+  queue_depth: number;
+  active_count: number;
+  score: number;
+  reason: string;
+  recent_trace_ids: string[];
+}
+
+export interface EdgeDiagnosticItem {
+  edge_id: string;
+  from_node: string;
+  to_node: string;
+  kind: string;
+  protocol: string;
+  status: string;
+  observed_count: number;
+  error_count: number;
+  retry_count: number;
+  fallback_count: number;
+  avg_latency_ms: number;
+  score: number;
+  reason: string;
+}
+
+export interface DiagnosticsSummary {
+  generated_at: string;
+  target: string;
+  active_trace_count: number;
+  total_nodes: number;
+  total_edges: number;
+  inferred_edge_count: number;
+  retry_event_count: number;
+  fallback_event_count: number;
+  error_event_count: number;
+  slow_nodes: NodeDiagnosticItem[];
+  error_nodes: NodeDiagnosticItem[];
+  congested_nodes: NodeDiagnosticItem[];
+  unstable_edges: EdgeDiagnosticItem[];
+  notes: string[];
+}
+
+export interface CoveragePoint {
+  label: string;
+  count: number;
+}
+
+export interface ParserAnalysisIssue {
+  severity: string;
+  category: string;
+  title: string;
+  detail: string;
+  suggestion: string;
+}
+
+export interface ParserAnalysisReport {
+  generated_at: string;
+  target: string;
+  parser_confidence: number;
+  parser_grade: string;
+  source_coverage: Record<string, boolean>;
+  unresolved_symbols: string[];
+  provisional_node_count: number;
+  declared_edge_count: number;
+  observed_edge_count: number;
+  inferred_edge_count: number;
+  role_coverage: CoveragePoint[];
+  district_coverage: CoveragePoint[];
+  low_confidence_edges: Edge[];
+  recent_parse_jobs: ParseJob[];
+  issues: ParserAnalysisIssue[];
+}
+
 export interface Filters {
   districtIds: string[];
   nodeTypes: NodeType[];

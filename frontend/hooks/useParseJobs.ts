@@ -37,7 +37,7 @@ export function useParseJobs(): void {
           seenCompletedRef.current.add(latestCompleted.id);
           if (latestCompleted.target_id !== target) {
             setTarget(latestCompleted.target_id);
-            setViewMode("live");
+            setViewMode("overview");
           }
         }
       } catch {

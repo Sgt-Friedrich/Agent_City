@@ -33,11 +33,13 @@ export function FilterPanel() {
   const traces = useDashboardStore((state) => state.traces);
   const filters = useDashboardStore((state) => state.filters);
   const diagnosticMode = useDashboardStore((state) => state.diagnosticMode);
+  const searchQuery = useDashboardStore((state) => state.searchQuery);
   const setDistrictFilter = useDashboardStore((state) => state.setDistrictFilter);
   const setNodeTypeFilter = useDashboardStore((state) => state.setNodeTypeFilter);
   const setSpanKindFilter = useDashboardStore((state) => state.setSpanKindFilter);
   const setStatusFilter = useDashboardStore((state) => state.setStatusFilter);
   const setTraceFilter = useDashboardStore((state) => state.setTraceFilter);
+  const setSearchQuery = useDashboardStore((state) => state.setSearchQuery);
   const setDiagnosticMode = useDashboardStore((state) => state.setDiagnosticMode);
   const resetFilters = useDashboardStore((state) => state.resetFilters);
 
@@ -83,6 +85,17 @@ export function FilterPanel() {
             </button>
           ))}
         </div>
+      </section>
+
+      <section className="mt-4 space-y-2 rounded border border-line bg-[#0a1829] p-2">
+        <h3 className="text-xs uppercase tracking-wide text-slate-400">Search</h3>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
+          placeholder="node / trace / protocol..."
+          className="w-full rounded border border-line bg-[#091425] px-2 py-1 text-xs text-slate-200 outline-none ring-0 placeholder:text-slate-500 focus:border-sky-400"
+        />
       </section>
 
       <section className="mt-4 space-y-2">

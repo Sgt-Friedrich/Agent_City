@@ -4,12 +4,14 @@ import { create } from "zustand";
 
 import {
   BoundTraceResponse,
+  DiagnosticsSummary,
   Edge,
   Filters,
   FlowEvent,
   MetricsSummary,
   NodeType,
   ParseJob,
+  ParserAnalysisReport,
   SpanKind,
   TargetOption,
   TopologyGraph,
@@ -32,10 +34,13 @@ interface DashboardState {
   targets: TargetOption[];
   parseJobs: ParseJob[];
   ingestDirectory?: string;
+  searchQuery: string;
   topology?: TopologyGraph;
   traces: TraceRecord[];
   traceDetails: Record<string, BoundTraceResponse>;
   metrics?: MetricsSummary;
+  diagnosticsSummary?: DiagnosticsSummary;
+  parserAnalysis?: ParserAnalysisReport;
   liveEvents: FlowEvent[];
   selectedNodeId?: string;
   selectedSpanId?: string;
@@ -48,12 +53,15 @@ interface DashboardState {
   setTargets: (targets: TargetOption[]) => void;
   setParseJobs: (jobs: ParseJob[]) => void;
   setIngestDirectory: (path?: string) => void;
+  setSearchQuery: (query: string) => void;
   setTopology: (topology: TopologyGraph) => void;
   mergeObservedEdges: (edges: Edge[]) => void;
   setTraces: (traces: TraceRecord[]) => void;
   upsertTrace: (trace: TraceRecord) => void;
   setTraceDetail: (traceId: string, detail: BoundTraceResponse) => void;
   setMetrics: (metrics: MetricsSummary) => void;
+  setDiagnosticsSummary: (summary: DiagnosticsSummary | undefined) => void;
+  setParserAnalysis: (report: ParserAnalysisReport | undefined) => void;
   pushLiveEvent: (event: FlowEvent) => void;
   setSelectedNode: (nodeId?: string) => void;
   setSelectedSpan: (spanId?: string, traceId?: string) => void;
@@ -80,14 +88,17 @@ const defaultFilters: Filters = {
 };
 
 export const useDashboardStore = create<DashboardState>((set, get) => ({
-  viewMode: "live",
+  viewMode: "overview",
   diagnosticMode: "realtime",
   target: "mock",
   targets: [],
   parseJobs: [],
   ingestDirectory: undefined,
+  searchQuery: "",
   traces: [],
   traceDetails: {},
+  diagnosticsSummary: undefined,
+  parserAnalysis: undefined,
   liveEvents: [],
   filters: defaultFilters,
   replay: {
@@ -101,7 +112,14 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   setDiagnosticMode: (mode) =>
     set({
       diagnosticMode: mode,
-      viewMode: mode === "realtime" ? "live" : "diagnostics",
+      viewMode:
+        mode === "realtime"
+          ? get().viewMode === "parser_analysis"
+            ? "parser_analysis"
+            : get().viewMode === "diagnostics"
+              ? "overview"
+              : get().viewMode
+          : "diagnostics",
     }),
 
   setTarget: (target) =>
@@ -110,12 +128,22 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       topology: undefined,
       traces: [],
       traceDetails: {},
+      diagnosticsSummary: undefined,
+      parserAnalysis: undefined,
       liveEvents: [],
+      searchQuery: "",
       selectedNodeId: undefined,
       selectedSpanId: undefined,
       selectedTraceId: undefined,
       filters: defaultFilters,
-      viewMode: get().replay.active ? "replay" : get().diagnosticMode === "realtime" ? "live" : "diagnostics",
+      viewMode:
+        get().viewMode === "parser_analysis"
+            ? "parser_analysis"
+          : get().replay.active
+            ? "replay"
+            : get().diagnosticMode === "realtime"
+              ? "overview"
+              : "diagnostics",
     }),
 
   setTargets: (targets) => set({ targets }),
@@ -123,6 +151,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   setParseJobs: (parseJobs) => set({ parseJobs }),
 
   setIngestDirectory: (ingestDirectory) => set({ ingestDirectory }),
+  setSearchQuery: (searchQuery) => set({ searchQuery }),
 
   setTopology: (topology) => set({ topology }),
 
@@ -163,6 +192,8 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   },
 
   setMetrics: (metrics) => set({ metrics }),
+  setDiagnosticsSummary: (diagnosticsSummary) => set({ diagnosticsSummary }),
+  setParserAnalysis: (parserAnalysis) => set({ parserAnalysis }),
 
   pushLiveEvent: (event) => {
     const next = [event, ...get().liveEvents].slice(0, 500);
@@ -195,7 +226,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
   stopReplay: () =>
     set({
-      viewMode: get().diagnosticMode === "realtime" ? "live" : "diagnostics",
+      viewMode: get().diagnosticMode === "realtime" ? "overview" : "diagnostics",
       replay: {
         active: false,
         traceId: undefined,

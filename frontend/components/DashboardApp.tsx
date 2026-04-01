@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
+import { DiagnosticsCenter } from "@/components/analysis/DiagnosticsCenter";
+import { ParserAnalysisCenter } from "@/components/analysis/ParserAnalysisCenter";
 import { CityScene } from "@/components/city/CityScene";
 import { FilterPanel } from "@/components/panels/FilterPanel";
 import { DetailDrawer } from "@/components/panels/DetailDrawer";
@@ -11,6 +13,8 @@ import { FlowEventHoverCard } from "@/components/panels/FlowEventHoverCard";
 import { MetricsHeader } from "@/components/panels/MetricsHeader";
 import { TimelinePanel } from "@/components/panels/TimelinePanel";
 import { api } from "@/lib/api";
+import { DashboardMode } from "@/lib/visualTheme";
+import { useAnalysisData } from "@/hooks/useAnalysisData";
 import { useBootstrapData } from "@/hooks/useBootstrapData";
 import { useFilteredTopology } from "@/hooks/useFilteredTopology";
 import { useLiveFlowSocket } from "@/hooks/useLiveFlowSocket";
@@ -18,11 +22,19 @@ import { useParseJobs } from "@/hooks/useParseJobs";
 import { useDashboardStore } from "@/store/useDashboardStore";
 import { FlowEvent } from "@/types/schema";
 
+const viewModes: Array<{ id: DashboardMode; label: string }> = [
+  { id: "overview", label: "overview" },
+  { id: "live", label: "live" },
+  { id: "diagnostics", label: "diagnostics" },
+  { id: "parser_analysis", label: "parser" },
+];
+
 export function DashboardApp() {
   const searchParams = useSearchParams();
   const { loading, error } = useBootstrapData();
   useLiveFlowSocket();
   useParseJobs();
+  useAnalysisData();
 
   const [hoveredEvent, setHoveredEvent] = useState<FlowEvent>();
   const [registering, setRegistering] = useState(false);
@@ -42,6 +54,8 @@ export function DashboardApp() {
   const traces = useDashboardStore((state) => state.traces);
   const parseJobs = useDashboardStore((state) => state.parseJobs);
   const ingestDirectory = useDashboardStore((state) => state.ingestDirectory);
+  const searchQuery = useDashboardStore((state) => state.searchQuery);
+  const setSearchQuery = useDashboardStore((state) => state.setSearchQuery);
 
   const { topology, nodes, edges, events } = useFilteredTopology();
   const nodesById = useMemo(() => {
@@ -69,10 +83,6 @@ export function DashboardApp() {
     }
   }, [searchTarget, setTarget, target]);
 
-  useEffect(() => {
-    setViewMode("live");
-  }, [setViewMode]);
-
   const handleRegisterTarget = async () => {
     if (registering) return;
 
@@ -92,6 +102,7 @@ export function DashboardApp() {
       const targetItems = await api.getTargets();
       setTargets(targetItems.items);
       setTarget(response.target.id);
+      setViewMode("overview");
     } catch (registerError) {
       const message =
         registerError instanceof Error ? registerError.message : "register target failed";
@@ -117,15 +128,24 @@ export function DashboardApp() {
     );
   }
 
+  const isParserMode = viewMode === "parser_analysis";
+  const isDiagnosticsMode = viewMode === "diagnostics";
+
   return (
     <main data-testid="dashboard-root" className="h-screen w-screen overflow-hidden bg-transparent text-slate-100">
-      <div className="mx-auto flex h-full max-w-[1700px] flex-col border-x border-line">
+      <div className="mx-auto flex h-full max-w-[1760px] flex-col border-x border-line">
         <MetricsHeader metrics={metrics} mode={viewMode} diagnosticMode={diagnosticMode} />
 
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-[#071120cc] px-4 py-2 text-xs text-slate-300">
           <div className="panel-title text-sm uppercase tracking-wide">Agent_City Runtime Monitor</div>
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <span className="hidden text-slate-400 md:inline">static topology + runtime trace overlay</span>
+            <span className="hidden text-slate-400 md:inline">static topology + runtime trace overlay + parser diagnostics</span>
+            <input
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="search node / trace / protocol"
+              className="w-[210px] rounded border border-line bg-[#0b1a2b] px-2 py-1 text-xs text-slate-100 placeholder:text-slate-500"
+            />
             <button
               type="button"
               onClick={handleRegisterTarget}
@@ -155,6 +175,23 @@ export function DashboardApp() {
               </Link>
             )}
           </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 border-b border-line bg-[#081627cc] px-4 py-2">
+          {viewModes.map((mode) => (
+            <button
+              key={mode.id}
+              type="button"
+              onClick={() => setViewMode(mode.id)}
+              className={`rounded border px-2 py-1 text-[11px] uppercase tracking-wide ${
+                viewMode === mode.id
+                  ? "border-sky-400 bg-[#133152] text-slate-100"
+                  : "border-line bg-[#0b1a2d] text-slate-400 hover:text-slate-200"
+              }`}
+            >
+              {mode.label}
+            </button>
+          ))}
         </div>
 
         <div data-testid="parse-progress-banner" className="border-b border-line bg-[#06111dcc] px-4 py-2 text-[11px] text-slate-300">
@@ -209,26 +246,36 @@ export function DashboardApp() {
           <FilterPanel />
 
           <section data-testid="city-panel" className="relative min-h-[42vh] lg:min-h-0">
-            <CityScene
-              topology={topology}
-              nodes={nodes}
-              edges={edges}
-              events={events}
-              diagnosticMode={diagnosticMode}
-              selectedNodeId={selectedNodeId}
-              selectedSpanId={selectedSpanId}
-              onSelectNode={(nodeId) => setSelectedNode(nodeId)}
-              onSelectEvent={(event) => setSelectedSpan(event.span_id, event.trace_id)}
-              onHoverEvent={(event) => setHoveredEvent(event)}
-            />
-            {hoveredEvent && (
-              <div className="pointer-events-none absolute left-3 top-3 z-10 w-[320px]">
-                <FlowEventHoverCard event={hoveredEvent} nodesById={nodesById} />
-              </div>
+            {isParserMode ? (
+              <ParserAnalysisCenter />
+            ) : (
+              <>
+                <CityScene
+                  topology={topology}
+                  nodes={nodes}
+                  edges={edges}
+                  events={events}
+                  diagnosticMode={isDiagnosticsMode ? diagnosticMode : "realtime"}
+                  selectedNodeId={selectedNodeId}
+                  selectedSpanId={selectedSpanId}
+                  onSelectNode={(nodeId) => setSelectedNode(nodeId)}
+                  onSelectEvent={(event) => setSelectedSpan(event.span_id, event.trace_id)}
+                  onHoverEvent={(event) => setHoveredEvent(event)}
+                />
+                {hoveredEvent && (
+                  <div className="pointer-events-none absolute left-3 top-3 z-10 w-[320px]">
+                    <FlowEventHoverCard event={hoveredEvent} nodesById={nodesById} />
+                  </div>
+                )}
+              </>
             )}
           </section>
 
-          <DetailDrawer hoveredEvent={hoveredEvent} />
+          {isDiagnosticsMode || isParserMode ? (
+            <DiagnosticsCenter />
+          ) : (
+            <DetailDrawer hoveredEvent={hoveredEvent} />
+          )}
         </div>
 
         <div data-testid="timeline-container" className="h-[220px] lg:h-[210px]">

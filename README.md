@@ -19,6 +19,20 @@ Agent_City is a city-style visualization and runtime observability platform for 
 
 ---
 
+## 1.1) 为什么不是普通拓扑图 | Why It Is Not Just a Topology Viewer
+
+**中文**
+- 不是静态图：支持 live trace + replay + diagnostics。
+- 不是一次性 demo：包含 parser 回归、前端自调试技能链、清理脚本与报告模板。
+- 不是单点功能：从“解析 -> 展示 -> 诊断 -> 修复 -> 回归”形成闭环。
+
+**English**
+- Not static-only: includes live trace, replay, and diagnostics views.
+- Not a one-off demo: includes parser regression, frontend self-debug skills, cleanup tooling, and report templates.
+- Not a point solution: closes the loop from parsing to visualization, diagnosis, fixes, and regression.
+
+---
+
 ## 2) 核心能力 | Core Capabilities
 
 **中文**
@@ -161,6 +175,22 @@ npm --prefix frontend run build
 
 ---
 
+## 8.1) 文档入口 | Documentation Index
+
+- `docs/architecture.md`
+- `docs/product-ux.md`
+- `docs/parser-test-plan.md`
+- `docs/parser-test-results.md`
+- `docs/parser-capability-summary.md`
+- `docs/parser-fix-report-template.md`
+- `docs/parser-fix-report.md`
+- `docs/frontend-debug-playbook.md`
+- `docs/frontend-fix-report.md`
+- `docs/frontend-fix-report-template.md`
+- `docs/reference-notes.md`
+
+---
+
 ## 9) 前端排障工具链 | Frontend Debug Toolchain
 
 本仓库内置可复用技能链：  
@@ -189,6 +219,9 @@ python scripts/cleanup_refs.py --root . --targets refs --threshold-mb 200 --keep
 
 规则：任何单个参考目录 > 200MB 必须清理。  
 Rule: any single reference repo directory > 200MB must be removed.
+
+说明：`refs/agent_drop/` 已加入保留清单，用于运行时自动解析投递目录。  
+Note: `refs/agent_drop/` is now included in keep-list as the runtime drop-in ingest folder.
 
 ---
 

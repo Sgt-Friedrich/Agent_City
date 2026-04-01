@@ -298,3 +298,88 @@ class ParseJob(BaseModel):
     created_at: datetime
     started_at: datetime | None = None
     ended_at: datetime | None = None
+
+
+class NodeDiagnosticItem(BaseModel):
+    node_id: str
+    name: str
+    status: str
+    district_id: str
+    qps: float
+    p95_ms: float
+    error_rate: float
+    queue_depth: int
+    active_count: int
+    score: float
+    reason: str
+    recent_trace_ids: list[str] = Field(default_factory=list)
+
+
+class EdgeDiagnosticItem(BaseModel):
+    edge_id: str
+    from_node: str
+    to_node: str
+    kind: str
+    protocol: str
+    status: str
+    observed_count: int
+    error_count: int
+    retry_count: int
+    fallback_count: int
+    avg_latency_ms: float
+    score: float
+    reason: str
+
+
+class DiagnosticsSummary(BaseModel):
+    generated_at: datetime
+    target: str
+    active_trace_count: int
+    total_nodes: int
+    total_edges: int
+    inferred_edge_count: int
+    retry_event_count: int
+    fallback_event_count: int
+    error_event_count: int
+    slow_nodes: list[NodeDiagnosticItem] = Field(default_factory=list)
+    error_nodes: list[NodeDiagnosticItem] = Field(default_factory=list)
+    congested_nodes: list[NodeDiagnosticItem] = Field(default_factory=list)
+    unstable_edges: list[EdgeDiagnosticItem] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+
+
+class CoveragePoint(BaseModel):
+    label: str
+    count: int
+
+
+class ParserAnalysisIssue(BaseModel):
+    severity: str
+    category: str
+    title: str
+    detail: str
+    suggestion: str
+
+
+class ParserAnalysisReport(BaseModel):
+    generated_at: datetime
+    target: str
+    parser_confidence: float
+    parser_grade: str
+    source_coverage: dict[str, bool] = Field(default_factory=dict)
+    unresolved_symbols: list[str] = Field(default_factory=list)
+    provisional_node_count: int
+    declared_edge_count: int
+    observed_edge_count: int
+    inferred_edge_count: int
+    role_coverage: list[CoveragePoint] = Field(default_factory=list)
+    district_coverage: list[CoveragePoint] = Field(default_factory=list)
+    low_confidence_edges: list[Edge] = Field(default_factory=list)
+    recent_parse_jobs: list[ParseJob] = Field(default_factory=list)
+    issues: list[ParserAnalysisIssue] = Field(default_factory=list)
+
+
+class AnalysisReportExport(BaseModel):
+    target: str
+    generated_at: datetime
+    markdown: str

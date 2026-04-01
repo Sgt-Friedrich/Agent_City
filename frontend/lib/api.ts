@@ -1,8 +1,10 @@
 ﻿import { API_BASE_URL } from "@/lib/config";
 import {
   BoundTraceResponse,
+  DiagnosticsSummary,
   MetricsSummary,
   ParseJobsResponse,
+  ParserAnalysisReport,
   RegisterTargetRequest,
   RegisterTargetResponse,
   TopologyGraph,
@@ -66,4 +68,17 @@ export const api = {
   getNode: (nodeId: string, target: string) => request(`/api/nodes/${nodeId}`, { target }),
   getParseJobs: () => request<ParseJobsResponse>("/api/parse-jobs"),
   scanParseJobs: () => requestPost<{ count: number; drop_directory: string }>("/api/parse-jobs/scan", {}),
+  getDiagnosticsSummary: (target: string) =>
+    request<DiagnosticsSummary>("/api/analysis/diagnostics", { target }),
+  getParserAnalysis: (target: string) =>
+    request<ParserAnalysisReport>("/api/analysis/parser", { target }),
+  getAnalysisReportMarkdown: (target: string) =>
+    fetch(`${API_BASE_URL}/api/analysis/report?target=${encodeURIComponent(target)}&fmt=markdown`, {
+      cache: "no-store",
+    }).then(async (response) => {
+      if (!response.ok) {
+        throw new Error(`Request failed: /api/analysis/report -> ${response.status}`);
+      }
+      return response.text();
+    }),
 };
