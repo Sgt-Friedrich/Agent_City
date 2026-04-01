@@ -71,9 +71,9 @@ export function ReplayApp({ traceId, target }: ReplayAppProps) {
   }, {});
 
   return (
-    <main className="h-screen w-screen overflow-hidden bg-[#03070d] text-slate-100">
+    <main data-testid="replay-root" className="h-screen w-screen overflow-hidden bg-[#03070d] text-slate-100">
       <div className="mx-auto flex h-full max-w-[1760px] flex-col border-x border-line">
-        <div className="flex items-center justify-between border-b border-line bg-[#050d18f5] px-4 py-2 text-xs">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-[#050d18f5] px-4 py-2 text-xs">
           <div className="panel-title text-sm uppercase tracking-wide text-slate-100">Replay Mode</div>
           <div className="text-[11px] uppercase tracking-wide text-slate-400">target: {target}</div>
           <Link href={`/?target=${encodeURIComponent(target)}`} className="rounded border border-line bg-[#10233a] px-2 py-1 text-slate-200 hover:bg-[#173659]">
@@ -83,8 +83,8 @@ export function ReplayApp({ traceId, target }: ReplayAppProps) {
 
         <ReplayController trace={trace} />
 
-        <div className="grid min-h-0 flex-1 grid-cols-[1fr_320px]">
-          <section className="relative min-h-0 border-r border-line">
+        <div data-testid="replay-layout" className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[1fr_320px]">
+          <section data-testid="replay-city-panel" className="relative min-h-[46vh] border-r border-line lg:min-h-0">
             {!loading && (
               <CityScene
                 topology={topology}

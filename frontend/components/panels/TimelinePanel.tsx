@@ -19,7 +19,7 @@ export function TimelinePanel({ maxItems = 60 }: TimelinePanelProps) {
   const items = useMemo(() => events.slice(0, maxItems), [events, maxItems]);
 
   return (
-    <section className="h-full overflow-y-auto border-t border-line bg-[#070f1bcc] p-2 scrollbar-thin">
+    <section data-testid="timeline-panel" className="h-full overflow-y-auto border-t border-line bg-[#070f1bcc] p-2 scrollbar-thin">
       <div className="flex items-center justify-between px-1">
         <div className="panel-title text-xs uppercase tracking-wide text-slate-300">Live Timeline</div>
         <div className="text-[10px] uppercase tracking-wide text-slate-500">

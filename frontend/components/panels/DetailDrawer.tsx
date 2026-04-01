@@ -124,7 +124,7 @@ export function DetailDrawer({ hoveredEvent }: DetailDrawerProps) {
   }, [liveEvents, nodeById, selectedNode, topology, traces]);
 
   return (
-    <aside className="h-full overflow-y-auto border-l border-line bg-[#081320cc] p-3 scrollbar-thin">
+    <aside data-testid="detail-drawer" className="h-full max-h-[34vh] overflow-y-auto border-l border-line bg-[#081320cc] p-3 scrollbar-thin lg:max-h-none">
       <h2 className="panel-title text-sm uppercase tracking-wide text-slate-200">Inspector</h2>
 
       {selectedNode ? (

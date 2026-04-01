@@ -53,7 +53,7 @@ export function FilterPanel() {
   ];
 
   return (
-    <aside className="h-full overflow-y-auto border-r border-line bg-[#081320cc] p-3 scrollbar-thin">
+    <aside data-testid="filter-panel" className="h-full max-h-[34vh] overflow-y-auto border-r border-line bg-[#081320cc] p-3 scrollbar-thin lg:max-h-none">
       <div className="flex items-center justify-between">
         <h2 className="panel-title text-sm uppercase tracking-wide text-slate-200">Filters</h2>
         <button

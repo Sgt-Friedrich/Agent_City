@@ -17,7 +17,7 @@ export function ReplaySpanList({ trace }: ReplaySpanListProps) {
   }
 
   return (
-    <aside className="h-full overflow-y-auto border-l border-line bg-[#081320cc] p-3 scrollbar-thin">
+    <aside data-testid="replay-span-list" className="h-full max-h-[34vh] overflow-y-auto border-l border-line bg-[#081320cc] p-3 scrollbar-thin lg:max-h-none">
       <h2 className="panel-title text-sm uppercase tracking-wide text-slate-200">Replay Spans</h2>
       <div className="mt-3 space-y-1">
         {trace.spans.map((span, index) => {

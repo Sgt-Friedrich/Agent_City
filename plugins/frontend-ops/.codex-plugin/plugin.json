@@ -1,0 +1,6 @@
+{
+  "name": "frontend-ops",
+  "version": "1.0.0",
+  "description": "Reusable frontend debugging and regression workflows for this repository.",
+  "skills": "./skills/"
+}

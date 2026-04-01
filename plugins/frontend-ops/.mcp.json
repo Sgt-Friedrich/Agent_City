@@ -1,0 +1,8 @@
+{
+  "servers": {
+    "browser-tools": {
+      "command": "npx",
+      "args": ["-y", "your-browser-mcp-server"]
+    }
+  }
+}

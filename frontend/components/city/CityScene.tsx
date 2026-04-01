@@ -147,7 +147,7 @@ export function CityScene({
   }, [edges]);
 
   return (
-    <div className="city-shell h-full w-full">
+    <div data-testid="city-scene" className="city-shell h-full w-full">
       <div className="grid-lines" />
       <Canvas shadows camera={{ position: [0, 150, 130], fov: 42 }}>
         <color attach="background" args={["#050a12"]} />

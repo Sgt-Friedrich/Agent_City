@@ -53,14 +53,14 @@ export function ReplayController({ trace }: ReplayControllerProps) {
 
   if (!trace) {
     return (
-      <div className="border-b border-line bg-[#091323ee] p-3 text-xs text-slate-400">
+      <div data-testid="replay-controller" className="border-b border-line bg-[#091323ee] p-3 text-xs text-slate-400">
         Replay: trace not found.
       </div>
     );
   }
 
   return (
-    <section className="border-b border-line bg-[#091323ee] p-3">
+    <section data-testid="replay-controller" className="border-b border-line bg-[#091323ee] p-3">
       <div className="flex flex-wrap items-center gap-2 text-xs text-slate-300">
         <span className="badge">Replay</span>
         <span className="panel-title text-slate-100">{shortId(trace.envelope.trace_id)}</span>

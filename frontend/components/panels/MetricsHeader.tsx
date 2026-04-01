@@ -29,7 +29,7 @@ export function MetricsHeader({ metrics, mode = "live", diagnosticMode = "realti
   const modeDetail = mode === "diagnostics" ? ` (${diagnosticMode})` : "";
 
   return (
-    <header className="border-b border-line bg-[#081323cc] backdrop-blur-sm">
+    <header data-testid="metrics-header" className="border-b border-line bg-[#081323cc] backdrop-blur-sm">
       <div className="flex flex-wrap items-stretch">
         <Metric label="Mode" value={`${modeLabel[mode]}${modeDetail}`} />
         <Metric label="Total Traces" value={String(metrics?.total_traces ?? 0)} />

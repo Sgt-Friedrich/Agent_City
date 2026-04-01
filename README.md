@@ -14,6 +14,16 @@ The system follows **two parsing layers + one rendering layer**:
 agent-city-mvp/
   docs/
     reference-notes.md
+    frontend-debug-playbook.md
+    frontend-fix-report-template.md
+    frontend-e2e-test-report.md
+  .agents/
+    skills/frontend-*/
+    plugins/marketplace.json
+  plugins/frontend-ops/
+    .codex-plugin/plugin.json
+    skills/frontend-*/
+    .mcp.json
   backend/
     app/
       main.py
@@ -48,6 +58,9 @@ agent-city-mvp/
   samples/*.json
   scripts/
     cleanup_refs.py
+    dev-frontend.sh
+    playwright-smoke.sh
+    collect-console-errors.sh
 ```
 
 ## 2) Data Models and Types
@@ -226,6 +239,18 @@ Open:
 - Dashboard: `http://localhost:3000`
 - Replay: `http://localhost:3000/replay/<trace_id>?target=claude`
 
+### Frontend E2E (Playwright)
+
+```bash
+npm --prefix frontend run e2e:install
+npm --prefix frontend run e2e
+```
+
+Playwright config:
+
+- `frontend/playwright.config.ts`
+- test cases: `frontend/tests/e2e/layout.spec.ts`, `frontend/tests/e2e/responsive.spec.ts`
+
 ## 8) Reference Cleanup Rule (>=200MB)
 
 Reference cleanup script:
@@ -253,6 +278,14 @@ Parser regression artifacts:
 - `docs/parser-fix-report.md`
 - `docs/parser-regression-summary.md`
 - `tests/fixtures/parsed_samples/*.json`
+
+Frontend debugging workflow assets:
+
+- `AGENTS.md`
+- `.agents/skills/frontend-*`
+- `.agents/plugins/marketplace.json`
+- `plugins/frontend-ops/.codex-plugin/plugin.json`
+- `plugins/frontend-ops/skills/frontend-*`
 
 Run parser regression:
 

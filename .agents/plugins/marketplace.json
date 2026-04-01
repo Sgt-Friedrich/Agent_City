@@ -1,0 +1,20 @@
+{
+  "name": "local-repo-tools",
+  "interface": {
+    "displayName": "Local Repo Tools"
+  },
+  "plugins": [
+    {
+      "name": "frontend-ops",
+      "source": {
+        "source": "local",
+        "path": "./plugins/frontend-ops"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Engineering"
+    }
+  ]
+}
