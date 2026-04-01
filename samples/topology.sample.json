@@ -1,0 +1,1528 @@
+{
+  "generated_at": "2026-04-01T15:22:55.660347Z",
+  "districts": [
+    {
+      "id": "district.runtime",
+      "name": "Runtime District",
+      "type": "runtime",
+      "summary": "Ingress, session orchestration, event routing and final render pipeline.",
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 58.0
+      },
+      "bounds": {
+        "width": 52.0,
+        "depth": 30.0
+      },
+      "metadata": {
+        "node_count": 4
+      }
+    },
+    {
+      "id": "district.planning",
+      "name": "Planning District",
+      "type": "planning",
+      "summary": "Planner/orchestrator and execution strategy center.",
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 8.0
+      },
+      "bounds": {
+        "width": 50.0,
+        "depth": 36.0
+      },
+      "metadata": {
+        "node_count": 1
+      }
+    },
+    {
+      "id": "district.retrieval",
+      "name": "Retrieval District",
+      "type": "retrieval",
+      "summary": "Retriever, reranker and semantic search chain.",
+      "position": {
+        "x": -62.0,
+        "y": 0.0,
+        "z": 14.0
+      },
+      "bounds": {
+        "width": 44.0,
+        "depth": 34.0
+      },
+      "metadata": {
+        "node_count": 2
+      }
+    },
+    {
+      "id": "district.memory",
+      "name": "Memory District",
+      "type": "memory",
+      "summary": "Session memory, long-term memory and persistence operations.",
+      "position": {
+        "x": -62.0,
+        "y": 0.0,
+        "z": -34.0
+      },
+      "bounds": {
+        "width": 44.0,
+        "depth": 30.0
+      },
+      "metadata": {
+        "node_count": 2
+      }
+    },
+    {
+      "id": "district.tools",
+      "name": "Tools District",
+      "type": "tools",
+      "summary": "Tool registry, shell/browser execution and MCP integration.",
+      "position": {
+        "x": 62.0,
+        "y": 0.0,
+        "z": 18.0
+      },
+      "bounds": {
+        "width": 48.0,
+        "depth": 38.0
+      },
+      "metadata": {
+        "node_count": 4
+      }
+    },
+    {
+      "id": "district.llm",
+      "name": "LLM District",
+      "type": "llm",
+      "summary": "Model gateway, prompt assets, and response synthesis.",
+      "position": {
+        "x": 62.0,
+        "y": 0.0,
+        "z": -28.0
+      },
+      "bounds": {
+        "width": 44.0,
+        "depth": 32.0
+      },
+      "metadata": {
+        "node_count": 2
+      }
+    },
+    {
+      "id": "district.safety",
+      "name": "Safety District",
+      "type": "safety",
+      "summary": "Guardrail, evaluation and policy enforcement chain.",
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": -56.0
+      },
+      "bounds": {
+        "width": 46.0,
+        "depth": 28.0
+      },
+      "metadata": {
+        "node_count": 2
+      }
+    },
+    {
+      "id": "district.boundary",
+      "name": "Boundary District",
+      "type": "boundary",
+      "summary": "External services and shared integration boundaries.",
+      "position": {
+        "x": 102.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "bounds": {
+        "width": 38.0,
+        "depth": 46.0
+      },
+      "metadata": {
+        "node_count": 2
+      }
+    }
+  ],
+  "nodes": [
+    {
+      "id": "node.chat_gateway",
+      "name": "Chat Gateway",
+      "type": "runtime",
+      "district_id": "district.runtime",
+      "position": {
+        "x": -8.67,
+        "y": 0.0,
+        "z": 53.0
+      },
+      "size": 4.18,
+      "height": 15.69,
+      "status": "healthy",
+      "labels": [
+        "api",
+        "entry",
+        "runtime_node"
+      ],
+      "metadata": {
+        "summary": "Entry point for user instructions and streaming responses.",
+        "role": "runtime_node",
+        "sources": []
+      },
+      "metrics": {
+        "node_id": "node.chat_gateway",
+        "qps": 6.7,
+        "p95_ms": 1239.56,
+        "error_rate": 0.0554,
+        "active_count": 9,
+        "queue_depth": 15,
+        "cpu": 64.52,
+        "memory_mb": 3682.4,
+        "token_rate": 1335.36,
+        "cost_rate": 0.1611
+      },
+      "source_provenance": [
+        {
+          "source_type": "agent_config",
+          "location": "configs/runtime/chat_gateway.yaml",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.mcp_result_adapter",
+      "name": "MCP Result Adapter",
+      "type": "runtime",
+      "district_id": "district.runtime",
+      "position": {
+        "x": 8.67,
+        "y": 0.0,
+        "z": 53.0
+      },
+      "size": 3.82,
+      "height": 13.75,
+      "status": "healthy",
+      "labels": [
+        "adapter",
+        "mcp",
+        "runtime_node"
+      ],
+      "metadata": {
+        "summary": "Transforms MCP result payloads to model-friendly context.",
+        "role": "runtime_node",
+        "sources": []
+      },
+      "metrics": {
+        "node_id": "node.mcp_result_adapter",
+        "qps": 0.31,
+        "p95_ms": 1521.94,
+        "error_rate": 0.0042,
+        "active_count": 12,
+        "queue_depth": 24,
+        "cpu": 72.41,
+        "memory_mb": 1444.68,
+        "token_rate": 521.3,
+        "cost_rate": 0.2015
+      },
+      "source_provenance": [
+        {
+          "source_type": "mcp_registry",
+          "location": "runtime/mcp/result_adapter.py",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.fallback_router",
+      "name": "Fallback Router",
+      "type": "runtime",
+      "district_id": "district.runtime",
+      "position": {
+        "x": -8.67,
+        "y": 0.0,
+        "z": 63.0
+      },
+      "size": 3.82,
+      "height": 13.75,
+      "status": "healthy",
+      "labels": [
+        "fallback",
+        "runtime_node"
+      ],
+      "metadata": {
+        "summary": "Fallback path for retries and degraded responses.",
+        "role": "runtime_node",
+        "sources": []
+      },
+      "metrics": {
+        "node_id": "node.fallback_router",
+        "qps": 6.34,
+        "p95_ms": 81.02,
+        "error_rate": 0.0358,
+        "active_count": 6,
+        "queue_depth": 12,
+        "cpu": 12.31,
+        "memory_mb": 1074.25,
+        "token_rate": 338.89,
+        "cost_rate": 0.1012
+      },
+      "source_provenance": [
+        {
+          "source_type": "workflow_graph",
+          "location": "graphs/orchestrator/fallback.graph.json",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.final_renderer",
+      "name": "Final Renderer",
+      "type": "runtime",
+      "district_id": "district.runtime",
+      "position": {
+        "x": 8.67,
+        "y": 0.0,
+        "z": 63.0
+      },
+      "size": 3.82,
+      "height": 13.75,
+      "status": "healthy",
+      "labels": [
+        "output",
+        "runtime_node"
+      ],
+      "metadata": {
+        "summary": "Composes final answer and stream chunks to client.",
+        "role": "runtime_node",
+        "sources": []
+      },
+      "metrics": {
+        "node_id": "node.final_renderer",
+        "qps": 2.78,
+        "p95_ms": 1107.55,
+        "error_rate": 0.038,
+        "active_count": 8,
+        "queue_depth": 22,
+        "cpu": 38.24,
+        "memory_mb": 1644.35,
+        "token_rate": 746.16,
+        "cost_rate": 0.0725
+      },
+      "source_provenance": [
+        {
+          "source_type": "agent_config",
+          "location": "runtime/renderer/final_renderer.ts",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.planner_core",
+      "name": "Planner Core",
+      "type": "planner",
+      "district_id": "district.planning",
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 8.0
+      },
+      "size": 4.9,
+      "height": 19.58,
+      "status": "healthy",
+      "labels": [
+        "center",
+        "orchestrator",
+        "planner",
+        "python-registered"
+      ],
+      "metadata": {
+        "summary": "Creates plans and dispatches sub-agent execution.",
+        "role": "planner",
+        "sources": [
+          "parsers/claude_runtime.py"
+        ]
+      },
+      "metrics": {
+        "node_id": "node.planner_core",
+        "qps": 2.32,
+        "p95_ms": 683.68,
+        "error_rate": 0.0779,
+        "active_count": 3,
+        "queue_depth": 2,
+        "cpu": 20.25,
+        "memory_mb": 1726.38,
+        "token_rate": 509.2,
+        "cost_rate": 0.1693
+      },
+      "source_provenance": [
+        {
+          "source_type": "workflow_graph",
+          "location": "graphs/orchestrator/plan.graph.json",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.retriever_hybrid",
+      "name": "Hybrid Retriever",
+      "type": "retriever",
+      "district_id": "district.retrieval",
+      "position": {
+        "x": -69.33,
+        "y": 0.0,
+        "z": 14.0
+      },
+      "size": 4.45,
+      "height": 11.75,
+      "status": "healthy",
+      "labels": [
+        "rag",
+        "retriever"
+      ],
+      "metadata": {
+        "summary": "Hybrid lexical plus vector retrieval.",
+        "role": "retriever",
+        "sources": []
+      },
+      "metrics": {
+        "node_id": "node.retriever_hybrid",
+        "qps": 6.84,
+        "p95_ms": 1394.1,
+        "error_rate": 0.0307,
+        "active_count": 2,
+        "queue_depth": 2,
+        "cpu": 70.67,
+        "memory_mb": 2753.84,
+        "token_rate": 1202.47,
+        "cost_rate": 0.118
+      },
+      "source_provenance": [
+        {
+          "source_type": "retrieval_config",
+          "location": "configs/retrieval/retriever.toml",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.reranker_cross",
+      "name": "Cross Encoder Reranker",
+      "type": "reranker",
+      "district_id": "district.retrieval",
+      "position": {
+        "x": -54.67,
+        "y": 0.0,
+        "z": 14.0
+      },
+      "size": 4.0,
+      "height": 10.4,
+      "status": "healthy",
+      "labels": [
+        "rag",
+        "ranking",
+        "reranker"
+      ],
+      "metadata": {
+        "summary": "Reorders candidates with semantic relevance model.",
+        "role": "reranker",
+        "sources": []
+      },
+      "metrics": {
+        "node_id": "node.reranker_cross",
+        "qps": 5.58,
+        "p95_ms": 916.46,
+        "error_rate": 0.0777,
+        "active_count": 6,
+        "queue_depth": 17,
+        "cpu": 79.01,
+        "memory_mb": 1594.92,
+        "token_rate": 1188.88,
+        "cost_rate": 0.1372
+      },
+      "source_provenance": [
+        {
+          "source_type": "retrieval_config",
+          "location": "configs/retrieval/reranker.toml",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.memory_short",
+      "name": "Session Memory",
+      "type": "memory",
+      "district_id": "district.memory",
+      "position": {
+        "x": -69.33,
+        "y": 0.0,
+        "z": -34.0
+      },
+      "size": 4.0,
+      "height": 10.4,
+      "status": "healthy",
+      "labels": [
+        "memory",
+        "session"
+      ],
+      "metadata": {
+        "summary": "Short-term conversational memory store.",
+        "role": "memory",
+        "sources": []
+      },
+      "metrics": {
+        "node_id": "node.memory_short",
+        "qps": 7.83,
+        "p95_ms": 864.46,
+        "error_rate": 0.0461,
+        "active_count": 5,
+        "queue_depth": 11,
+        "cpu": 49.78,
+        "memory_mb": 1421.73,
+        "token_rate": 865.12,
+        "cost_rate": 0.1318
+      },
+      "source_provenance": [
+        {
+          "source_type": "memory_config",
+          "location": "configs/memory/session.yaml",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.memory_long",
+      "name": "Long-term Memory",
+      "type": "memory",
+      "district_id": "district.memory",
+      "position": {
+        "x": -54.67,
+        "y": 0.0,
+        "z": -34.0
+      },
+      "size": 4.36,
+      "height": 11.48,
+      "status": "idle",
+      "labels": [
+        "memory",
+        "persistent"
+      ],
+      "metadata": {
+        "summary": "Persistent memory and episodic recall index.",
+        "role": "memory",
+        "sources": []
+      },
+      "metrics": {
+        "node_id": "node.memory_long",
+        "qps": 3.62,
+        "p95_ms": 1006.07,
+        "error_rate": 0.0372,
+        "active_count": 13,
+        "queue_depth": 13,
+        "cpu": 69.72,
+        "memory_mb": 728.67,
+        "token_rate": 856.66,
+        "cost_rate": 0.1568
+      },
+      "source_provenance": [
+        {
+          "source_type": "memory_config",
+          "location": "configs/memory/persistent.yaml",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.tool_registry",
+      "name": "Tool Registry",
+      "type": "tool",
+      "district_id": "district.tools",
+      "position": {
+        "x": 54.0,
+        "y": 0.0,
+        "z": 11.67
+      },
+      "size": 4.18,
+      "height": 10.94,
+      "status": "healthy",
+      "labels": [
+        "tool",
+        "tooling"
+      ],
+      "metadata": {
+        "summary": "Resolves tool signatures and execution contracts.",
+        "role": "tool",
+        "sources": []
+      },
+      "metrics": {
+        "node_id": "node.tool_registry",
+        "qps": 5.99,
+        "p95_ms": 556.08,
+        "error_rate": 0.0665,
+        "active_count": 16,
+        "queue_depth": 18,
+        "cpu": 44.43,
+        "memory_mb": 2044.95,
+        "token_rate": 657.22,
+        "cost_rate": 0.171
+      },
+      "source_provenance": [
+        {
+          "source_type": "tool_registry",
+          "location": "registry/tools.json",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.shell_tool",
+      "name": "Shell Tool",
+      "type": "tool",
+      "district_id": "district.tools",
+      "position": {
+        "x": 70.0,
+        "y": 0.0,
+        "z": 11.67
+      },
+      "size": 4.0,
+      "height": 10.4,
+      "status": "warning",
+      "labels": [
+        "python-registered",
+        "shell",
+        "tool"
+      ],
+      "metadata": {
+        "summary": "Executes shell commands in sandboxed runtime.",
+        "role": "tool",
+        "sources": [
+          "tools/shell_adapter.py"
+        ]
+      },
+      "metrics": {
+        "node_id": "node.shell_tool",
+        "qps": 5.16,
+        "p95_ms": 1009.21,
+        "error_rate": 0.0486,
+        "active_count": 18,
+        "queue_depth": 9,
+        "cpu": 54.74,
+        "memory_mb": 3513.36,
+        "token_rate": 1360.04,
+        "cost_rate": 0.0686
+      },
+      "source_provenance": [
+        {
+          "source_type": "tool_registry",
+          "location": "registry/tools/shell.ts",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.browser_tool",
+      "name": "Browser Tool",
+      "type": "tool",
+      "district_id": "district.tools",
+      "position": {
+        "x": 54.0,
+        "y": 0.0,
+        "z": 24.33
+      },
+      "size": 4.18,
+      "height": 10.94,
+      "status": "healthy",
+      "labels": [
+        "browser",
+        "tool"
+      ],
+      "metadata": {
+        "summary": "Controls web automation and page extraction.",
+        "role": "tool",
+        "sources": []
+      },
+      "metrics": {
+        "node_id": "node.browser_tool",
+        "qps": 6.09,
+        "p95_ms": 530.07,
+        "error_rate": 0.039,
+        "active_count": 11,
+        "queue_depth": 4,
+        "cpu": 77.01,
+        "memory_mb": 3508.49,
+        "token_rate": 1174.59,
+        "cost_rate": 0.2108
+      },
+      "source_provenance": [
+        {
+          "source_type": "tool_registry",
+          "location": "registry/tools/browser.ts",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.mcp_gateway",
+      "name": "MCP Gateway",
+      "type": "mcp",
+      "district_id": "district.tools",
+      "position": {
+        "x": 70.0,
+        "y": 0.0,
+        "z": 24.33
+      },
+      "size": 4.18,
+      "height": 10.94,
+      "status": "healthy",
+      "labels": [
+        "integration",
+        "mcp",
+        "python-registered"
+      ],
+      "metadata": {
+        "summary": "Connects tool requests to MCP servers.",
+        "role": "mcp",
+        "sources": [
+          "integrations/mcp/client.py"
+        ]
+      },
+      "metrics": {
+        "node_id": "node.mcp_gateway",
+        "qps": 0.34,
+        "p95_ms": 197.47,
+        "error_rate": 0.0228,
+        "active_count": 5,
+        "queue_depth": 25,
+        "cpu": 48.77,
+        "memory_mb": 1006.24,
+        "token_rate": 729.71,
+        "cost_rate": 0.2455
+      },
+      "source_provenance": [
+        {
+          "source_type": "mcp_registry",
+          "location": "registry/mcp.json",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.llm_router",
+      "name": "Model Gateway",
+      "type": "llm",
+      "district_id": "district.llm",
+      "position": {
+        "x": 54.67,
+        "y": 0.0,
+        "z": -28.0
+      },
+      "size": 4.72,
+      "height": 18.61,
+      "status": "healthy",
+      "labels": [
+        "gateway",
+        "llm",
+        "python-registered"
+      ],
+      "metadata": {
+        "summary": "Routes prompts to selected LLM providers.",
+        "role": "llm",
+        "sources": [
+          "llm/gateway.py"
+        ]
+      },
+      "metrics": {
+        "node_id": "node.llm_router",
+        "qps": 5.93,
+        "p95_ms": 753.22,
+        "error_rate": 0.0695,
+        "active_count": 15,
+        "queue_depth": 12,
+        "cpu": 75.2,
+        "memory_mb": 234.06,
+        "token_rate": 235.17,
+        "cost_rate": 0.1824
+      },
+      "source_provenance": [
+        {
+          "source_type": "llm_gateway_config",
+          "location": "configs/llm/providers.yaml",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.prompt_registry",
+      "name": "Prompt Registry",
+      "type": "prompt",
+      "district_id": "district.llm",
+      "position": {
+        "x": 69.33,
+        "y": 0.0,
+        "z": -28.0
+      },
+      "size": 3.64,
+      "height": 9.32,
+      "status": "idle",
+      "labels": [
+        "prompt"
+      ],
+      "metadata": {
+        "summary": "Stores system prompt templates and policies.",
+        "role": "prompt",
+        "sources": []
+      },
+      "metrics": {
+        "node_id": "node.prompt_registry",
+        "qps": 4.01,
+        "p95_ms": 386.92,
+        "error_rate": 0.0778,
+        "active_count": 10,
+        "queue_depth": 24,
+        "cpu": 17.46,
+        "memory_mb": 921.19,
+        "token_rate": 415.25,
+        "cost_rate": 0.0057
+      },
+      "source_provenance": [
+        {
+          "source_type": "prompt_registry",
+          "location": "registry/prompts.yaml",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.guardrail_policy",
+      "name": "Guardrail Policy",
+      "type": "guardrail",
+      "district_id": "district.safety",
+      "position": {
+        "x": -7.67,
+        "y": 0.0,
+        "z": -56.0
+      },
+      "size": 4.0,
+      "height": 10.4,
+      "status": "healthy",
+      "labels": [
+        "guardrail",
+        "safety"
+      ],
+      "metadata": {
+        "summary": "Checks outputs against policy and risk rules.",
+        "role": "guardrail",
+        "sources": []
+      },
+      "metrics": {
+        "node_id": "node.guardrail_policy",
+        "qps": 1.61,
+        "p95_ms": 169.34,
+        "error_rate": 0.0048,
+        "active_count": 12,
+        "queue_depth": 18,
+        "cpu": 26.06,
+        "memory_mb": 4034.96,
+        "token_rate": 1069.19,
+        "cost_rate": 0.2308
+      },
+      "source_provenance": [
+        {
+          "source_type": "policy_registry",
+          "location": "policy/guardrails.yaml",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.evaluator",
+      "name": "Evaluator",
+      "type": "evaluator",
+      "district_id": "district.safety",
+      "position": {
+        "x": 7.67,
+        "y": 0.0,
+        "z": -56.0
+      },
+      "size": 3.82,
+      "height": 9.86,
+      "status": "idle",
+      "labels": [
+        "evaluator",
+        "quality",
+        "safety"
+      ],
+      "metadata": {
+        "summary": "Scores answer quality and confidence.",
+        "role": "evaluator",
+        "sources": []
+      },
+      "metrics": {
+        "node_id": "node.evaluator",
+        "qps": 7.11,
+        "p95_ms": 1028.86,
+        "error_rate": 0.0099,
+        "active_count": 17,
+        "queue_depth": 15,
+        "cpu": 23.26,
+        "memory_mb": 1165.28,
+        "token_rate": 665.98,
+        "cost_rate": 0.029
+      },
+      "source_provenance": [
+        {
+          "source_type": "policy_registry",
+          "location": "policy/evaluator.yaml",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.vector_store",
+      "name": "Vector Store",
+      "type": "external",
+      "district_id": "district.boundary",
+      "position": {
+        "x": 95.67,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "size": 4.0,
+      "height": 10.4,
+      "status": "healthy",
+      "labels": [
+        "db",
+        "external"
+      ],
+      "metadata": {
+        "summary": "External vector database service.",
+        "role": "external",
+        "sources": []
+      },
+      "metrics": {
+        "node_id": "node.vector_store",
+        "qps": 4.02,
+        "p95_ms": 540.95,
+        "error_rate": 0.0764,
+        "active_count": 14,
+        "queue_depth": 1,
+        "cpu": 34.72,
+        "memory_mb": 1739.39,
+        "token_rate": 826.87,
+        "cost_rate": 0.2275
+      },
+      "source_provenance": [
+        {
+          "source_type": "retrieval_config",
+          "location": "configs/retrieval/vector_store.yaml",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.external_api",
+      "name": "External API",
+      "type": "external",
+      "district_id": "district.boundary",
+      "position": {
+        "x": 108.33,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "size": 3.82,
+      "height": 9.86,
+      "status": "warning",
+      "labels": [
+        "api",
+        "external"
+      ],
+      "metadata": {
+        "summary": "Third-party API boundary for tool calls.",
+        "role": "external",
+        "sources": []
+      },
+      "metrics": {
+        "node_id": "node.external_api",
+        "qps": 6.93,
+        "p95_ms": 1434.4,
+        "error_rate": 0.0236,
+        "active_count": 4,
+        "queue_depth": 12,
+        "cpu": 85.49,
+        "memory_mb": 2012.16,
+        "token_rate": 1055.96,
+        "cost_rate": 0.2287
+      },
+      "source_provenance": [
+        {
+          "source_type": "tool_registry",
+          "location": "registry/tools/http_tool.ts",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge.chat_to_planner",
+      "from": "node.chat_gateway",
+      "to": "node.planner_core",
+      "kind": "invocation",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.99,
+      "inferred_from": [
+        "graphs/orchestrator/plan.graph.json"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "invocation",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.planner_to_retriever",
+      "from": "node.planner_core",
+      "to": "node.retriever_hybrid",
+      "kind": "dependency",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.95,
+      "inferred_from": [
+        "graphs/orchestrator/plan.graph.json"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "dependency",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.retriever_to_reranker",
+      "from": "node.retriever_hybrid",
+      "to": "node.reranker_cross",
+      "kind": "dataflow",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.93,
+      "inferred_from": [
+        "graphs/rag/retrieve.graph.json"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "dataflow",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.retriever_to_vector",
+      "from": "node.retriever_hybrid",
+      "to": "node.vector_store",
+      "kind": "invocation",
+      "protocol": "http+json",
+      "status": "declared",
+      "confidence": 0.9,
+      "inferred_from": [
+        "configs/retrieval/vector_store.yaml"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "invocation",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.reranker_to_llm",
+      "from": "node.reranker_cross",
+      "to": "node.llm_router",
+      "kind": "dataflow",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.89,
+      "inferred_from": [
+        "graphs/rag/retrieve.graph.json"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "dataflow",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.planner_to_memory",
+      "from": "node.planner_core",
+      "to": "node.memory_short",
+      "kind": "dataflow",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.92,
+      "inferred_from": [
+        "configs/memory/session.yaml"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "dataflow",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.memory_to_llm",
+      "from": "node.memory_short",
+      "to": "node.llm_router",
+      "kind": "dataflow",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.86,
+      "inferred_from": [
+        "runtime/memory/pipeline.py"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "dataflow",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.planner_to_tool_registry",
+      "from": "node.planner_core",
+      "to": "node.tool_registry",
+      "kind": "invocation",
+      "protocol": "tool-call",
+      "status": "declared",
+      "confidence": 0.97,
+      "inferred_from": [
+        "registry/tools.json"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "invocation",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.tool_registry_to_shell",
+      "from": "node.tool_registry",
+      "to": "node.shell_tool",
+      "kind": "invocation",
+      "protocol": "shell",
+      "status": "declared",
+      "confidence": 0.95,
+      "inferred_from": [
+        "registry/tools/shell.ts"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "invocation",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.tool_registry_to_browser",
+      "from": "node.tool_registry",
+      "to": "node.browser_tool",
+      "kind": "invocation",
+      "protocol": "ws",
+      "status": "declared",
+      "confidence": 0.95,
+      "inferred_from": [
+        "registry/tools/browser.ts"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "invocation",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.tool_registry_to_external",
+      "from": "node.tool_registry",
+      "to": "node.external_api",
+      "kind": "invocation",
+      "protocol": "http+json",
+      "status": "declared",
+      "confidence": 0.85,
+      "inferred_from": [
+        "registry/tools/http_tool.ts"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "invocation",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.planner_to_mcp",
+      "from": "node.planner_core",
+      "to": "node.mcp_gateway",
+      "kind": "invocation",
+      "protocol": "mcp",
+      "status": "declared",
+      "confidence": 0.94,
+      "inferred_from": [
+        "registry/mcp.json"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "invocation",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.mcp_to_tool_registry",
+      "from": "node.mcp_gateway",
+      "to": "node.tool_registry",
+      "kind": "invocation",
+      "protocol": "mcp",
+      "status": "declared",
+      "confidence": 0.93,
+      "inferred_from": [
+        "registry/mcp.json"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "invocation",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.mcp_to_adapter",
+      "from": "node.mcp_gateway",
+      "to": "node.mcp_result_adapter",
+      "kind": "dataflow",
+      "protocol": "mcp",
+      "status": "declared",
+      "confidence": 0.9,
+      "inferred_from": [
+        "runtime/mcp/result_adapter.py"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "dataflow",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.adapter_to_llm",
+      "from": "node.mcp_result_adapter",
+      "to": "node.llm_router",
+      "kind": "dataflow",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.88,
+      "inferred_from": [
+        "runtime/mcp/result_adapter.py"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "dataflow",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.planner_to_llm",
+      "from": "node.planner_core",
+      "to": "node.llm_router",
+      "kind": "invocation",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.96,
+      "inferred_from": [
+        "graphs/orchestrator/plan.graph.json"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "invocation",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.llm_to_guardrail",
+      "from": "node.llm_router",
+      "to": "node.guardrail_policy",
+      "kind": "dataflow",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.92,
+      "inferred_from": [
+        "policy/guardrails.yaml"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "dataflow",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.guardrail_to_renderer",
+      "from": "node.guardrail_policy",
+      "to": "node.final_renderer",
+      "kind": "invocation",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.91,
+      "inferred_from": [
+        "runtime/renderer/final_renderer.ts"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "invocation",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.llm_to_renderer",
+      "from": "node.llm_router",
+      "to": "node.final_renderer",
+      "kind": "invocation",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.95,
+      "inferred_from": [
+        "runtime/renderer/final_renderer.ts"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "invocation",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.planner_to_fallback",
+      "from": "node.planner_core",
+      "to": "node.fallback_router",
+      "kind": "fallback",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.9,
+      "inferred_from": [
+        "graphs/orchestrator/fallback.graph.json"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "fallback",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.fallback_to_renderer",
+      "from": "node.fallback_router",
+      "to": "node.final_renderer",
+      "kind": "invocation",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.9,
+      "inferred_from": [
+        "runtime/renderer/final_renderer.ts"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "invocation",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.evidence.node.planner_core",
+      "from": "node.chat_gateway",
+      "to": "node.planner_core",
+      "kind": "dependency",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.55,
+      "inferred_from": [
+        "parsers/claude_runtime.py",
+        "register_agent('claude.orchestrator')"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "dependency",
+        "is_evidence": true
+      }
+    },
+    {
+      "id": "edge.evidence.node.shell_tool",
+      "from": "node.chat_gateway",
+      "to": "node.shell_tool",
+      "kind": "dependency",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.55,
+      "inferred_from": [
+        "tools/shell_adapter.py",
+        "@tool(name='shell')"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "dependency",
+        "is_evidence": true
+      }
+    },
+    {
+      "id": "edge.evidence.node.mcp_gateway",
+      "from": "node.chat_gateway",
+      "to": "node.mcp_gateway",
+      "kind": "dependency",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.55,
+      "inferred_from": [
+        "integrations/mcp/client.py",
+        "MCPClient.register('search')"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "dependency",
+        "is_evidence": true
+      }
+    },
+    {
+      "id": "edge.evidence.node.llm_router",
+      "from": "node.chat_gateway",
+      "to": "node.llm_router",
+      "kind": "dependency",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.55,
+      "inferred_from": [
+        "llm/gateway.py",
+        "ModelGateway.route()"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "dependency",
+        "is_evidence": true
+      }
+    },
+    {
+      "id": "edge.inferred.shell_tool.llm_router",
+      "from": "node.shell_tool",
+      "to": "node.llm_router",
+      "kind": "observed",
+      "protocol": "internal/http+json",
+      "status": "observed",
+      "confidence": 0.66,
+      "inferred_from": [
+        "trace_93a0620de5",
+        "span_20de5_04"
+      ],
+      "metrics": {
+        "last_latency_ms": 647.0
+      },
+      "metadata": {
+        "generated_at": "2026-04-01T15:22:55.662347+00:00",
+        "status": "success",
+        "span_kind": "LLM"
+      }
+    },
+    {
+      "id": "edge.inferred.planner_core.shell_tool",
+      "from": "node.planner_core",
+      "to": "node.shell_tool",
+      "kind": "retry",
+      "protocol": "shell",
+      "status": "observed",
+      "confidence": 0.66,
+      "inferred_from": [
+        "trace_b04876aefa",
+        "span_6aefa_03"
+      ],
+      "metrics": {
+        "last_latency_ms": 735.0
+      },
+      "metadata": {
+        "generated_at": "2026-04-01T15:22:55.664330+00:00",
+        "status": "error",
+        "span_kind": "TOOL"
+      }
+    },
+    {
+      "id": "edge.inferred.tool_registry.mcp_result_adapter",
+      "from": "node.tool_registry",
+      "to": "node.mcp_result_adapter",
+      "kind": "observed",
+      "protocol": "mcp",
+      "status": "observed",
+      "confidence": 0.66,
+      "inferred_from": [
+        "trace_cf186105b4",
+        "span_105b4_04"
+      ],
+      "metrics": {
+        "last_latency_ms": 753.0
+      },
+      "metadata": {
+        "generated_at": "2026-04-01T15:22:55.665331+00:00",
+        "status": "success",
+        "span_kind": "MCP"
+      }
+    }
+  ]
+}

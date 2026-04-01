@@ -1,0 +1,76 @@
+﻿@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --surface: #060b13;
+  --panel: #0d1625;
+  --panel-2: #0a1220;
+  --line: #1f3145;
+  --text: #d7e4f3;
+  --muted: #7f95ad;
+  --accent: #3cb4ff;
+  --ok: #3ad17d;
+  --warn: #f6c44b;
+  --error: #ff5e64;
+  --idle: #6e7f92;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background:
+    radial-gradient(circle at 16% 8%, rgba(60, 180, 255, 0.18), transparent 32%),
+    radial-gradient(circle at 86% 12%, rgba(58, 209, 125, 0.14), transparent 28%),
+    linear-gradient(180deg, #04070d 0%, #060b13 36%, #04070d 100%);
+  color: var(--text);
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.city-shell {
+  position: relative;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(10, 18, 32, 0.92), rgba(6, 11, 19, 0.92));
+  overflow: hidden;
+}
+
+.grid-lines {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, rgba(80, 120, 170, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(80, 120, 170, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+}
+
+.panel-title {
+  font-family: "Space Grotesk", "Segoe UI", sans-serif;
+  letter-spacing: 0.04em;
+}
+
+.badge {
+  border: 1px solid var(--line);
+  background: rgba(14, 28, 44, 0.86);
+  color: var(--muted);
+  padding: 0.12rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #314e6d transparent;
+}

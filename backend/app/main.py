@@ -1,0 +1,74 @@
+﻿from __future__ import annotations
+
+import asyncio
+import random
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.dependencies import get_platform_service
+from app.generators.live_event_generator import LiveEventGenerator
+from app.routers.metrics import router as metrics_router
+from app.routers.nodes import router as nodes_router
+from app.routers.topology import router as topology_router
+from app.routers.traces import router as traces_router
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    # Warm up discovery/normalizer/runtime cache once at startup.
+    get_platform_service()
+    yield
+
+
+app = FastAPI(
+    title="Agent City Visual Observability Platform",
+    version="0.1.0",
+    lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(topology_router)
+app.include_router(traces_router)
+app.include_router(nodes_router)
+app.include_router(metrics_router)
+
+
+@app.get("/healthz")
+def healthz() -> dict:
+    return {"ok": True, "service": "agent-city-backend"}
+
+
+@app.websocket("/ws/live")
+async def ws_live(websocket: WebSocket) -> None:
+    await websocket.accept()
+    service = get_platform_service()
+    generator = LiveEventGenerator()
+
+    try:
+        while True:
+            bound_trace = service.generate_live_trace()
+            async for message in generator.stream_trace(bound_trace):
+                await websocket.send_json(message)
+
+            await websocket.send_json(
+                {
+                    "type": "heartbeat",
+                    "active_trace_id": bound_trace.trace.envelope.trace_id,
+                }
+            )
+            await asyncio.sleep(random.uniform(0.8, 2.2))
+
+    except WebSocketDisconnect:
+        return
+    except Exception as exc:  # pragma: no cover - safety guard for ws loop
+        await websocket.send_json({"type": "error", "message": str(exc)})
+        await websocket.close(code=1011)

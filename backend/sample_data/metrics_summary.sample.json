@@ -1,0 +1,8 @@
+{
+  "total_traces": 10,
+  "active_flows": 52,
+  "avg_latency_ms": 3478.6,
+  "error_rate": 0.0,
+  "token_usage": 17062,
+  "estimated_cost": 0.0768
+}

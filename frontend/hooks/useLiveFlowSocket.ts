@@ -1,0 +1,67 @@
+﻿"use client";
+
+import { useEffect, useRef } from "react";
+
+import { api } from "@/lib/api";
+import { WS_LIVE_URL } from "@/lib/config";
+import { useDashboardStore } from "@/store/useDashboardStore";
+import { LiveMessage } from "@/types/schema";
+
+export function useLiveFlowSocket(): void {
+  const socketRef = useRef<WebSocket>();
+
+  const pushLiveEvent = useDashboardStore((state) => state.pushLiveEvent);
+  const upsertTrace = useDashboardStore((state) => state.upsertTrace);
+  const mergeObservedEdges = useDashboardStore((state) => state.mergeObservedEdges);
+  const setTraceDetail = useDashboardStore((state) => state.setTraceDetail);
+  const setMetrics = useDashboardStore((state) => state.setMetrics);
+
+  useEffect(() => {
+    const socket = new WebSocket(WS_LIVE_URL);
+    socketRef.current = socket;
+
+    socket.onmessage = async (event) => {
+      const message = JSON.parse(event.data) as LiveMessage;
+
+      if (message.type === "trace_started" && message.trace) {
+        upsertTrace({ envelope: message.trace, spans: [] });
+        return;
+      }
+
+      if (message.type === "flow_event" && message.span && message.trace_id) {
+        pushLiveEvent(message.span);
+        const current = useDashboardStore.getState().traces;
+        const existing = current.find((item) => item.envelope.trace_id === message.trace_id);
+
+        if (existing) {
+          upsertTrace({
+            ...existing,
+            spans: [...existing.spans, message.span],
+          });
+        }
+
+        return;
+      }
+
+      if (message.type === "trace_completed" && message.trace) {
+        if (message.inferred_edges?.length) {
+          mergeObservedEdges(message.inferred_edges);
+        }
+
+        try {
+          const detail = await api.getTraceDetail(message.trace.trace_id);
+          setTraceDetail(message.trace.trace_id, detail);
+          upsertTrace(detail.trace);
+          const summary = await api.getMetricsSummary();
+          setMetrics(summary);
+        } catch {
+          // Keep websocket stream resilient even if a detail refresh fails.
+        }
+      }
+    };
+
+    return () => {
+      socket.close();
+    };
+  }, [mergeObservedEdges, pushLiveEvent, setMetrics, setTraceDetail, upsertTrace]);
+}
