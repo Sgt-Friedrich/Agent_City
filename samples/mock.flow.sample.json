@@ -1,0 +1,254 @@
+[
+  {
+    "trace_id": "trace_8867e35b9f",
+    "span_id": "span_35b9f_01",
+    "parent_span_id": null,
+    "from_node": "node.chat_gateway",
+    "to_node": "node.planner_core",
+    "span_kind": "AGENT",
+    "protocol": "internal/http+json",
+    "summary": "Request enters planner",
+    "payload_preview": "node.chat_gateway -> node.planner_core",
+    "payload_detail": {
+      "step_index": 0,
+      "step_count": 6,
+      "scenario": "mcp_chain",
+      "from": "node.chat_gateway",
+      "to": "node.planner_core",
+      "protocol": "internal/http+json",
+      "target": "mock",
+      "redaction": {
+        "enabled": true,
+        "strategy": "field-mask-v1",
+        "masked_fields": [
+          "api_key",
+          "auth_token",
+          "user_email"
+        ]
+      }
+    },
+    "direction": "outbound",
+    "latency_ms": 473,
+    "status": "success",
+    "timestamp": "2026-04-01T15:55:11.728974Z",
+    "attributes": {
+      "scenario_id": "scenario_5",
+      "scenario_name": "mcp_chain",
+      "target": "mock",
+      "otlp_compatible": true,
+      "openinference_span_kind": "AGENT"
+    },
+    "retry_count": 0,
+    "fallback_from": null
+  },
+  {
+    "trace_id": "trace_8867e35b9f",
+    "span_id": "span_35b9f_02",
+    "parent_span_id": "span_35b9f_01",
+    "from_node": "node.planner_core",
+    "to_node": "node.mcp_gateway",
+    "span_kind": "MCP",
+    "protocol": "mcp",
+    "summary": "Planner calls MCP route",
+    "payload_preview": "node.planner_core -> node.mcp_gateway",
+    "payload_detail": {
+      "step_index": 1,
+      "step_count": 6,
+      "scenario": "mcp_chain",
+      "from": "node.planner_core",
+      "to": "node.mcp_gateway",
+      "protocol": "mcp",
+      "target": "mock",
+      "redaction": {
+        "enabled": true,
+        "strategy": "field-mask-v1",
+        "masked_fields": [
+          "api_key",
+          "auth_token",
+          "user_email"
+        ]
+      }
+    },
+    "direction": "outbound",
+    "latency_ms": 1049,
+    "status": "success",
+    "timestamp": "2026-04-01T15:55:12.777974Z",
+    "attributes": {
+      "scenario_id": "scenario_5",
+      "scenario_name": "mcp_chain",
+      "target": "mock",
+      "otlp_compatible": true,
+      "openinference_span_kind": "MCP"
+    },
+    "retry_count": 0,
+    "fallback_from": null
+  },
+  {
+    "trace_id": "trace_8867e35b9f",
+    "span_id": "span_35b9f_03",
+    "parent_span_id": "span_35b9f_02",
+    "from_node": "node.mcp_gateway",
+    "to_node": "node.tool_registry",
+    "span_kind": "TOOL",
+    "protocol": "mcp",
+    "summary": "MCP resolves tool backend",
+    "payload_preview": "node.mcp_gateway -> node.tool_registry",
+    "payload_detail": {
+      "step_index": 2,
+      "step_count": 6,
+      "scenario": "mcp_chain",
+      "from": "node.mcp_gateway",
+      "to": "node.tool_registry",
+      "protocol": "mcp",
+      "target": "mock",
+      "redaction": {
+        "enabled": true,
+        "strategy": "field-mask-v1",
+        "masked_fields": [
+          "api_key",
+          "auth_token",
+          "user_email"
+        ]
+      }
+    },
+    "direction": "outbound",
+    "latency_ms": 1105,
+    "status": "success",
+    "timestamp": "2026-04-01T15:55:13.882974Z",
+    "attributes": {
+      "scenario_id": "scenario_5",
+      "scenario_name": "mcp_chain",
+      "target": "mock",
+      "otlp_compatible": true,
+      "openinference_span_kind": "TOOL"
+    },
+    "retry_count": 0,
+    "fallback_from": null
+  },
+  {
+    "trace_id": "trace_8867e35b9f",
+    "span_id": "span_35b9f_04",
+    "parent_span_id": "span_35b9f_03",
+    "from_node": "node.tool_registry",
+    "to_node": "node.mcp_result_adapter",
+    "span_kind": "MCP",
+    "protocol": "mcp",
+    "summary": "Tool result adaptation",
+    "payload_preview": "node.tool_registry -> node.mcp_result_adapter",
+    "payload_detail": {
+      "step_index": 3,
+      "step_count": 6,
+      "scenario": "mcp_chain",
+      "from": "node.tool_registry",
+      "to": "node.mcp_result_adapter",
+      "protocol": "mcp",
+      "target": "mock",
+      "redaction": {
+        "enabled": true,
+        "strategy": "field-mask-v1",
+        "masked_fields": [
+          "api_key",
+          "auth_token",
+          "user_email"
+        ]
+      }
+    },
+    "direction": "outbound",
+    "latency_ms": 486,
+    "status": "success",
+    "timestamp": "2026-04-01T15:55:14.368974Z",
+    "attributes": {
+      "scenario_id": "scenario_5",
+      "scenario_name": "mcp_chain",
+      "target": "mock",
+      "otlp_compatible": true,
+      "openinference_span_kind": "MCP"
+    },
+    "retry_count": 0,
+    "fallback_from": null
+  },
+  {
+    "trace_id": "trace_8867e35b9f",
+    "span_id": "span_35b9f_05",
+    "parent_span_id": "span_35b9f_04",
+    "from_node": "node.mcp_result_adapter",
+    "to_node": "node.llm_router",
+    "span_kind": "LLM",
+    "protocol": "internal/http+json",
+    "summary": "MCP result to model",
+    "payload_preview": "node.mcp_result_adapter -> node.llm_router",
+    "payload_detail": {
+      "step_index": 4,
+      "step_count": 6,
+      "scenario": "mcp_chain",
+      "from": "node.mcp_result_adapter",
+      "to": "node.llm_router",
+      "protocol": "internal/http+json",
+      "target": "mock",
+      "redaction": {
+        "enabled": true,
+        "strategy": "field-mask-v1",
+        "masked_fields": [
+          "api_key",
+          "auth_token",
+          "user_email"
+        ]
+      }
+    },
+    "direction": "outbound",
+    "latency_ms": 564,
+    "status": "success",
+    "timestamp": "2026-04-01T15:55:14.932974Z",
+    "attributes": {
+      "scenario_id": "scenario_5",
+      "scenario_name": "mcp_chain",
+      "target": "mock",
+      "otlp_compatible": true,
+      "openinference_span_kind": "LLM"
+    },
+    "retry_count": 0,
+    "fallback_from": null
+  },
+  {
+    "trace_id": "trace_8867e35b9f",
+    "span_id": "span_35b9f_06",
+    "parent_span_id": "span_35b9f_05",
+    "from_node": "node.llm_router",
+    "to_node": "node.final_renderer",
+    "span_kind": "CHAIN",
+    "protocol": "internal/http+json",
+    "summary": "Answer generation complete",
+    "payload_preview": "node.llm_router -> node.final_renderer",
+    "payload_detail": {
+      "step_index": 5,
+      "step_count": 6,
+      "scenario": "mcp_chain",
+      "from": "node.llm_router",
+      "to": "node.final_renderer",
+      "protocol": "internal/http+json",
+      "target": "mock",
+      "redaction": {
+        "enabled": true,
+        "strategy": "field-mask-v1",
+        "masked_fields": [
+          "api_key",
+          "auth_token",
+          "user_email"
+        ]
+      }
+    },
+    "direction": "outbound",
+    "latency_ms": 312,
+    "status": "success",
+    "timestamp": "2026-04-01T15:55:15.244974Z",
+    "attributes": {
+      "scenario_id": "scenario_5",
+      "scenario_name": "mcp_chain",
+      "target": "mock",
+      "otlp_compatible": true,
+      "openinference_span_kind": "CHAIN"
+    },
+    "retry_count": 0,
+    "fallback_from": null
+  }
+]

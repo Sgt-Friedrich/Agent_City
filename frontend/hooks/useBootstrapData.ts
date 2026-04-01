@@ -9,6 +9,9 @@ export function useBootstrapData(): { loading: boolean; error?: string } {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
 
+  const target = useDashboardStore((state) => state.target);
+  const setTarget = useDashboardStore((state) => state.setTarget);
+  const setTargets = useDashboardStore((state) => state.setTargets);
   const setTopology = useDashboardStore((state) => state.setTopology);
   const setTraces = useDashboardStore((state) => state.setTraces);
   const setMetrics = useDashboardStore((state) => state.setMetrics);
@@ -19,13 +22,20 @@ export function useBootstrapData(): { loading: boolean; error?: string } {
     async function run() {
       try {
         setLoading(true);
-        const [topology, traces, metrics] = await Promise.all([
-          api.getTopology(),
-          api.getTraces(),
-          api.getMetricsSummary(),
+        const [targets, topology, traces, metrics] = await Promise.all([
+          api.getTargets(),
+          api.getTopology(target),
+          api.getTraces(target),
+          api.getMetricsSummary(target),
         ]);
 
         if (cancelled) return;
+        const validTargetIds = new Set(targets.items.map((item) => item.id));
+        if (targets.items.length > 0 && !validTargetIds.has(target)) {
+          setTarget(targets.items[0].id);
+          return;
+        }
+        setTargets(targets.items);
         setTopology(topology);
         setTraces(traces.items);
         setMetrics(metrics);
@@ -45,7 +55,7 @@ export function useBootstrapData(): { loading: boolean; error?: string } {
     return () => {
       cancelled = true;
     };
-  }, [setMetrics, setTopology, setTraces]);
+  }, [setMetrics, setTarget, setTargets, setTopology, setTraces, target]);
 
   return { loading, error };
 }

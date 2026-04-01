@@ -1,13 +1,15 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 
 import { CityScene } from "@/components/city/CityScene";
 import { FilterPanel } from "@/components/panels/FilterPanel";
 import { DetailDrawer } from "@/components/panels/DetailDrawer";
 import { MetricsHeader } from "@/components/panels/MetricsHeader";
 import { TimelinePanel } from "@/components/panels/TimelinePanel";
+import { api } from "@/lib/api";
 import { useBootstrapData } from "@/hooks/useBootstrapData";
 import { useFilteredTopology } from "@/hooks/useFilteredTopology";
 import { useLiveFlowSocket } from "@/hooks/useLiveFlowSocket";
@@ -15,12 +17,18 @@ import { useDashboardStore } from "@/store/useDashboardStore";
 import { FlowEvent } from "@/types/schema";
 
 export function DashboardApp() {
+  const searchParams = useSearchParams();
   const { loading, error } = useBootstrapData();
   useLiveFlowSocket();
 
   const [hoveredEvent, setHoveredEvent] = useState<FlowEvent>();
+  const [registering, setRegistering] = useState(false);
 
   const metrics = useDashboardStore((state) => state.metrics);
+  const target = useDashboardStore((state) => state.target);
+  const targets = useDashboardStore((state) => state.targets);
+  const setTarget = useDashboardStore((state) => state.setTarget);
+  const setTargets = useDashboardStore((state) => state.setTargets);
   const selectedNodeId = useDashboardStore((state) => state.selectedNodeId);
   const selectedSpanId = useDashboardStore((state) => state.selectedSpanId);
   const setSelectedNode = useDashboardStore((state) => state.setSelectedNode);
@@ -30,6 +38,41 @@ export function DashboardApp() {
   const { topology, nodes, edges, events } = useFilteredTopology();
 
   const replayTarget = useMemo(() => traces[0]?.envelope.trace_id, [traces]);
+
+  const searchTarget = searchParams.get("target");
+  useEffect(() => {
+    if (searchTarget && searchTarget !== target) {
+      setTarget(searchTarget);
+    }
+  }, [searchTarget, setTarget, target]);
+
+  const handleRegisterTarget = async () => {
+    if (registering) return;
+
+    const repoPath = window.prompt("输入本地仓库绝对路径 (absolute repo path)");
+    if (!repoPath) return;
+    const label = window.prompt("可选：目标显示名称 (label)") || undefined;
+    const targetId = window.prompt("可选：target id (英文/数字/下划线)") || undefined;
+
+    setRegistering(true);
+    try {
+      const response = await api.registerTarget({
+        repo_path: repoPath.trim(),
+        label,
+        target_id: targetId,
+      });
+
+      const targetItems = await api.getTargets();
+      setTargets(targetItems.items);
+      setTarget(response.target.id);
+    } catch (registerError) {
+      const message =
+        registerError instanceof Error ? registerError.message : "register target failed";
+      window.alert(message);
+    } finally {
+      setRegistering(false);
+    }
+  };
 
   if (loading && !topology) {
     return (
@@ -56,9 +99,29 @@ export function DashboardApp() {
           <div className="panel-title text-sm uppercase tracking-wide">Agent City Runtime Monitor</div>
           <div className="flex items-center gap-3">
             <span className="text-slate-400">static topology + runtime trace overlay</span>
+            <button
+              type="button"
+              onClick={handleRegisterTarget}
+              disabled={registering}
+              className="rounded border border-line bg-[#10233a] px-2 py-1 text-xs text-slate-100 hover:bg-[#18395f] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {registering ? "registering..." : "add repo"}
+            </button>
+            <select
+              className="rounded border border-line bg-[#0b1a2b] px-2 py-1 text-xs text-slate-100"
+              value={target}
+              onChange={(event) => setTarget(event.target.value)}
+            >
+              {targets.length === 0 && <option value={target}>{target}</option>}
+              {targets.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
             {replayTarget && (
               <Link
-                href={`/replay/${replayTarget}`}
+                href={`/replay/${replayTarget}?target=${encodeURIComponent(target)}`}
                 className="rounded border border-line bg-[#11304d] px-2 py-1 text-slate-100 hover:bg-[#174266]"
               >
                 open replay

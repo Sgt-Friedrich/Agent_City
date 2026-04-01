@@ -11,18 +11,24 @@ router = APIRouter(prefix="/api", tags=["traces"])
 @router.get("/traces")
 def list_traces(
     limit: int = Query(default=50, ge=1, le=500),
+    target: str = Query(default="mock"),
     service: PlatformService = Depends(get_platform_service),
 ) -> dict:
-    traces = service.list_traces(limit=limit)
+    traces = service.list_traces(target=target, limit=limit)
     return {
         "items": [trace.model_dump(mode="json") for trace in traces],
         "count": len(traces),
+        "target": target,
     }
 
 
 @router.get("/traces/{trace_id}")
-def get_trace(trace_id: str, service: PlatformService = Depends(get_platform_service)) -> dict:
-    bound = service.get_bound_trace(trace_id)
+def get_trace(
+    trace_id: str,
+    target: str = Query(default="mock"),
+    service: PlatformService = Depends(get_platform_service),
+) -> dict:
+    bound = service.get_bound_trace(trace_id, target=target)
     if bound is None:
         raise HTTPException(status_code=404, detail=f"trace not found: {trace_id}")
 
@@ -32,4 +38,5 @@ def get_trace(trace_id: str, service: PlatformService = Depends(get_platform_ser
         "inferred_edges": [
             edge.model_dump(by_alias=True, mode="json") for edge in bound.inferred_edges
         ],
+        "target": target,
     }

@@ -13,9 +13,10 @@ import { FlowEvent, TraceRecord } from "@/types/schema";
 
 interface ReplayAppProps {
   traceId: string;
+  target: string;
 }
 
-export function ReplayApp({ traceId }: ReplayAppProps) {
+export function ReplayApp({ traceId, target }: ReplayAppProps) {
   const { loading } = useBootstrapData();
   const [hoveredEvent, setHoveredEvent] = useState<FlowEvent>();
   const [trace, setTrace] = useState<TraceRecord>();
@@ -23,10 +24,15 @@ export function ReplayApp({ traceId }: ReplayAppProps) {
   const topology = useDashboardStore((state) => state.topology);
   const setSelectedNode = useDashboardStore((state) => state.setSelectedNode);
   const setSelectedSpan = useDashboardStore((state) => state.setSelectedSpan);
+  const setTarget = useDashboardStore((state) => state.setTarget);
 
   const replay = useDashboardStore((state) => state.replay);
   const startReplay = useDashboardStore((state) => state.startReplay);
   const stopReplay = useDashboardStore((state) => state.stopReplay);
+
+  useEffect(() => {
+    setTarget(target);
+  }, [setTarget, target]);
 
   useEffect(() => {
     startReplay(traceId);
@@ -39,7 +45,7 @@ export function ReplayApp({ traceId }: ReplayAppProps) {
     let cancelled = false;
     async function loadTrace() {
       try {
-        const detail = await api.getTraceDetail(traceId);
+        const detail = await api.getTraceDetail(traceId, target);
         if (cancelled) return;
         setTrace(detail.trace);
       } catch {
@@ -52,7 +58,7 @@ export function ReplayApp({ traceId }: ReplayAppProps) {
     return () => {
       cancelled = true;
     };
-  }, [traceId]);
+  }, [target, traceId]);
 
   const events = trace?.spans ?? [];
 
@@ -61,7 +67,8 @@ export function ReplayApp({ traceId }: ReplayAppProps) {
       <div className="mx-auto flex h-full max-w-[1760px] flex-col border-x border-line">
         <div className="flex items-center justify-between border-b border-line bg-[#050d18f5] px-4 py-2 text-xs">
           <div className="panel-title text-sm uppercase tracking-wide text-slate-100">Replay Mode</div>
-          <Link href="/" className="rounded border border-line bg-[#10233a] px-2 py-1 text-slate-200 hover:bg-[#173659]">
+          <div className="text-[11px] uppercase tracking-wide text-slate-400">target: {target}</div>
+          <Link href={`/?target=${encodeURIComponent(target)}`} className="rounded border border-line bg-[#10233a] px-2 py-1 text-slate-200 hover:bg-[#173659]">
             back to live
           </Link>
         </div>

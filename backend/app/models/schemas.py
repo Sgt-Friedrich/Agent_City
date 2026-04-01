@@ -254,3 +254,19 @@ class AdapterCapabilities(BaseModel):
 class TraceIngestAdapter(BaseModel):
     adapter_name: str
     config: dict[str, Any] = Field(default_factory=dict)
+
+
+class TargetDescriptor(BaseModel):
+    id: str
+    label: str
+    source_type: str
+    repo_path: str
+    node_count: int
+    edge_count: int
+
+
+class RegisterTargetRequest(BaseModel):
+    repo_path: str
+    target_id: str | None = None
+    label: str | None = None
+    force: bool = False

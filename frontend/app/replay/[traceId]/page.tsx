@@ -4,8 +4,11 @@ interface ReplayPageProps {
   params: {
     traceId: string;
   };
+  searchParams?: {
+    target?: string;
+  };
 }
 
-export default function ReplayPage({ params }: ReplayPageProps) {
-  return <ReplayApp traceId={params.traceId} />;
+export default function ReplayPage({ params, searchParams }: ReplayPageProps) {
+  return <ReplayApp traceId={params.traceId} target={searchParams?.target ?? "mock"} />;
 }

@@ -124,6 +124,7 @@ export interface TopologyGraph {
   districts: District[];
   nodes: Node[];
   edges: Edge[];
+  target?: string;
 }
 
 export interface TraceEnvelope {
@@ -190,6 +191,7 @@ export interface MetricsSummary {
 export interface TracesResponse {
   items: TraceRecord[];
   count: number;
+  target?: string;
 }
 
 export interface LiveMessage {
@@ -201,6 +203,31 @@ export interface LiveMessage {
   inferred_edges?: Edge[];
   message?: string;
   active_trace_id?: string;
+  target?: string;
+}
+
+export interface TargetOption {
+  id: string;
+  label: string;
+  source_type?: string;
+  repo_path?: string;
+  node_count?: number;
+  edge_count?: number;
+}
+
+export interface TargetsResponse {
+  items: TargetOption[];
+}
+
+export interface RegisterTargetRequest {
+  repo_path: string;
+  target_id?: string;
+  label?: string;
+  force?: boolean;
+}
+
+export interface RegisterTargetResponse {
+  target: TargetOption;
 }
 
 export interface Filters {

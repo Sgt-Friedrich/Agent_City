@@ -10,6 +10,7 @@ import { LiveMessage } from "@/types/schema";
 export function useLiveFlowSocket(): void {
   const socketRef = useRef<WebSocket>();
 
+  const target = useDashboardStore((state) => state.target);
   const pushLiveEvent = useDashboardStore((state) => state.pushLiveEvent);
   const upsertTrace = useDashboardStore((state) => state.upsertTrace);
   const mergeObservedEdges = useDashboardStore((state) => state.mergeObservedEdges);
@@ -17,11 +18,14 @@ export function useLiveFlowSocket(): void {
   const setMetrics = useDashboardStore((state) => state.setMetrics);
 
   useEffect(() => {
-    const socket = new WebSocket(WS_LIVE_URL);
+    const socket = new WebSocket(`${WS_LIVE_URL}?target=${encodeURIComponent(target)}`);
     socketRef.current = socket;
 
     socket.onmessage = async (event) => {
       const message = JSON.parse(event.data) as LiveMessage;
+      if (message.target && message.target !== target) {
+        return;
+      }
 
       if (message.type === "trace_started" && message.trace) {
         upsertTrace({ envelope: message.trace, spans: [] });
@@ -49,10 +53,10 @@ export function useLiveFlowSocket(): void {
         }
 
         try {
-          const detail = await api.getTraceDetail(message.trace.trace_id);
+          const detail = await api.getTraceDetail(message.trace.trace_id, target);
           setTraceDetail(message.trace.trace_id, detail);
           upsertTrace(detail.trace);
-          const summary = await api.getMetricsSummary();
+          const summary = await api.getMetricsSummary(target);
           setMetrics(summary);
         } catch {
           // Keep websocket stream resilient even if a detail refresh fails.
@@ -63,5 +67,5 @@ export function useLiveFlowSocket(): void {
     return () => {
       socket.close();
     };
-  }, [mergeObservedEdges, pushLiveEvent, setMetrics, setTraceDetail, upsertTrace]);
+  }, [mergeObservedEdges, pushLiveEvent, setMetrics, setTraceDetail, target, upsertTrace]);
 }

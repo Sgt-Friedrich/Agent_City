@@ -10,6 +10,7 @@ import {
   MetricsSummary,
   NodeType,
   SpanKind,
+  TargetOption,
   TopologyGraph,
   TraceRecord,
 } from "@/types/schema";
@@ -22,6 +23,8 @@ interface ReplayState {
 }
 
 interface DashboardState {
+  target: string;
+  targets: TargetOption[];
   topology?: TopologyGraph;
   traces: TraceRecord[];
   traceDetails: Record<string, BoundTraceResponse>;
@@ -32,6 +35,8 @@ interface DashboardState {
   selectedTraceId?: string;
   filters: Filters;
   replay: ReplayState;
+  setTarget: (target: string) => void;
+  setTargets: (targets: TargetOption[]) => void;
   setTopology: (topology: TopologyGraph) => void;
   mergeObservedEdges: (edges: Edge[]) => void;
   setTraces: (traces: TraceRecord[]) => void;
@@ -63,6 +68,8 @@ const defaultFilters: Filters = {
 };
 
 export const useDashboardStore = create<DashboardState>((set, get) => ({
+  target: "mock",
+  targets: [],
   traces: [],
   traceDetails: {},
   liveEvents: [],
@@ -73,6 +80,21 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     cursor: 0,
     playing: false,
   },
+
+  setTarget: (target) =>
+    set({
+      target,
+      topology: undefined,
+      traces: [],
+      traceDetails: {},
+      liveEvents: [],
+      selectedNodeId: undefined,
+      selectedSpanId: undefined,
+      selectedTraceId: undefined,
+      filters: defaultFilters,
+    }),
+
+  setTargets: (targets) => set({ targets }),
 
   setTopology: (topology) => set({ topology }),
 

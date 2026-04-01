@@ -1,0 +1,254 @@
+[
+  {
+    "trace_id": "trace_4ec0c3cd8c",
+    "span_id": "span_3cd8c_01",
+    "parent_span_id": null,
+    "from_node": "node.backend_client",
+    "to_node": "node.core",
+    "span_kind": "AGENT",
+    "protocol": "internal/http+json",
+    "summary": "Request enters planner",
+    "payload_preview": "node.backend_client -> node.core",
+    "payload_detail": {
+      "step_index": 0,
+      "step_count": 6,
+      "scenario": "mcp_chain",
+      "from": "node.backend_client",
+      "to": "node.core",
+      "protocol": "internal/http+json",
+      "target": "codex",
+      "redaction": {
+        "enabled": true,
+        "strategy": "field-mask-v1",
+        "masked_fields": [
+          "api_key",
+          "auth_token",
+          "user_email"
+        ]
+      }
+    },
+    "direction": "outbound",
+    "latency_ms": 94,
+    "status": "success",
+    "timestamp": "2026-04-01T15:55:11.377797Z",
+    "attributes": {
+      "scenario_id": "scenario_5",
+      "scenario_name": "mcp_chain",
+      "target": "codex",
+      "otlp_compatible": true,
+      "openinference_span_kind": "AGENT"
+    },
+    "retry_count": 0,
+    "fallback_from": null
+  },
+  {
+    "trace_id": "trace_4ec0c3cd8c",
+    "span_id": "span_3cd8c_02",
+    "parent_span_id": "span_3cd8c_01",
+    "from_node": "node.core",
+    "to_node": "node.mcp_server",
+    "span_kind": "MCP",
+    "protocol": "mcp",
+    "summary": "Planner calls MCP route",
+    "payload_preview": "node.core -> node.mcp_server",
+    "payload_detail": {
+      "step_index": 1,
+      "step_count": 6,
+      "scenario": "mcp_chain",
+      "from": "node.core",
+      "to": "node.mcp_server",
+      "protocol": "mcp",
+      "target": "codex",
+      "redaction": {
+        "enabled": true,
+        "strategy": "field-mask-v1",
+        "masked_fields": [
+          "api_key",
+          "auth_token",
+          "user_email"
+        ]
+      }
+    },
+    "direction": "outbound",
+    "latency_ms": 1101,
+    "status": "success",
+    "timestamp": "2026-04-01T15:55:12.478797Z",
+    "attributes": {
+      "scenario_id": "scenario_5",
+      "scenario_name": "mcp_chain",
+      "target": "codex",
+      "otlp_compatible": true,
+      "openinference_span_kind": "MCP"
+    },
+    "retry_count": 0,
+    "fallback_from": null
+  },
+  {
+    "trace_id": "trace_4ec0c3cd8c",
+    "span_id": "span_3cd8c_03",
+    "parent_span_id": "span_3cd8c_02",
+    "from_node": "node.mcp_server",
+    "to_node": "node.tools",
+    "span_kind": "TOOL",
+    "protocol": "mcp",
+    "summary": "MCP resolves tool backend",
+    "payload_preview": "node.mcp_server -> node.tools",
+    "payload_detail": {
+      "step_index": 2,
+      "step_count": 6,
+      "scenario": "mcp_chain",
+      "from": "node.mcp_server",
+      "to": "node.tools",
+      "protocol": "mcp",
+      "target": "codex",
+      "redaction": {
+        "enabled": true,
+        "strategy": "field-mask-v1",
+        "masked_fields": [
+          "api_key",
+          "auth_token",
+          "user_email"
+        ]
+      }
+    },
+    "direction": "outbound",
+    "latency_ms": 196,
+    "status": "success",
+    "timestamp": "2026-04-01T15:55:12.674797Z",
+    "attributes": {
+      "scenario_id": "scenario_5",
+      "scenario_name": "mcp_chain",
+      "target": "codex",
+      "otlp_compatible": true,
+      "openinference_span_kind": "TOOL"
+    },
+    "retry_count": 0,
+    "fallback_from": null
+  },
+  {
+    "trace_id": "trace_4ec0c3cd8c",
+    "span_id": "span_3cd8c_04",
+    "parent_span_id": "span_3cd8c_03",
+    "from_node": "node.tools",
+    "to_node": "node.app_server_protocol",
+    "span_kind": "MCP",
+    "protocol": "mcp",
+    "summary": "Tool result adaptation",
+    "payload_preview": "node.tools -> node.app_server_protocol",
+    "payload_detail": {
+      "step_index": 3,
+      "step_count": 6,
+      "scenario": "mcp_chain",
+      "from": "node.tools",
+      "to": "node.app_server_protocol",
+      "protocol": "mcp",
+      "target": "codex",
+      "redaction": {
+        "enabled": true,
+        "strategy": "field-mask-v1",
+        "masked_fields": [
+          "api_key",
+          "auth_token",
+          "user_email"
+        ]
+      }
+    },
+    "direction": "outbound",
+    "latency_ms": 294,
+    "status": "success",
+    "timestamp": "2026-04-01T15:55:12.968797Z",
+    "attributes": {
+      "scenario_id": "scenario_5",
+      "scenario_name": "mcp_chain",
+      "target": "codex",
+      "otlp_compatible": true,
+      "openinference_span_kind": "MCP"
+    },
+    "retry_count": 0,
+    "fallback_from": null
+  },
+  {
+    "trace_id": "trace_4ec0c3cd8c",
+    "span_id": "span_3cd8c_05",
+    "parent_span_id": "span_3cd8c_04",
+    "from_node": "node.app_server_protocol",
+    "to_node": "node.responses_api_proxy",
+    "span_kind": "LLM",
+    "protocol": "internal/http+json",
+    "summary": "MCP result to model",
+    "payload_preview": "node.app_server_protocol -> node.responses_api_proxy",
+    "payload_detail": {
+      "step_index": 4,
+      "step_count": 6,
+      "scenario": "mcp_chain",
+      "from": "node.app_server_protocol",
+      "to": "node.responses_api_proxy",
+      "protocol": "internal/http+json",
+      "target": "codex",
+      "redaction": {
+        "enabled": true,
+        "strategy": "field-mask-v1",
+        "masked_fields": [
+          "api_key",
+          "auth_token",
+          "user_email"
+        ]
+      }
+    },
+    "direction": "outbound",
+    "latency_ms": 767,
+    "status": "success",
+    "timestamp": "2026-04-01T15:55:13.735797Z",
+    "attributes": {
+      "scenario_id": "scenario_5",
+      "scenario_name": "mcp_chain",
+      "target": "codex",
+      "otlp_compatible": true,
+      "openinference_span_kind": "LLM"
+    },
+    "retry_count": 0,
+    "fallback_from": null
+  },
+  {
+    "trace_id": "trace_4ec0c3cd8c",
+    "span_id": "span_3cd8c_06",
+    "parent_span_id": "span_3cd8c_05",
+    "from_node": "node.responses_api_proxy",
+    "to_node": "node.utils_output_truncation",
+    "span_kind": "CHAIN",
+    "protocol": "internal/http+json",
+    "summary": "Answer generation complete",
+    "payload_preview": "node.responses_api_proxy -> node.utils_output_truncation",
+    "payload_detail": {
+      "step_index": 5,
+      "step_count": 6,
+      "scenario": "mcp_chain",
+      "from": "node.responses_api_proxy",
+      "to": "node.utils_output_truncation",
+      "protocol": "internal/http+json",
+      "target": "codex",
+      "redaction": {
+        "enabled": true,
+        "strategy": "field-mask-v1",
+        "masked_fields": [
+          "api_key",
+          "auth_token",
+          "user_email"
+        ]
+      }
+    },
+    "direction": "outbound",
+    "latency_ms": 189,
+    "status": "success",
+    "timestamp": "2026-04-01T15:55:13.924797Z",
+    "attributes": {
+      "scenario_id": "scenario_5",
+      "scenario_name": "mcp_chain",
+      "target": "codex",
+      "otlp_compatible": true,
+      "openinference_span_kind": "CHAIN"
+    },
+    "retry_count": 0,
+    "fallback_from": null
+  }
+]

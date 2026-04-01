@@ -1,0 +1,1440 @@
+{
+  "generated_at": "2026-04-01T15:55:11.134859Z",
+  "districts": [
+    {
+      "id": "district.runtime",
+      "name": "Runtime District",
+      "type": "runtime",
+      "summary": "Ingress, session orchestration, event routing and final render pipeline.",
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 58.0
+      },
+      "bounds": {
+        "width": 52.0,
+        "depth": 30.0
+      },
+      "metadata": {
+        "node_count": 4
+      }
+    },
+    {
+      "id": "district.planning",
+      "name": "Planning District",
+      "type": "planning",
+      "summary": "Planner/orchestrator and execution strategy center.",
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 8.0
+      },
+      "bounds": {
+        "width": 50.0,
+        "depth": 36.0
+      },
+      "metadata": {
+        "node_count": 1
+      }
+    },
+    {
+      "id": "district.retrieval",
+      "name": "Retrieval District",
+      "type": "retrieval",
+      "summary": "Retriever, reranker and semantic search chain.",
+      "position": {
+        "x": -62.0,
+        "y": 0.0,
+        "z": 14.0
+      },
+      "bounds": {
+        "width": 44.0,
+        "depth": 34.0
+      },
+      "metadata": {
+        "node_count": 2
+      }
+    },
+    {
+      "id": "district.memory",
+      "name": "Memory District",
+      "type": "memory",
+      "summary": "Session memory, long-term memory and persistence operations.",
+      "position": {
+        "x": -62.0,
+        "y": 0.0,
+        "z": -34.0
+      },
+      "bounds": {
+        "width": 44.0,
+        "depth": 30.0
+      },
+      "metadata": {
+        "node_count": 1
+      }
+    },
+    {
+      "id": "district.tools",
+      "name": "Tools District",
+      "type": "tools",
+      "summary": "Tool registry, shell/browser execution and MCP integration.",
+      "position": {
+        "x": 62.0,
+        "y": 0.0,
+        "z": 18.0
+      },
+      "bounds": {
+        "width": 48.0,
+        "depth": 38.0
+      },
+      "metadata": {
+        "node_count": 4
+      }
+    },
+    {
+      "id": "district.llm",
+      "name": "LLM District",
+      "type": "llm",
+      "summary": "Model gateway, prompt assets, and response synthesis.",
+      "position": {
+        "x": 62.0,
+        "y": 0.0,
+        "z": -28.0
+      },
+      "bounds": {
+        "width": 44.0,
+        "depth": 32.0
+      },
+      "metadata": {
+        "node_count": 2
+      }
+    },
+    {
+      "id": "district.safety",
+      "name": "Safety District",
+      "type": "safety",
+      "summary": "Guardrail, evaluation and policy enforcement chain.",
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": -56.0
+      },
+      "bounds": {
+        "width": 46.0,
+        "depth": 28.0
+      },
+      "metadata": {
+        "node_count": 1
+      }
+    },
+    {
+      "id": "district.boundary",
+      "name": "Boundary District",
+      "type": "boundary",
+      "summary": "External services and shared integration boundaries.",
+      "position": {
+        "x": 102.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "bounds": {
+        "width": 38.0,
+        "depth": 46.0
+      },
+      "metadata": {
+        "node_count": 1
+      }
+    }
+  ],
+  "nodes": [
+    {
+      "id": "node.chat_gateway",
+      "name": "Chat Gateway",
+      "type": "runtime",
+      "district_id": "district.runtime",
+      "position": {
+        "x": -8.67,
+        "y": 0.0,
+        "z": 53.0
+      },
+      "size": 4.54,
+      "height": 17.64,
+      "status": "healthy",
+      "labels": [
+        "claude",
+        "cli",
+        "entry",
+        "python-registered",
+        "runtime_node"
+      ],
+      "metadata": {
+        "summary": "Interactive CLI and request ingress.",
+        "role": "runtime_node",
+        "sources": [
+          "D:\\others\\OD\\OneDrive - University of Glasgow\\桌面\\claude code\\claude-code-src-main\\src\\components\\permissions\\PermissionPrompt.tsx"
+        ]
+      },
+      "metrics": {
+        "node_id": "node.chat_gateway",
+        "qps": 5.9,
+        "p95_ms": 934.53,
+        "error_rate": 0.0762,
+        "active_count": 11,
+        "queue_depth": 2,
+        "cpu": 69.66,
+        "memory_mb": 3220.31,
+        "token_rate": 1220.2,
+        "cost_rate": 0.196
+      },
+      "source_provenance": [
+        {
+          "source_type": "repo_scan",
+          "location": "D:\\others\\OD\\OneDrive - University of Glasgow\\桌面\\claude code\\claude-code-src-main\\src\\cli",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.mcp_result_adapter",
+      "name": "MCP Result Adapter",
+      "type": "runtime",
+      "district_id": "district.runtime",
+      "position": {
+        "x": 8.67,
+        "y": 0.0,
+        "z": 53.0
+      },
+      "size": 3.91,
+      "height": 14.23,
+      "status": "healthy",
+      "labels": [
+        "adapter",
+        "claude",
+        "mcp",
+        "runtime_node"
+      ],
+      "metadata": {
+        "summary": "Transforms MCP output into model-ready context.",
+        "role": "runtime_node",
+        "sources": []
+      },
+      "metrics": {
+        "node_id": "node.mcp_result_adapter",
+        "qps": 7.96,
+        "p95_ms": 1010.31,
+        "error_rate": 0.0376,
+        "active_count": 1,
+        "queue_depth": 0,
+        "cpu": 54.44,
+        "memory_mb": 899.69,
+        "token_rate": 1421.97,
+        "cost_rate": 0.1597
+      },
+      "source_provenance": [
+        {
+          "source_type": "repo_scan",
+          "location": "D:\\others\\OD\\OneDrive - University of Glasgow\\桌面\\claude code\\claude-code-src-main\\src\\services\\mcp",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.fallback_router",
+      "name": "Fallback Router",
+      "type": "runtime",
+      "district_id": "district.runtime",
+      "position": {
+        "x": -8.67,
+        "y": 0.0,
+        "z": 63.0
+      },
+      "size": 3.91,
+      "height": 14.23,
+      "status": "healthy",
+      "labels": [
+        "claude",
+        "fallback",
+        "runtime_node"
+      ],
+      "metadata": {
+        "summary": "Fallback handlers for tool failures.",
+        "role": "runtime_node",
+        "sources": []
+      },
+      "metrics": {
+        "node_id": "node.fallback_router",
+        "qps": 5.57,
+        "p95_ms": 1119.58,
+        "error_rate": 0.057,
+        "active_count": 2,
+        "queue_depth": 9,
+        "cpu": 64.35,
+        "memory_mb": 2968.26,
+        "token_rate": 1210.13,
+        "cost_rate": 0.2059
+      },
+      "source_provenance": [
+        {
+          "source_type": "repo_scan",
+          "location": "D:\\others\\OD\\OneDrive - University of Glasgow\\桌面\\claude code\\claude-code-src-main\\src\\components\\FallbackToolUseErrorMessage.tsx",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.final_renderer",
+      "name": "Final Renderer",
+      "type": "runtime",
+      "district_id": "district.runtime",
+      "position": {
+        "x": 8.67,
+        "y": 0.0,
+        "z": 63.0
+      },
+      "size": 4.0,
+      "height": 14.72,
+      "status": "healthy",
+      "labels": [
+        "claude",
+        "output",
+        "runtime_node"
+      ],
+      "metadata": {
+        "summary": "Final response and message rendering.",
+        "role": "runtime_node",
+        "sources": []
+      },
+      "metrics": {
+        "node_id": "node.final_renderer",
+        "qps": 3.77,
+        "p95_ms": 731.6,
+        "error_rate": 0.0068,
+        "active_count": 11,
+        "queue_depth": 19,
+        "cpu": 55.94,
+        "memory_mb": 2172.93,
+        "token_rate": 1133.64,
+        "cost_rate": 0.1328
+      },
+      "source_provenance": [
+        {
+          "source_type": "repo_scan",
+          "location": "D:\\others\\OD\\OneDrive - University of Glasgow\\桌面\\claude code\\claude-code-src-main\\src\\components\\messages",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.planner_core",
+      "name": "Planner Core",
+      "type": "planner",
+      "district_id": "district.planning",
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 8.0
+      },
+      "size": 4.81,
+      "height": 19.09,
+      "status": "healthy",
+      "labels": [
+        "claude",
+        "orchestrator",
+        "planner",
+        "python-registered"
+      ],
+      "metadata": {
+        "summary": "Plan mode and orchestration command layer.",
+        "role": "planner",
+        "sources": [
+          "D:\\others\\OD\\OneDrive - University of Glasgow\\桌面\\claude code\\claude-code-src-main\\src\\commands\\plan\\plan.tsx"
+        ]
+      },
+      "metrics": {
+        "node_id": "node.planner_core",
+        "qps": 6.89,
+        "p95_ms": 60.17,
+        "error_rate": 0.028,
+        "active_count": 17,
+        "queue_depth": 25,
+        "cpu": 32.81,
+        "memory_mb": 1867.86,
+        "token_rate": 1291.9,
+        "cost_rate": 0.0467
+      },
+      "source_provenance": [
+        {
+          "source_type": "repo_scan",
+          "location": "D:\\others\\OD\\OneDrive - University of Glasgow\\桌面\\claude code\\claude-code-src-main\\src\\commands\\plan",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.retriever_context",
+      "name": "Context Retriever",
+      "type": "retriever",
+      "district_id": "district.retrieval",
+      "position": {
+        "x": -69.33,
+        "y": 0.0,
+        "z": 14.0
+      },
+      "size": 4.36,
+      "height": 11.48,
+      "status": "idle",
+      "labels": [
+        "claude",
+        "retrieval",
+        "retriever"
+      ],
+      "metadata": {
+        "summary": "Context and query retrieval processing.",
+        "role": "retriever",
+        "sources": []
+      },
+      "metrics": {
+        "node_id": "node.retriever_context",
+        "qps": 2.37,
+        "p95_ms": 1140.54,
+        "error_rate": 0.0668,
+        "active_count": 9,
+        "queue_depth": 19,
+        "cpu": 58.55,
+        "memory_mb": 2859.25,
+        "token_rate": 393.13,
+        "cost_rate": 0.0741
+      },
+      "source_provenance": [
+        {
+          "source_type": "repo_scan",
+          "location": "D:\\others\\OD\\OneDrive - University of Glasgow\\桌面\\claude code\\claude-code-src-main\\src\\context",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.reranker_context",
+      "name": "Context Reranker",
+      "type": "reranker",
+      "district_id": "district.retrieval",
+      "position": {
+        "x": -54.67,
+        "y": 0.0,
+        "z": 14.0
+      },
+      "size": 4.09,
+      "height": 10.67,
+      "status": "idle",
+      "labels": [
+        "claude",
+        "ranking",
+        "reranker",
+        "retrieval"
+      ],
+      "metadata": {
+        "summary": "Ranks retrieved context before generation.",
+        "role": "reranker",
+        "sources": []
+      },
+      "metrics": {
+        "node_id": "node.reranker_context",
+        "qps": 3.28,
+        "p95_ms": 337.3,
+        "error_rate": 0.04,
+        "active_count": 1,
+        "queue_depth": 18,
+        "cpu": 45.74,
+        "memory_mb": 904.85,
+        "token_rate": 34.11,
+        "cost_rate": 0.1243
+      },
+      "source_provenance": [
+        {
+          "source_type": "repo_scan",
+          "location": "D:\\others\\OD\\OneDrive - University of Glasgow\\桌面\\claude code\\claude-code-src-main\\src\\query",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.memory_layer",
+      "name": "Session Memory",
+      "type": "memory",
+      "district_id": "district.memory",
+      "position": {
+        "x": -62.0,
+        "y": 0.0,
+        "z": -34.0
+      },
+      "size": 4.36,
+      "height": 11.48,
+      "status": "idle",
+      "labels": [
+        "claude",
+        "memory",
+        "python-registered"
+      ],
+      "metadata": {
+        "summary": "Session memory and memdir persistence.",
+        "role": "memory",
+        "sources": [
+          "D:\\others\\OD\\OneDrive - University of Glasgow\\桌面\\claude code\\claude-code-src-main\\src\\commands\\memory\\memory.tsx"
+        ]
+      },
+      "metrics": {
+        "node_id": "node.memory_layer",
+        "qps": 7.07,
+        "p95_ms": 287.96,
+        "error_rate": 0.0377,
+        "active_count": 6,
+        "queue_depth": 9,
+        "cpu": 55.08,
+        "memory_mb": 624.93,
+        "token_rate": 745.67,
+        "cost_rate": 0.0941
+      },
+      "source_provenance": [
+        {
+          "source_type": "repo_scan",
+          "location": "D:\\others\\OD\\OneDrive - University of Glasgow\\桌面\\claude code\\claude-code-src-main\\src\\services\\SessionMemory",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.tool_registry",
+      "name": "Tool Registry",
+      "type": "tool",
+      "district_id": "district.tools",
+      "position": {
+        "x": 54.0,
+        "y": 0.0,
+        "z": 11.67
+      },
+      "size": 4.63,
+      "height": 12.29,
+      "status": "warning",
+      "labels": [
+        "claude",
+        "python-registered",
+        "registry",
+        "tool",
+        "tooling"
+      ],
+      "metadata": {
+        "summary": "Tool definitions and routing entrypoint.",
+        "role": "tool",
+        "sources": [
+          "D:\\others\\OD\\OneDrive - University of Glasgow\\桌面\\claude code\\claude-code-src-main\\src\\tools.ts"
+        ]
+      },
+      "metrics": {
+        "node_id": "node.tool_registry",
+        "qps": 4.37,
+        "p95_ms": 225.89,
+        "error_rate": 0.0225,
+        "active_count": 3,
+        "queue_depth": 0,
+        "cpu": 78.99,
+        "memory_mb": 2147.96,
+        "token_rate": 393.9,
+        "cost_rate": 0.133
+      },
+      "source_provenance": [
+        {
+          "source_type": "repo_scan",
+          "location": "D:\\others\\OD\\OneDrive - University of Glasgow\\桌面\\claude code\\claude-code-src-main\\src\\tools.ts",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.shell_tool",
+      "name": "Shell Tool",
+      "type": "tool",
+      "district_id": "district.tools",
+      "position": {
+        "x": 70.0,
+        "y": 0.0,
+        "z": 11.67
+      },
+      "size": 4.18,
+      "height": 10.94,
+      "status": "warning",
+      "labels": [
+        "claude",
+        "shell",
+        "tool"
+      ],
+      "metadata": {
+        "summary": "Bash and powershell execution toolchain.",
+        "role": "tool",
+        "sources": []
+      },
+      "metrics": {
+        "node_id": "node.shell_tool",
+        "qps": 7.87,
+        "p95_ms": 1140.4,
+        "error_rate": 0.0402,
+        "active_count": 9,
+        "queue_depth": 0,
+        "cpu": 72.22,
+        "memory_mb": 832.36,
+        "token_rate": 341.91,
+        "cost_rate": 0.1001
+      },
+      "source_provenance": [
+        {
+          "source_type": "repo_scan",
+          "location": "D:\\others\\OD\\OneDrive - University of Glasgow\\桌面\\claude code\\claude-code-src-main\\src\\tools\\BashTool",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.web_tool",
+      "name": "Web Tool",
+      "type": "tool",
+      "district_id": "district.tools",
+      "position": {
+        "x": 54.0,
+        "y": 0.0,
+        "z": 24.33
+      },
+      "size": 4.18,
+      "height": 10.94,
+      "status": "warning",
+      "labels": [
+        "claude",
+        "tool",
+        "web"
+      ],
+      "metadata": {
+        "summary": "Web search/fetch tool integration.",
+        "role": "tool",
+        "sources": []
+      },
+      "metrics": {
+        "node_id": "node.web_tool",
+        "qps": 5.69,
+        "p95_ms": 520.88,
+        "error_rate": 0.0187,
+        "active_count": 15,
+        "queue_depth": 10,
+        "cpu": 53.9,
+        "memory_mb": 2640.41,
+        "token_rate": 1161.66,
+        "cost_rate": 0.1574
+      },
+      "source_provenance": [
+        {
+          "source_type": "repo_scan",
+          "location": "D:\\others\\OD\\OneDrive - University of Glasgow\\桌面\\claude code\\claude-code-src-main\\src\\tools\\WebSearchTool",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.mcp_gateway",
+      "name": "MCP Gateway",
+      "type": "mcp",
+      "district_id": "district.tools",
+      "position": {
+        "x": 70.0,
+        "y": 0.0,
+        "z": 24.33
+      },
+      "size": 4.36,
+      "height": 11.48,
+      "status": "warning",
+      "labels": [
+        "claude",
+        "mcp",
+        "python-registered"
+      ],
+      "metadata": {
+        "summary": "MCP command and service integration.",
+        "role": "mcp",
+        "sources": [
+          "D:\\others\\OD\\OneDrive - University of Glasgow\\桌面\\claude code\\claude-code-src-main\\src\\commands\\mcp\\mcp.tsx"
+        ]
+      },
+      "metrics": {
+        "node_id": "node.mcp_gateway",
+        "qps": 1.18,
+        "p95_ms": 990.76,
+        "error_rate": 0.0021,
+        "active_count": 0,
+        "queue_depth": 24,
+        "cpu": 45.53,
+        "memory_mb": 1776.9,
+        "token_rate": 334.08,
+        "cost_rate": 0.0313
+      },
+      "source_provenance": [
+        {
+          "source_type": "repo_scan",
+          "location": "D:\\others\\OD\\OneDrive - University of Glasgow\\桌面\\claude code\\claude-code-src-main\\src\\services\\mcp",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.prompt_registry",
+      "name": "Prompt Registry",
+      "type": "prompt",
+      "district_id": "district.llm",
+      "position": {
+        "x": 54.67,
+        "y": 0.0,
+        "z": -28.0
+      },
+      "size": 3.82,
+      "height": 9.86,
+      "status": "idle",
+      "labels": [
+        "claude",
+        "prompt"
+      ],
+      "metadata": {
+        "summary": "Prompt assets and templates.",
+        "role": "prompt",
+        "sources": []
+      },
+      "metrics": {
+        "node_id": "node.prompt_registry",
+        "qps": 2.9,
+        "p95_ms": 1340.8,
+        "error_rate": 0.0645,
+        "active_count": 11,
+        "queue_depth": 15,
+        "cpu": 78.53,
+        "memory_mb": 1200.3,
+        "token_rate": 338.58,
+        "cost_rate": 0.1775
+      },
+      "source_provenance": [
+        {
+          "source_type": "repo_scan",
+          "location": "D:\\others\\OD\\OneDrive - University of Glasgow\\桌面\\claude code\\claude-code-src-main\\prompts",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.llm_router",
+      "name": "Model Gateway",
+      "type": "llm",
+      "district_id": "district.llm",
+      "position": {
+        "x": 69.33,
+        "y": 0.0,
+        "z": -28.0
+      },
+      "size": 4.63,
+      "height": 18.12,
+      "status": "healthy",
+      "labels": [
+        "claude",
+        "llm",
+        "model",
+        "python-registered"
+      ],
+      "metadata": {
+        "summary": "Model selection and request routing.",
+        "role": "llm",
+        "sources": [
+          "D:\\others\\OD\\OneDrive - University of Glasgow\\桌面\\claude code\\claude-code-src-main\\src\\commands\\model\\model.tsx"
+        ]
+      },
+      "metrics": {
+        "node_id": "node.llm_router",
+        "qps": 4.93,
+        "p95_ms": 1515.87,
+        "error_rate": 0.0448,
+        "active_count": 16,
+        "queue_depth": 25,
+        "cpu": 57.2,
+        "memory_mb": 1189.81,
+        "token_rate": 1386.84,
+        "cost_rate": 0.1501
+      },
+      "source_provenance": [
+        {
+          "source_type": "repo_scan",
+          "location": "D:\\others\\OD\\OneDrive - University of Glasgow\\桌面\\claude code\\claude-code-src-main\\src\\commands\\model",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.guardrail_policy",
+      "name": "Permission Guardrail",
+      "type": "guardrail",
+      "district_id": "district.safety",
+      "position": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": -56.0
+      },
+      "size": 4.18,
+      "height": 10.94,
+      "status": "healthy",
+      "labels": [
+        "claude",
+        "guardrail",
+        "policy",
+        "safety"
+      ],
+      "metadata": {
+        "summary": "Permission and policy gatekeeping.",
+        "role": "guardrail",
+        "sources": []
+      },
+      "metrics": {
+        "node_id": "node.guardrail_policy",
+        "qps": 7.65,
+        "p95_ms": 1279.96,
+        "error_rate": 0.0138,
+        "active_count": 3,
+        "queue_depth": 13,
+        "cpu": 38.88,
+        "memory_mb": 3231.46,
+        "token_rate": 1245.05,
+        "cost_rate": 0.1362
+      },
+      "source_provenance": [
+        {
+          "source_type": "repo_scan",
+          "location": "D:\\others\\OD\\OneDrive - University of Glasgow\\桌面\\claude code\\claude-code-src-main\\src\\components\\permissions",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    },
+    {
+      "id": "node.external_web",
+      "name": "External Web Boundary",
+      "type": "external",
+      "district_id": "district.boundary",
+      "position": {
+        "x": 102.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "size": 3.82,
+      "height": 9.86,
+      "status": "warning",
+      "labels": [
+        "claude",
+        "external",
+        "http"
+      ],
+      "metadata": {
+        "summary": "External web boundary for web tool calls.",
+        "role": "external",
+        "sources": []
+      },
+      "metrics": {
+        "node_id": "node.external_web",
+        "qps": 7.59,
+        "p95_ms": 923.05,
+        "error_rate": 0.0416,
+        "active_count": 18,
+        "queue_depth": 16,
+        "cpu": 73.22,
+        "memory_mb": 3676.95,
+        "token_rate": 205.06,
+        "cost_rate": 0.0705
+      },
+      "source_provenance": [
+        {
+          "source_type": "repo_scan",
+          "location": "D:\\others\\OD\\OneDrive - University of Glasgow\\桌面\\claude code\\claude-code-src-main\\src\\tools\\WebFetchTool",
+          "confidence": 0.88,
+          "detail": "discovery stage"
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge.chat_planner",
+      "from": "node.chat_gateway",
+      "to": "node.planner_core",
+      "kind": "invocation",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.94,
+      "inferred_from": [
+        "claude_repository_scan"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "invocation",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.plan_retriever",
+      "from": "node.planner_core",
+      "to": "node.retriever_context",
+      "kind": "dependency",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.88,
+      "inferred_from": [
+        "claude_repository_scan"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "dependency",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.retriever_reranker",
+      "from": "node.retriever_context",
+      "to": "node.reranker_context",
+      "kind": "dataflow",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.86,
+      "inferred_from": [
+        "claude_repository_scan"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "dataflow",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.reranker_llm",
+      "from": "node.reranker_context",
+      "to": "node.llm_router",
+      "kind": "dataflow",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.84,
+      "inferred_from": [
+        "claude_repository_scan"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "dataflow",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.plan_memory",
+      "from": "node.planner_core",
+      "to": "node.memory_layer",
+      "kind": "dataflow",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.87,
+      "inferred_from": [
+        "claude_repository_scan"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "dataflow",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.memory_llm",
+      "from": "node.memory_layer",
+      "to": "node.llm_router",
+      "kind": "dataflow",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.82,
+      "inferred_from": [
+        "claude_repository_scan"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "dataflow",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.plan_tools",
+      "from": "node.planner_core",
+      "to": "node.tool_registry",
+      "kind": "invocation",
+      "protocol": "tool-call",
+      "status": "declared",
+      "confidence": 0.93,
+      "inferred_from": [
+        "claude_repository_scan"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "invocation",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.tools_shell",
+      "from": "node.tool_registry",
+      "to": "node.shell_tool",
+      "kind": "invocation",
+      "protocol": "shell",
+      "status": "declared",
+      "confidence": 0.9,
+      "inferred_from": [
+        "claude_repository_scan"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "invocation",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.tools_web",
+      "from": "node.tool_registry",
+      "to": "node.web_tool",
+      "kind": "invocation",
+      "protocol": "ws",
+      "status": "declared",
+      "confidence": 0.9,
+      "inferred_from": [
+        "claude_repository_scan"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "invocation",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.web_external",
+      "from": "node.web_tool",
+      "to": "node.external_web",
+      "kind": "invocation",
+      "protocol": "http+json",
+      "status": "declared",
+      "confidence": 0.8,
+      "inferred_from": [
+        "claude_repository_scan"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "invocation",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.plan_mcp",
+      "from": "node.planner_core",
+      "to": "node.mcp_gateway",
+      "kind": "invocation",
+      "protocol": "mcp",
+      "status": "declared",
+      "confidence": 0.91,
+      "inferred_from": [
+        "claude_repository_scan"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "invocation",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.mcp_tool",
+      "from": "node.mcp_gateway",
+      "to": "node.tool_registry",
+      "kind": "invocation",
+      "protocol": "mcp",
+      "status": "declared",
+      "confidence": 0.86,
+      "inferred_from": [
+        "claude_repository_scan"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "invocation",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.mcp_adapter",
+      "from": "node.mcp_gateway",
+      "to": "node.mcp_result_adapter",
+      "kind": "dataflow",
+      "protocol": "mcp",
+      "status": "declared",
+      "confidence": 0.84,
+      "inferred_from": [
+        "claude_repository_scan"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "dataflow",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.adapter_llm",
+      "from": "node.mcp_result_adapter",
+      "to": "node.llm_router",
+      "kind": "dataflow",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.82,
+      "inferred_from": [
+        "claude_repository_scan"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "dataflow",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.plan_llm",
+      "from": "node.planner_core",
+      "to": "node.llm_router",
+      "kind": "invocation",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.93,
+      "inferred_from": [
+        "claude_repository_scan"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "invocation",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.llm_guardrail",
+      "from": "node.llm_router",
+      "to": "node.guardrail_policy",
+      "kind": "dataflow",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.88,
+      "inferred_from": [
+        "claude_repository_scan"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "dataflow",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.guardrail_final",
+      "from": "node.guardrail_policy",
+      "to": "node.final_renderer",
+      "kind": "invocation",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.89,
+      "inferred_from": [
+        "claude_repository_scan"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "invocation",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.llm_final",
+      "from": "node.llm_router",
+      "to": "node.final_renderer",
+      "kind": "invocation",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.89,
+      "inferred_from": [
+        "claude_repository_scan"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "invocation",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.plan_fallback",
+      "from": "node.planner_core",
+      "to": "node.fallback_router",
+      "kind": "fallback",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.81,
+      "inferred_from": [
+        "claude_repository_scan"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "fallback",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.fallback_final",
+      "from": "node.fallback_router",
+      "to": "node.final_renderer",
+      "kind": "invocation",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.83,
+      "inferred_from": [
+        "claude_repository_scan"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "invocation",
+        "is_evidence": false
+      }
+    },
+    {
+      "id": "edge.evidence.node.tool_registry",
+      "from": "node.chat_gateway",
+      "to": "node.tool_registry",
+      "kind": "dependency",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.55,
+      "inferred_from": [
+        "D:\\others\\OD\\OneDrive - University of Glasgow\\桌面\\claude code\\claude-code-src-main\\src\\tools.ts",
+        "import { toolMatchesName, type Tool, type Tools } from './Tool.js'"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "dependency",
+        "is_evidence": true
+      }
+    },
+    {
+      "id": "edge.evidence.node.planner_core",
+      "from": "node.chat_gateway",
+      "to": "node.planner_core",
+      "kind": "dependency",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.55,
+      "inferred_from": [
+        "D:\\others\\OD\\OneDrive - University of Glasgow\\桌面\\claude code\\claude-code-src-main\\src\\commands\\plan\\plan.tsx",
+        "const currentMode = appState.toolPermissionContext.mode;"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "dependency",
+        "is_evidence": true
+      }
+    },
+    {
+      "id": "edge.evidence.node.mcp_gateway",
+      "from": "node.chat_gateway",
+      "to": "node.mcp_gateway",
+      "kind": "dependency",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.55,
+      "inferred_from": [
+        "D:\\others\\OD\\OneDrive - University of Glasgow\\桌面\\claude code\\claude-code-src-main\\src\\commands\\mcp\\mcp.tsx",
+        "import { MCPSettings } from '../../components/mcp/index.js';"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "dependency",
+        "is_evidence": true
+      }
+    },
+    {
+      "id": "edge.evidence.node.memory_layer",
+      "from": "node.chat_gateway",
+      "to": "node.memory_layer",
+      "kind": "dependency",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.55,
+      "inferred_from": [
+        "D:\\others\\OD\\OneDrive - University of Glasgow\\桌面\\claude code\\claude-code-src-main\\src\\commands\\memory\\memory.tsx",
+        "import { MemoryFileSelector } from '../../components/memory/MemoryFileSelector.js';"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "dependency",
+        "is_evidence": true
+      }
+    },
+    {
+      "id": "edge.evidence.node.llm_router",
+      "from": "node.chat_gateway",
+      "to": "node.llm_router",
+      "kind": "dependency",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.55,
+      "inferred_from": [
+        "D:\\others\\OD\\OneDrive - University of Glasgow\\桌面\\claude code\\claude-code-src-main\\src\\commands\\model\\model.tsx",
+        "import { ModelPicker } from '../../components/ModelPicker.js';"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "dependency",
+        "is_evidence": true
+      }
+    },
+    {
+      "id": "edge.evidence.node.chat_gateway",
+      "from": "node.chat_gateway",
+      "to": "node.chat_gateway",
+      "kind": "dependency",
+      "protocol": "internal/http+json",
+      "status": "declared",
+      "confidence": 0.55,
+      "inferred_from": [
+        "D:\\others\\OD\\OneDrive - University of Glasgow\\桌面\\claude code\\claude-code-src-main\\src\\components\\permissions\\PermissionPrompt.tsx",
+        "export type ToolAnalyticsContext = {"
+      ],
+      "metrics": {
+        "latency_hint_ms": 80.0
+      },
+      "metadata": {
+        "relation_type": "dependency",
+        "is_evidence": true
+      }
+    },
+    {
+      "id": "edge.inferred.shell_tool.llm_router",
+      "from": "node.shell_tool",
+      "to": "node.llm_router",
+      "kind": "observed",
+      "protocol": "internal/http+json",
+      "status": "observed",
+      "confidence": 0.66,
+      "inferred_from": [
+        "trace_707cd91e49",
+        "span_91e49_04"
+      ],
+      "metrics": {
+        "last_latency_ms": 789.0
+      },
+      "metadata": {
+        "generated_at": "2026-04-01T15:55:11.137884+00:00",
+        "status": "success",
+        "span_kind": "LLM"
+      }
+    },
+    {
+      "id": "edge.inferred.planner_core.shell_tool",
+      "from": "node.planner_core",
+      "to": "node.shell_tool",
+      "kind": "retry",
+      "protocol": "shell",
+      "status": "observed",
+      "confidence": 0.66,
+      "inferred_from": [
+        "trace_3362bb3706",
+        "span_b3706_03"
+      ],
+      "metrics": {
+        "last_latency_ms": 245.0
+      },
+      "metadata": {
+        "generated_at": "2026-04-01T15:55:11.139924+00:00",
+        "status": "error",
+        "span_kind": "TOOL"
+      }
+    },
+    {
+      "id": "edge.inferred.tool_registry.mcp_result_adapter",
+      "from": "node.tool_registry",
+      "to": "node.mcp_result_adapter",
+      "kind": "observed",
+      "protocol": "mcp",
+      "status": "observed",
+      "confidence": 0.66,
+      "inferred_from": [
+        "trace_a85b256882",
+        "span_56882_04"
+      ],
+      "metrics": {
+        "last_latency_ms": 399.0
+      },
+      "metadata": {
+        "generated_at": "2026-04-01T15:55:11.139924+00:00",
+        "status": "success",
+        "span_kind": "MCP"
+      }
+    }
+  ]
+}

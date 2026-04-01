@@ -3,13 +3,13 @@
 from collections import OrderedDict
 
 from app.models.schemas import DiscoveryResult, RawComponent, RawRelation
-from app.sources.mock_topology_source import MockTopologySource
+from app.sources.topology_source_protocol import TopologySignalSource
 
 
 class TopologyDiscovery:
     """Builds candidate architecture graph from multiple static signals."""
 
-    def __init__(self, source: MockTopologySource):
+    def __init__(self, source: TopologySignalSource):
         self._source = source
 
     def discover(self) -> DiscoveryResult:
@@ -40,9 +40,11 @@ class TopologyDiscovery:
         components: OrderedDict[str, RawComponent],
         relations: OrderedDict[str, RawRelation],
     ) -> None:
-        """Attach provenance evidence from decorators/factories in Python snippets."""
+        """Attach provenance evidence from decorators/factories in code snippets."""
 
         snippets = self._source.python_registration_snippets()
+        entry_component_id = self._find_entry_component_id(components)
+
         for snippet in snippets:
             component_id = snippet["component_id"]
             component = components.get(component_id)
@@ -59,7 +61,7 @@ class TopologyDiscovery:
 
             relations[evidence_relation_id] = RawRelation(
                 id=evidence_relation_id,
-                source="node.chat_gateway",
+                source=entry_component_id,
                 target=component_id,
                 relation_type="dependency",
                 protocol="internal/http+json",
@@ -67,3 +69,17 @@ class TopologyDiscovery:
                 inferred_from=[snippet["source_location"], snippet["symbol"]],
                 metadata={"evidence_only": True},
             )
+
+    def _find_entry_component_id(self, components: OrderedDict[str, RawComponent]) -> str:
+        for component in components.values():
+            tags = {tag.lower() for tag in component.tags}
+            name = component.name.lower()
+            if "entry" in tags or "chat" in name or "cli" in name:
+                return component.id
+
+        for component in components.values():
+            if component.role in {"runtime_node", "session", "event_bus"}:
+                return component.id
+
+        first = next(iter(components.values()), None)
+        return first.id if first else "node.entry"

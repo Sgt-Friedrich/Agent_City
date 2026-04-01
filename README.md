@@ -2,15 +2,13 @@
 
 A runnable MVP for **agent architecture parsing + runtime flow monitoring + city-style visualization**.
 
-The platform is designed around **two parsing layers + one rendering layer**:
+The system follows **two parsing layers + one rendering layer**:
 
-- Static Parsing Layer: discover architecture from config/registries/code hints and normalize into topology.
-- Runtime Parsing Layer: resolve request execution into traces/spans/flow events and bind them to topology.
-- Visualization Layer: render districts/buildings/roads and overlay live/replay flows.
+- Static Parsing Layer: discover architecture from config/registry/code and normalize to topology.
+- Runtime Parsing Layer: resolve request execution to traces/spans/events and bind to topology.
+- Visualization Layer: render districts/buildings/roads and overlay live/replay flow animations.
 
----
-
-## Step 1. Project Structure
+## 1) Project Structure
 
 ```text
 agent-city-mvp/
@@ -18,13 +16,8 @@ agent-city-mvp/
     app/
       main.py
       dependencies.py
-      models/
-        schemas.py
-      routers/
-        topology.py
-        traces.py
-        nodes.py
-        metrics.py
+      models/schemas.py
+      routers/{topology,traces,nodes,metrics}.py
       services/
         topology_discovery.py
         topology_normalizer.py
@@ -33,67 +26,29 @@ agent-city-mvp/
         telemetry_adapters.py
         platform_service.py
       sources/
+        topology_source_protocol.py
         mock_topology_source.py
+        repo_topology_source.py
+        intelligent_topology_source.py
         mock_trace_source.py
         mock_metrics_source.py
-      generators/
-        live_event_generator.py
+      generators/live_event_generator.py
     requirements.txt
-    sample_data/
-      topology.sample.json
-      traces.sample.json
-      trace_detail.sample.json
-      flow_events.sample.json
-      metrics_summary.sample.json
+    sample_data/*.json
   frontend/
-    app/
-      layout.tsx
-      page.tsx
-      globals.css
-      replay/[traceId]/page.tsx
-    components/
-      DashboardApp.tsx
-      city/
-        CityScene.tsx
-        DistrictGround.tsx
-        BuildingNode.tsx
-        EdgeRoad.tsx
-        LiveFlows.tsx
-      panels/
-        MetricsHeader.tsx
-        FilterPanel.tsx
-        DetailDrawer.tsx
-        TimelinePanel.tsx
-      replay/
-        ReplayApp.tsx
-        ReplayController.tsx
-        ReplaySpanList.tsx
-    hooks/
-      useBootstrapData.ts
-      useLiveFlowSocket.ts
-      useFilteredTopology.ts
-    lib/
-      api.ts
-      config.ts
-      colorMaps.ts
-      utils.ts
-    store/
-      useDashboardStore.ts
-    types/
-      schema.ts
-    package.json
-    tailwind.config.ts
-    tsconfig.json
-  samples/
-    (copied sample json from backend/sample_data)
-  requirements.txt
+    app/{layout,page,globals}.tsx
+    app/replay/[traceId]/page.tsx
+    components/{city,panels,replay}/*.tsx
+    hooks/{useBootstrapData,useLiveFlowSocket,useFilteredTopology}.ts
+    lib/{api,config,colorMaps,utils}.ts
+    store/useDashboardStore.ts
+    types/schema.ts
+  samples/*.json
 ```
 
----
+## 2) Data Models and Types
 
-## Step 2. Data Models and Types
-
-Canonical schema implemented in:
+Canonical schema:
 
 - Backend: `backend/app/models/schemas.py`
 - Frontend: `frontend/types/schema.ts`
@@ -106,152 +61,123 @@ Includes:
 - `TraceEnvelope`
 - `SpanEvent` / `FlowEvent`
 - `NodeMetricSnapshot`
-- `TopologyGraph`
 - `TraceRecord`
 - `BoundTrace`
 
-`Edge` supports:
-
-- `kind`, `protocol`, `confidence`, `inferred_from`
-- declared + observed + fallback + retry + inferred semantics
-
-`SpanKind` supports:
+`SpanKind` includes:
 
 - `AGENT`, `CHAIN`, `LLM`, `TOOL`, `RETRIEVER`, `RERANKER`, `EMBEDDING`, `GUARDRAIL`, `EVALUATOR`, `MEMORY`, `MCP`
 
----
+## 3) Static Parsing Layer (Architecture Parsing Core)
 
-## Step 3. Backend Topology Parser and Resolver
+Files:
 
-Core parser modules:
+- `backend/app/services/topology_discovery.py`
+- `backend/app/services/topology_normalizer.py`
+- `backend/app/sources/topology_source_protocol.py`
+- `backend/app/sources/repo_topology_source.py`
+- `backend/app/sources/intelligent_topology_source.py`
 
-- `topology_discovery.py`
-  - Topology Discovery from mock config/workflow/registry/python snippets.
-- `topology_normalizer.py`
-  - Maps discovered components into `District / Node / Edge` and city layout coordinates.
-- `runtime_trace_resolver.py`
-  - Generates runtime traces and spans for 5 required path patterns.
-- `topology_binding.py`
-  - Binds spans to static edges and emits inferred runtime edges when missing.
+Capabilities:
 
-Mock sources:
+- Topology Discovery
+  - Reads agent config/workflow/tool registry/MCP-related code signals.
+  - Supports repository targets: `mock`, `claude`, `codex`.
+  - Supports unknown repositories via heuristic intelligent parsing:
+    - path/content role scoring
+    - registration snippet extraction
+    - import/call based relation inference
+    - semantic edge completion (planner/retrieval/tool/memory/llm/guardrail/runtime)
+- Topology Normalizer
+  - Normalizes to `District / Node / Edge`.
+  - Adds layout coordinates for city rendering.
+- Provenance
+  - `source_type`, `source_location`, `inferred_from`, `confidence` retained in normalized objects.
 
-- `mock_topology_source.py`
-- `mock_trace_source.py`
-- `mock_metrics_source.py`
+## 4) Runtime Parsing Layer
 
-Orchestrator:
+Files:
 
-- `platform_service.py` (cache topology, traces, metrics, inferred edges)
+- `backend/app/services/runtime_trace_resolver.py`
+- `backend/app/services/topology_binding.py`
+- `backend/app/generators/live_event_generator.py`
 
----
+Capabilities:
 
-## Step 4. Backend REST + WebSocket
+- Runtime Trace Resolver
+  - Builds traces from semantic paths and maps aliases to real topology nodes.
+  - Simulates required 5 path families:
+    1. `chat -> planner -> retriever -> reranker -> llm -> final`
+    2. `chat -> planner -> tool -> llm -> final`
+    3. `chat -> planner -> memory -> llm -> guardrail -> final`
+    4. `chat -> planner -> tool -> retry -> fallback -> final`
+    5. `chat -> planner -> mcp -> tool result -> llm -> final`
+- Topology + Trace Binding
+  - Binds spans to declared edges.
+  - Emits inferred observed/fallback/retry edges when absent.
+
+## 5) Backend APIs
 
 FastAPI entry: `backend/app/main.py`
 
-REST API:
+REST:
 
-- `GET /api/topology`
-- `GET /api/traces`
-- `GET /api/traces/{trace_id}`
-- `GET /api/nodes/{node_id}`
-- `GET /api/metrics/summary`
+- `GET /api/targets`
+- `POST /api/targets/register`
+- `GET /api/topology?target=mock|claude|codex`
+- `GET /api/traces?target=...`
+- `GET /api/traces/{trace_id}?target=...`
+- `GET /api/nodes/{node_id}?target=...`
+- `GET /api/metrics/summary?target=...`
 
 WebSocket:
 
-- `GET /ws/live`
-- Streams `trace_started -> flow_event* -> trace_completed` continuously
-- Simulates request-to-trace runtime execution
+- `/ws/live?target=mock|claude|codex`
+- Stream: `trace_started -> flow_event* -> trace_completed -> heartbeat`
 
----
+Register unknown repository target:
 
-## Step 5. Frontend Base Layout
+```bash
+curl -X POST "http://localhost:8000/api/targets/register" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "repo_path": "D:/path/to/new-agent-repo",
+    "target_id": "new_agent",
+    "label": "New Agent",
+    "force": true
+  }'
+```
+
+Then use:
+
+- `GET /api/topology?target=new_agent`
+- `/ws/live?target=new_agent`
+
+## 6) Frontend Visualization Layer
 
 Main page `/`:
 
-- Top KPI header
+- KPI header
 - Left filter panel
 - Center 3D city scene
 - Right detail drawer
-- Bottom live timeline
+- Bottom timeline
 
-State management:
+Replay page `/replay/[traceId]?target=...`:
 
-- Zustand: `frontend/store/useDashboardStore.ts`
+- Play/pause/reset/scrub
+- Highlight current span path in city
+- Span list + current span details
 
-Data access:
+Target switching:
 
-- REST hooks: `useBootstrapData`
-- WS live feed: `useLiveFlowSocket`
+- Header dropdown selects `mock / claude / codex`.
+- Frontend refetches topology/traces/metrics and reconnects WS for selected target.
+- Header `+ add repo` button registers unseen repositories and switches target automatically.
 
----
+## 7) How To Run
 
-## Step 6. City Rendering
-
-3D renderer:
-
-- React Three Fiber + Drei
-- `CityScene.tsx` composes:
-  - `DistrictGround` (district blocks)
-  - `BuildingNode` (module buildings)
-  - `EdgeRoad` (static/observed roads)
-
-Visual mapping:
-
-- Building area: `node.size`
-- Building height: `node.height`
-- Status color:
-  - healthy/success: green
-  - warning/partial: yellow
-  - error: red
-  - idle/default: gray
-
----
-
-## Step 7. Live Flow Overlay
-
-Live flow renderer:
-
-- `LiveFlows.tsx`
-- Per-event moving particles + directional line segments
-
-Color mapping:
-
-- LLM: blue
-- Retrieval/Reranker/Embedding: green
-- Tool/MCP: purple
-- Memory: yellow
-- Error/Failed: red
-
-Latency mapping:
-
-- Particle speed decreases as `latency_ms` rises
-
----
-
-## Step 8. Replay Mode
-
-Replay route:
-
-- `/replay/[traceId]`
-
-Replay components:
-
-- `ReplayController.tsx`: play/pause/reset/scrub
-- `ReplaySpanList.tsx`: span-by-span replay index
-- `ReplayApp.tsx`: darkened replay layout + focused path
-
-Replay behavior:
-
-- City remains visible, active trace path is incrementally highlighted
-- Current span details shown in controller and inspector
-
----
-
-## Step 9. Run and Verify
-
-### 1) Start backend
+### Backend
 
 ```bash
 cd backend
@@ -259,7 +185,7 @@ python -m pip install -r requirements.txt
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 2) Start frontend
+### Frontend
 
 ```bash
 cd frontend
@@ -267,66 +193,70 @@ npm install
 npm run dev
 ```
 
-Open: `http://localhost:3000`
+Open:
 
-Replay example: `http://localhost:3000/replay/<trace_id>`
+- Dashboard: `http://localhost:3000`
+- Replay: `http://localhost:3000/replay/<trace_id>?target=claude`
 
----
+## 8) Real Repo Validation (Claude/Codex)
 
-## Mock Data Behavior
+Implemented and validated with local repos:
 
-- Initial topology is discovered and normalized at backend startup.
-- Initial traces are seeded by `RuntimeTraceResolver`.
-- WebSocket continuously emits new synthetic traces/spans.
-- `samples/` and `backend/sample_data/` contain sample JSON outputs.
+- `../claude-code-src-main`
+- `../codex-main`
+- current project path as unseen repository target (intelligent parser)
 
----
+Validation checks performed:
 
-## Where Each Layer Lives
+- Target discovery: `/api/targets` returns `mock`, `claude`, `codex`.
+- Topology parsing:
+  - `claude`: nodes and edges discovered from real paths/registries.
+  - `codex`: workspace crates and Cargo dependency edges parsed.
+- Runtime flow binding:
+  - For all 5 scenarios, generated spans map to existing nodes.
+- WebSocket stream:
+  - `/ws/live?target=claude|codex` emits valid flow events.
+- Unknown target intelligent parsing:
+  - `POST /api/targets/register` -> `source_type=intelligent_repo_scan`.
+  - topology/trace/ws endpoints work on registered unseen target.
 
-### Static Parsing Layer
+Generated target-specific sample data:
 
-- `backend/app/services/topology_discovery.py`
-- `backend/app/services/topology_normalizer.py`
-- `backend/app/sources/mock_topology_source.py`
+- `samples/claude.*.sample.json`
+- `samples/codex.*.sample.json`
+- `samples/mock.*.sample.json`
 
-### Runtime Parsing Layer
+## 9) OpenTelemetry / OpenInference / Jaeger / Langfuse / Phoenix Extension
 
-- `backend/app/services/runtime_trace_resolver.py`
-- `backend/app/services/topology_binding.py`
-- `backend/app/generators/live_event_generator.py`
-- `backend/app/sources/mock_trace_source.py`
+Reserved integration seam:
 
-### Visualization Layer
+- `backend/app/services/telemetry_adapters.py`
+
+Migration path:
+
+1. Implement concrete `TelemetryAdapter` for OTLP/Jaeger/Tempo/Langfuse/Phoenix.
+2. Feed real spans into `RuntimeTraceResolver` instead of mock source.
+3. Keep `TopologyBindingService` and frontend schema contract unchanged.
+4. Replace WS generator input with adapter stream for real-time production telemetry.
+
+## 10) Layer Mapping Summary
+
+Static Parsing Layer:
+
+- `topology_discovery.py`
+- `topology_normalizer.py`
+- `repo_topology_source.py`
+- `intelligent_topology_source.py`
+
+Runtime Parsing Layer:
+
+- `runtime_trace_resolver.py`
+- `topology_binding.py`
+- `live_event_generator.py`
+
+Visualization Layer:
 
 - `frontend/components/city/*`
 - `frontend/components/panels/*`
 - `frontend/components/replay/*`
 - `frontend/store/useDashboardStore.ts`
-
----
-
-## Future Integration: OpenTelemetry / OpenInference / Jaeger / Langfuse / Phoenix
-
-Extension seam is already reserved:
-
-- `backend/app/services/telemetry_adapters.py` defines adapter interface.
-- Replace `MockTraceSource` with real adapters:
-  - OTLP collector ingestion
-  - Jaeger/Tempo query adapter
-  - Langfuse/Phoenix trace adapter
-  - Real runtime logs/MCP event stream adapter
-
-Suggested migration path:
-
-1. Implement `TelemetryAdapter` concrete classes.
-2. Replace `RuntimeTraceResolver.generate_trace` input with adapter-provided span streams.
-3. Keep `TopologyBindingService` unchanged to preserve static+runtime binding semantics.
-4. Keep frontend contracts unchanged (`schema.ts`) for low-friction migration.
-
----
-
-## Notes
-
-- This MVP prioritizes parser architecture and runtime data binding over visual polish.
-- The data contracts are intentionally strict to support future production telemetry replacement.

@@ -24,7 +24,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="Agent City Visual Observability Platform",
-    version="0.1.0",
+    version="0.2.0",
     lifespan=lifespan,
 )
 
@@ -53,16 +53,21 @@ async def ws_live(websocket: WebSocket) -> None:
     service = get_platform_service()
     generator = LiveEventGenerator()
 
+    target = websocket.query_params.get("target", "mock")
+    scenario_id = websocket.query_params.get("scenario_id")
+
     try:
         while True:
-            bound_trace = service.generate_live_trace()
+            bound_trace = service.generate_live_trace(target=target, scenario_id=scenario_id)
             async for message in generator.stream_trace(bound_trace):
+                message["target"] = target
                 await websocket.send_json(message)
 
             await websocket.send_json(
                 {
                     "type": "heartbeat",
                     "active_trace_id": bound_trace.trace.envelope.trace_id,
+                    "target": target,
                 }
             )
             await asyncio.sleep(random.uniform(0.8, 2.2))
@@ -70,5 +75,5 @@ async def ws_live(websocket: WebSocket) -> None:
     except WebSocketDisconnect:
         return
     except Exception as exc:  # pragma: no cover - safety guard for ws loop
-        await websocket.send_json({"type": "error", "message": str(exc)})
+        await websocket.send_json({"type": "error", "message": str(exc), "target": target})
         await websocket.close(code=1011)

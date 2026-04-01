@@ -1,0 +1,1184 @@
+[
+  {
+    "envelope": {
+      "trace_id": "trace_be522bc875",
+      "session_id": "sess_31a9e809",
+      "request_id": "req_f85b586d",
+      "user_input": "调用工具失败时自动重试并回退",
+      "final_output": "工具多次失败，系统已回退到降级路径返回可用结果。",
+      "status": "partial",
+      "token_in": 1385,
+      "token_out": 815,
+      "estimated_cost": 0.0099,
+      "duration_ms": 2586,
+      "started_at": "2026-04-01T15:55:11.119250Z",
+      "ended_at": "2026-04-01T15:55:13.705250Z"
+    },
+    "spans": [
+      {
+        "trace_id": "trace_be522bc875",
+        "span_id": "span_bc875_01",
+        "parent_span_id": null,
+        "from_node": "node.chat_gateway",
+        "to_node": "node.planner_core",
+        "span_kind": "AGENT",
+        "protocol": "internal/http+json",
+        "summary": "Input routed to planner",
+        "payload_preview": "node.chat_gateway -> node.planner_core",
+        "payload_detail": {
+          "step_index": 0,
+          "step_count": 5,
+          "scenario": "retry_fallback_chain",
+          "from": "node.chat_gateway",
+          "to": "node.planner_core",
+          "protocol": "internal/http+json",
+          "target": "mock",
+          "redaction": {
+            "enabled": true,
+            "strategy": "field-mask-v1",
+            "masked_fields": [
+              "api_key",
+              "auth_token",
+              "user_email"
+            ]
+          }
+        },
+        "direction": "outbound",
+        "latency_ms": 598,
+        "status": "success",
+        "timestamp": "2026-04-01T15:55:11.717250Z",
+        "attributes": {
+          "scenario_id": "scenario_4",
+          "scenario_name": "retry_fallback_chain",
+          "target": "mock",
+          "otlp_compatible": true,
+          "openinference_span_kind": "AGENT"
+        },
+        "retry_count": 0,
+        "fallback_from": null
+      },
+      {
+        "trace_id": "trace_be522bc875",
+        "span_id": "span_bc875_02",
+        "parent_span_id": "span_bc875_01",
+        "from_node": "node.planner_core",
+        "to_node": "node.shell_tool",
+        "span_kind": "TOOL",
+        "protocol": "shell",
+        "summary": "Initial tool invocation failed",
+        "payload_preview": "node.planner_core -> node.shell_tool",
+        "payload_detail": {
+          "step_index": 1,
+          "step_count": 5,
+          "scenario": "retry_fallback_chain",
+          "from": "node.planner_core",
+          "to": "node.shell_tool",
+          "protocol": "shell",
+          "target": "mock",
+          "redaction": {
+            "enabled": true,
+            "strategy": "field-mask-v1",
+            "masked_fields": [
+              "api_key",
+              "auth_token",
+              "user_email"
+            ]
+          }
+        },
+        "direction": "outbound",
+        "latency_ms": 476,
+        "status": "error",
+        "timestamp": "2026-04-01T15:55:12.193250Z",
+        "attributes": {
+          "scenario_id": "scenario_4",
+          "scenario_name": "retry_fallback_chain",
+          "target": "mock",
+          "otlp_compatible": true,
+          "openinference_span_kind": "TOOL"
+        },
+        "retry_count": 0,
+        "fallback_from": null
+      },
+      {
+        "trace_id": "trace_be522bc875",
+        "span_id": "span_bc875_03",
+        "parent_span_id": "span_bc875_02",
+        "from_node": "node.planner_core",
+        "to_node": "node.shell_tool",
+        "span_kind": "TOOL",
+        "protocol": "shell",
+        "summary": "Retry invocation failed again",
+        "payload_preview": "node.planner_core -> node.shell_tool",
+        "payload_detail": {
+          "step_index": 2,
+          "step_count": 5,
+          "scenario": "retry_fallback_chain",
+          "from": "node.planner_core",
+          "to": "node.shell_tool",
+          "protocol": "shell",
+          "target": "mock",
+          "redaction": {
+            "enabled": true,
+            "strategy": "field-mask-v1",
+            "masked_fields": [
+              "api_key",
+              "auth_token",
+              "user_email"
+            ]
+          }
+        },
+        "direction": "outbound",
+        "latency_ms": 283,
+        "status": "error",
+        "timestamp": "2026-04-01T15:55:12.476250Z",
+        "attributes": {
+          "scenario_id": "scenario_4",
+          "scenario_name": "retry_fallback_chain",
+          "target": "mock",
+          "otlp_compatible": true,
+          "openinference_span_kind": "TOOL"
+        },
+        "retry_count": 1,
+        "fallback_from": null
+      },
+      {
+        "trace_id": "trace_be522bc875",
+        "span_id": "span_bc875_04",
+        "parent_span_id": "span_bc875_03",
+        "from_node": "node.planner_core",
+        "to_node": "node.fallback_router",
+        "span_kind": "CHAIN",
+        "protocol": "internal/http+json",
+        "summary": "Fallback path activated",
+        "payload_preview": "node.planner_core -> node.fallback_router",
+        "payload_detail": {
+          "step_index": 3,
+          "step_count": 5,
+          "scenario": "retry_fallback_chain",
+          "from": "node.planner_core",
+          "to": "node.fallback_router",
+          "protocol": "internal/http+json",
+          "target": "mock",
+          "redaction": {
+            "enabled": true,
+            "strategy": "field-mask-v1",
+            "masked_fields": [
+              "api_key",
+              "auth_token",
+              "user_email"
+            ]
+          }
+        },
+        "direction": "outbound",
+        "latency_ms": 980,
+        "status": "success",
+        "timestamp": "2026-04-01T15:55:13.456250Z",
+        "attributes": {
+          "scenario_id": "scenario_4",
+          "scenario_name": "retry_fallback_chain",
+          "target": "mock",
+          "otlp_compatible": true,
+          "openinference_span_kind": "CHAIN"
+        },
+        "retry_count": 0,
+        "fallback_from": "node.shell_tool"
+      },
+      {
+        "trace_id": "trace_be522bc875",
+        "span_id": "span_bc875_05",
+        "parent_span_id": "span_bc875_04",
+        "from_node": "node.fallback_router",
+        "to_node": "node.final_renderer",
+        "span_kind": "CHAIN",
+        "protocol": "internal/http+json",
+        "summary": "Fallback response emitted",
+        "payload_preview": "node.fallback_router -> node.final_renderer",
+        "payload_detail": {
+          "step_index": 4,
+          "step_count": 5,
+          "scenario": "retry_fallback_chain",
+          "from": "node.fallback_router",
+          "to": "node.final_renderer",
+          "protocol": "internal/http+json",
+          "target": "mock",
+          "redaction": {
+            "enabled": true,
+            "strategy": "field-mask-v1",
+            "masked_fields": [
+              "api_key",
+              "auth_token",
+              "user_email"
+            ]
+          }
+        },
+        "direction": "outbound",
+        "latency_ms": 249,
+        "status": "success",
+        "timestamp": "2026-04-01T15:55:13.705250Z",
+        "attributes": {
+          "scenario_id": "scenario_4",
+          "scenario_name": "retry_fallback_chain",
+          "target": "mock",
+          "otlp_compatible": true,
+          "openinference_span_kind": "CHAIN"
+        },
+        "retry_count": 0,
+        "fallback_from": "node.shell_tool"
+      }
+    ]
+  },
+  {
+    "envelope": {
+      "trace_id": "trace_9ef3696578",
+      "session_id": "sess_8924fc2d",
+      "request_id": "req_80a86873",
+      "user_input": "回忆上一次会话并继续编辑方案",
+      "final_output": "已合并会话记忆并通过安全检查后返回结果。",
+      "status": "success",
+      "token_in": 1285,
+      "token_out": 861,
+      "estimated_cost": 0.00966,
+      "duration_ms": 2221,
+      "started_at": "2026-04-01T15:55:11.119250Z",
+      "ended_at": "2026-04-01T15:55:13.340250Z"
+    },
+    "spans": [
+      {
+        "trace_id": "trace_9ef3696578",
+        "span_id": "span_96578_01",
+        "parent_span_id": null,
+        "from_node": "node.chat_gateway",
+        "to_node": "node.planner_core",
+        "span_kind": "AGENT",
+        "protocol": "internal/http+json",
+        "summary": "Request enters orchestration",
+        "payload_preview": "node.chat_gateway -> node.planner_core",
+        "payload_detail": {
+          "step_index": 0,
+          "step_count": 5,
+          "scenario": "memory_guardrail_chain",
+          "from": "node.chat_gateway",
+          "to": "node.planner_core",
+          "protocol": "internal/http+json",
+          "target": "mock",
+          "redaction": {
+            "enabled": true,
+            "strategy": "field-mask-v1",
+            "masked_fields": [
+              "api_key",
+              "auth_token",
+              "user_email"
+            ]
+          }
+        },
+        "direction": "outbound",
+        "latency_ms": 465,
+        "status": "success",
+        "timestamp": "2026-04-01T15:55:11.584250Z",
+        "attributes": {
+          "scenario_id": "scenario_3",
+          "scenario_name": "memory_guardrail_chain",
+          "target": "mock",
+          "otlp_compatible": true,
+          "openinference_span_kind": "AGENT"
+        },
+        "retry_count": 0,
+        "fallback_from": null
+      },
+      {
+        "trace_id": "trace_9ef3696578",
+        "span_id": "span_96578_02",
+        "parent_span_id": "span_96578_01",
+        "from_node": "node.planner_core",
+        "to_node": "node.memory_short",
+        "span_kind": "MEMORY",
+        "protocol": "internal/http+json",
+        "summary": "Memory retrieval step",
+        "payload_preview": "node.planner_core -> node.memory_short",
+        "payload_detail": {
+          "step_index": 1,
+          "step_count": 5,
+          "scenario": "memory_guardrail_chain",
+          "from": "node.planner_core",
+          "to": "node.memory_short",
+          "protocol": "internal/http+json",
+          "target": "mock",
+          "redaction": {
+            "enabled": true,
+            "strategy": "field-mask-v1",
+            "masked_fields": [
+              "api_key",
+              "auth_token",
+              "user_email"
+            ]
+          }
+        },
+        "direction": "outbound",
+        "latency_ms": 630,
+        "status": "success",
+        "timestamp": "2026-04-01T15:55:12.214250Z",
+        "attributes": {
+          "scenario_id": "scenario_3",
+          "scenario_name": "memory_guardrail_chain",
+          "target": "mock",
+          "otlp_compatible": true,
+          "openinference_span_kind": "MEMORY"
+        },
+        "retry_count": 0,
+        "fallback_from": null
+      },
+      {
+        "trace_id": "trace_9ef3696578",
+        "span_id": "span_96578_03",
+        "parent_span_id": "span_96578_02",
+        "from_node": "node.memory_short",
+        "to_node": "node.llm_router",
+        "span_kind": "LLM",
+        "protocol": "internal/http+json",
+        "summary": "Memory context applied",
+        "payload_preview": "node.memory_short -> node.llm_router",
+        "payload_detail": {
+          "step_index": 2,
+          "step_count": 5,
+          "scenario": "memory_guardrail_chain",
+          "from": "node.memory_short",
+          "to": "node.llm_router",
+          "protocol": "internal/http+json",
+          "target": "mock",
+          "redaction": {
+            "enabled": true,
+            "strategy": "field-mask-v1",
+            "masked_fields": [
+              "api_key",
+              "auth_token",
+              "user_email"
+            ]
+          }
+        },
+        "direction": "outbound",
+        "latency_ms": 328,
+        "status": "success",
+        "timestamp": "2026-04-01T15:55:12.542250Z",
+        "attributes": {
+          "scenario_id": "scenario_3",
+          "scenario_name": "memory_guardrail_chain",
+          "target": "mock",
+          "otlp_compatible": true,
+          "openinference_span_kind": "LLM"
+        },
+        "retry_count": 0,
+        "fallback_from": null
+      },
+      {
+        "trace_id": "trace_9ef3696578",
+        "span_id": "span_96578_04",
+        "parent_span_id": "span_96578_03",
+        "from_node": "node.llm_router",
+        "to_node": "node.guardrail_policy",
+        "span_kind": "GUARDRAIL",
+        "protocol": "internal/http+json",
+        "summary": "Guardrail policy check",
+        "payload_preview": "node.llm_router -> node.guardrail_policy",
+        "payload_detail": {
+          "step_index": 3,
+          "step_count": 5,
+          "scenario": "memory_guardrail_chain",
+          "from": "node.llm_router",
+          "to": "node.guardrail_policy",
+          "protocol": "internal/http+json",
+          "target": "mock",
+          "redaction": {
+            "enabled": true,
+            "strategy": "field-mask-v1",
+            "masked_fields": [
+              "api_key",
+              "auth_token",
+              "user_email"
+            ]
+          }
+        },
+        "direction": "outbound",
+        "latency_ms": 198,
+        "status": "success",
+        "timestamp": "2026-04-01T15:55:12.740250Z",
+        "attributes": {
+          "scenario_id": "scenario_3",
+          "scenario_name": "memory_guardrail_chain",
+          "target": "mock",
+          "otlp_compatible": true,
+          "openinference_span_kind": "GUARDRAIL"
+        },
+        "retry_count": 0,
+        "fallback_from": null
+      },
+      {
+        "trace_id": "trace_9ef3696578",
+        "span_id": "span_96578_05",
+        "parent_span_id": "span_96578_04",
+        "from_node": "node.guardrail_policy",
+        "to_node": "node.final_renderer",
+        "span_kind": "CHAIN",
+        "protocol": "internal/http+json",
+        "summary": "Approved response returned",
+        "payload_preview": "node.guardrail_policy -> node.final_renderer",
+        "payload_detail": {
+          "step_index": 4,
+          "step_count": 5,
+          "scenario": "memory_guardrail_chain",
+          "from": "node.guardrail_policy",
+          "to": "node.final_renderer",
+          "protocol": "internal/http+json",
+          "target": "mock",
+          "redaction": {
+            "enabled": true,
+            "strategy": "field-mask-v1",
+            "masked_fields": [
+              "api_key",
+              "auth_token",
+              "user_email"
+            ]
+          }
+        },
+        "direction": "outbound",
+        "latency_ms": 600,
+        "status": "success",
+        "timestamp": "2026-04-01T15:55:13.340250Z",
+        "attributes": {
+          "scenario_id": "scenario_3",
+          "scenario_name": "memory_guardrail_chain",
+          "target": "mock",
+          "otlp_compatible": true,
+          "openinference_span_kind": "CHAIN"
+        },
+        "retry_count": 0,
+        "fallback_from": null
+      }
+    ]
+  },
+  {
+    "envelope": {
+      "trace_id": "trace_515dc9a5e8",
+      "session_id": "sess_bcec2da7",
+      "request_id": "req_c9eaf83f",
+      "user_input": "帮我执行命令并整理输出",
+      "final_output": "命令执行完成，输出已结构化并写入响应。",
+      "status": "success",
+      "token_in": 1357,
+      "token_out": 552,
+      "estimated_cost": 0.00859,
+      "duration_ms": 2363,
+      "started_at": "2026-04-01T15:55:11.119250Z",
+      "ended_at": "2026-04-01T15:55:13.482250Z"
+    },
+    "spans": [
+      {
+        "trace_id": "trace_515dc9a5e8",
+        "span_id": "span_9a5e8_01",
+        "parent_span_id": null,
+        "from_node": "node.chat_gateway",
+        "to_node": "node.planner_core",
+        "span_kind": "AGENT",
+        "protocol": "internal/http+json",
+        "summary": "Input reaches planner",
+        "payload_preview": "node.chat_gateway -> node.planner_core",
+        "payload_detail": {
+          "step_index": 0,
+          "step_count": 5,
+          "scenario": "tool_chain",
+          "from": "node.chat_gateway",
+          "to": "node.planner_core",
+          "protocol": "internal/http+json",
+          "target": "mock",
+          "redaction": {
+            "enabled": true,
+            "strategy": "field-mask-v1",
+            "masked_fields": [
+              "api_key",
+              "auth_token",
+              "user_email"
+            ]
+          }
+        },
+        "direction": "outbound",
+        "latency_ms": 884,
+        "status": "success",
+        "timestamp": "2026-04-01T15:55:12.003250Z",
+        "attributes": {
+          "scenario_id": "scenario_2",
+          "scenario_name": "tool_chain",
+          "target": "mock",
+          "otlp_compatible": true,
+          "openinference_span_kind": "AGENT"
+        },
+        "retry_count": 0,
+        "fallback_from": null
+      },
+      {
+        "trace_id": "trace_515dc9a5e8",
+        "span_id": "span_9a5e8_02",
+        "parent_span_id": "span_9a5e8_01",
+        "from_node": "node.planner_core",
+        "to_node": "node.tool_registry",
+        "span_kind": "TOOL",
+        "protocol": "tool-call",
+        "summary": "Planner resolves tool contract",
+        "payload_preview": "node.planner_core -> node.tool_registry",
+        "payload_detail": {
+          "step_index": 1,
+          "step_count": 5,
+          "scenario": "tool_chain",
+          "from": "node.planner_core",
+          "to": "node.tool_registry",
+          "protocol": "tool-call",
+          "target": "mock",
+          "redaction": {
+            "enabled": true,
+            "strategy": "field-mask-v1",
+            "masked_fields": [
+              "api_key",
+              "auth_token",
+              "user_email"
+            ]
+          }
+        },
+        "direction": "outbound",
+        "latency_ms": 285,
+        "status": "success",
+        "timestamp": "2026-04-01T15:55:12.288250Z",
+        "attributes": {
+          "scenario_id": "scenario_2",
+          "scenario_name": "tool_chain",
+          "target": "mock",
+          "otlp_compatible": true,
+          "openinference_span_kind": "TOOL"
+        },
+        "retry_count": 0,
+        "fallback_from": null
+      },
+      {
+        "trace_id": "trace_515dc9a5e8",
+        "span_id": "span_9a5e8_03",
+        "parent_span_id": "span_9a5e8_02",
+        "from_node": "node.tool_registry",
+        "to_node": "node.shell_tool",
+        "span_kind": "TOOL",
+        "protocol": "shell",
+        "summary": "Tool executes external operation",
+        "payload_preview": "node.tool_registry -> node.shell_tool",
+        "payload_detail": {
+          "step_index": 2,
+          "step_count": 5,
+          "scenario": "tool_chain",
+          "from": "node.tool_registry",
+          "to": "node.shell_tool",
+          "protocol": "shell",
+          "target": "mock",
+          "redaction": {
+            "enabled": true,
+            "strategy": "field-mask-v1",
+            "masked_fields": [
+              "api_key",
+              "auth_token",
+              "user_email"
+            ]
+          }
+        },
+        "direction": "outbound",
+        "latency_ms": 170,
+        "status": "success",
+        "timestamp": "2026-04-01T15:55:12.458250Z",
+        "attributes": {
+          "scenario_id": "scenario_2",
+          "scenario_name": "tool_chain",
+          "target": "mock",
+          "otlp_compatible": true,
+          "openinference_span_kind": "TOOL"
+        },
+        "retry_count": 0,
+        "fallback_from": null
+      },
+      {
+        "trace_id": "trace_515dc9a5e8",
+        "span_id": "span_9a5e8_04",
+        "parent_span_id": "span_9a5e8_03",
+        "from_node": "node.shell_tool",
+        "to_node": "node.llm_router",
+        "span_kind": "LLM",
+        "protocol": "internal/http+json",
+        "summary": "Tool output to model",
+        "payload_preview": "node.shell_tool -> node.llm_router",
+        "payload_detail": {
+          "step_index": 3,
+          "step_count": 5,
+          "scenario": "tool_chain",
+          "from": "node.shell_tool",
+          "to": "node.llm_router",
+          "protocol": "internal/http+json",
+          "target": "mock",
+          "redaction": {
+            "enabled": true,
+            "strategy": "field-mask-v1",
+            "masked_fields": [
+              "api_key",
+              "auth_token",
+              "user_email"
+            ]
+          }
+        },
+        "direction": "outbound",
+        "latency_ms": 867,
+        "status": "success",
+        "timestamp": "2026-04-01T15:55:13.325250Z",
+        "attributes": {
+          "scenario_id": "scenario_2",
+          "scenario_name": "tool_chain",
+          "target": "mock",
+          "otlp_compatible": true,
+          "openinference_span_kind": "LLM"
+        },
+        "retry_count": 0,
+        "fallback_from": null
+      },
+      {
+        "trace_id": "trace_515dc9a5e8",
+        "span_id": "span_9a5e8_05",
+        "parent_span_id": "span_9a5e8_04",
+        "from_node": "node.llm_router",
+        "to_node": "node.final_renderer",
+        "span_kind": "CHAIN",
+        "protocol": "internal/http+json",
+        "summary": "Final output emitted",
+        "payload_preview": "node.llm_router -> node.final_renderer",
+        "payload_detail": {
+          "step_index": 4,
+          "step_count": 5,
+          "scenario": "tool_chain",
+          "from": "node.llm_router",
+          "to": "node.final_renderer",
+          "protocol": "internal/http+json",
+          "target": "mock",
+          "redaction": {
+            "enabled": true,
+            "strategy": "field-mask-v1",
+            "masked_fields": [
+              "api_key",
+              "auth_token",
+              "user_email"
+            ]
+          }
+        },
+        "direction": "outbound",
+        "latency_ms": 157,
+        "status": "success",
+        "timestamp": "2026-04-01T15:55:13.482250Z",
+        "attributes": {
+          "scenario_id": "scenario_2",
+          "scenario_name": "tool_chain",
+          "target": "mock",
+          "otlp_compatible": true,
+          "openinference_span_kind": "CHAIN"
+        },
+        "retry_count": 0,
+        "fallback_from": null
+      }
+    ]
+  },
+  {
+    "envelope": {
+      "trace_id": "trace_ab14704fc2",
+      "session_id": "sess_14f373d6",
+      "request_id": "req_2b184ddd",
+      "user_input": "总结 Codex 与 Claude Code 在工具系统上的差异",
+      "final_output": "已基于检索上下文给出差异总结，并附带关键模块映射。",
+      "status": "success",
+      "token_in": 1088,
+      "token_out": 815,
+      "estimated_cost": 0.00856,
+      "duration_ms": 4556,
+      "started_at": "2026-04-01T15:55:11.119250Z",
+      "ended_at": "2026-04-01T15:55:15.675250Z"
+    },
+    "spans": [
+      {
+        "trace_id": "trace_ab14704fc2",
+        "span_id": "span_04fc2_01",
+        "parent_span_id": null,
+        "from_node": "node.chat_gateway",
+        "to_node": "node.planner_core",
+        "span_kind": "AGENT",
+        "protocol": "internal/http+json",
+        "summary": "User input enters planner",
+        "payload_preview": "node.chat_gateway -> node.planner_core",
+        "payload_detail": {
+          "step_index": 0,
+          "step_count": 5,
+          "scenario": "retrieval_chain",
+          "from": "node.chat_gateway",
+          "to": "node.planner_core",
+          "protocol": "internal/http+json",
+          "target": "mock",
+          "redaction": {
+            "enabled": true,
+            "strategy": "field-mask-v1",
+            "masked_fields": [
+              "api_key",
+              "auth_token",
+              "user_email"
+            ]
+          }
+        },
+        "direction": "outbound",
+        "latency_ms": 986,
+        "status": "success",
+        "timestamp": "2026-04-01T15:55:12.105250Z",
+        "attributes": {
+          "scenario_id": "scenario_1",
+          "scenario_name": "retrieval_chain",
+          "target": "mock",
+          "otlp_compatible": true,
+          "openinference_span_kind": "AGENT"
+        },
+        "retry_count": 0,
+        "fallback_from": null
+      },
+      {
+        "trace_id": "trace_ab14704fc2",
+        "span_id": "span_04fc2_02",
+        "parent_span_id": "span_04fc2_01",
+        "from_node": "node.planner_core",
+        "to_node": "node.retriever_hybrid",
+        "span_kind": "RETRIEVER",
+        "protocol": "internal/http+json",
+        "summary": "Planner dispatches retrieval",
+        "payload_preview": "node.planner_core -> node.retriever_hybrid",
+        "payload_detail": {
+          "step_index": 1,
+          "step_count": 5,
+          "scenario": "retrieval_chain",
+          "from": "node.planner_core",
+          "to": "node.retriever_hybrid",
+          "protocol": "internal/http+json",
+          "target": "mock",
+          "redaction": {
+            "enabled": true,
+            "strategy": "field-mask-v1",
+            "masked_fields": [
+              "api_key",
+              "auth_token",
+              "user_email"
+            ]
+          }
+        },
+        "direction": "outbound",
+        "latency_ms": 1118,
+        "status": "success",
+        "timestamp": "2026-04-01T15:55:13.223250Z",
+        "attributes": {
+          "scenario_id": "scenario_1",
+          "scenario_name": "retrieval_chain",
+          "target": "mock",
+          "otlp_compatible": true,
+          "openinference_span_kind": "RETRIEVER"
+        },
+        "retry_count": 0,
+        "fallback_from": null
+      },
+      {
+        "trace_id": "trace_ab14704fc2",
+        "span_id": "span_04fc2_03",
+        "parent_span_id": "span_04fc2_02",
+        "from_node": "node.retriever_hybrid",
+        "to_node": "node.reranker_cross",
+        "span_kind": "RERANKER",
+        "protocol": "internal/http+json",
+        "summary": "Retriever emits candidates",
+        "payload_preview": "node.retriever_hybrid -> node.reranker_cross",
+        "payload_detail": {
+          "step_index": 2,
+          "step_count": 5,
+          "scenario": "retrieval_chain",
+          "from": "node.retriever_hybrid",
+          "to": "node.reranker_cross",
+          "protocol": "internal/http+json",
+          "target": "mock",
+          "redaction": {
+            "enabled": true,
+            "strategy": "field-mask-v1",
+            "masked_fields": [
+              "api_key",
+              "auth_token",
+              "user_email"
+            ]
+          }
+        },
+        "direction": "outbound",
+        "latency_ms": 1078,
+        "status": "success",
+        "timestamp": "2026-04-01T15:55:14.301250Z",
+        "attributes": {
+          "scenario_id": "scenario_1",
+          "scenario_name": "retrieval_chain",
+          "target": "mock",
+          "otlp_compatible": true,
+          "openinference_span_kind": "RERANKER"
+        },
+        "retry_count": 0,
+        "fallback_from": null
+      },
+      {
+        "trace_id": "trace_ab14704fc2",
+        "span_id": "span_04fc2_04",
+        "parent_span_id": "span_04fc2_03",
+        "from_node": "node.reranker_cross",
+        "to_node": "node.llm_router",
+        "span_kind": "LLM",
+        "protocol": "internal/http+json",
+        "summary": "Ranked context to model",
+        "payload_preview": "node.reranker_cross -> node.llm_router",
+        "payload_detail": {
+          "step_index": 3,
+          "step_count": 5,
+          "scenario": "retrieval_chain",
+          "from": "node.reranker_cross",
+          "to": "node.llm_router",
+          "protocol": "internal/http+json",
+          "target": "mock",
+          "redaction": {
+            "enabled": true,
+            "strategy": "field-mask-v1",
+            "masked_fields": [
+              "api_key",
+              "auth_token",
+              "user_email"
+            ]
+          }
+        },
+        "direction": "outbound",
+        "latency_ms": 1147,
+        "status": "success",
+        "timestamp": "2026-04-01T15:55:15.448250Z",
+        "attributes": {
+          "scenario_id": "scenario_1",
+          "scenario_name": "retrieval_chain",
+          "target": "mock",
+          "otlp_compatible": true,
+          "openinference_span_kind": "LLM"
+        },
+        "retry_count": 0,
+        "fallback_from": null
+      },
+      {
+        "trace_id": "trace_ab14704fc2",
+        "span_id": "span_04fc2_05",
+        "parent_span_id": "span_04fc2_04",
+        "from_node": "node.llm_router",
+        "to_node": "node.final_renderer",
+        "span_kind": "CHAIN",
+        "protocol": "internal/http+json",
+        "summary": "Final response synthesis",
+        "payload_preview": "node.llm_router -> node.final_renderer",
+        "payload_detail": {
+          "step_index": 4,
+          "step_count": 5,
+          "scenario": "retrieval_chain",
+          "from": "node.llm_router",
+          "to": "node.final_renderer",
+          "protocol": "internal/http+json",
+          "target": "mock",
+          "redaction": {
+            "enabled": true,
+            "strategy": "field-mask-v1",
+            "masked_fields": [
+              "api_key",
+              "auth_token",
+              "user_email"
+            ]
+          }
+        },
+        "direction": "outbound",
+        "latency_ms": 227,
+        "status": "success",
+        "timestamp": "2026-04-01T15:55:15.675250Z",
+        "attributes": {
+          "scenario_id": "scenario_1",
+          "scenario_name": "retrieval_chain",
+          "target": "mock",
+          "otlp_compatible": true,
+          "openinference_span_kind": "CHAIN"
+        },
+        "retry_count": 0,
+        "fallback_from": null
+      }
+    ]
+  },
+  {
+    "envelope": {
+      "trace_id": "trace_a4d2268215",
+      "session_id": "sess_cfd196c2",
+      "request_id": "req_b89c8e5f",
+      "user_input": "通过 MCP 搜索并总结最新发布说明",
+      "final_output": "MCP 搜索成功，结果经适配后完成生成。",
+      "status": "success",
+      "token_in": 1212,
+      "token_out": 867,
+      "estimated_cost": 0.00936,
+      "duration_ms": 2005,
+      "started_at": "2026-04-01T15:55:11.119250Z",
+      "ended_at": "2026-04-01T15:55:13.125250Z"
+    },
+    "spans": [
+      {
+        "trace_id": "trace_a4d2268215",
+        "span_id": "span_68215_01",
+        "parent_span_id": null,
+        "from_node": "node.chat_gateway",
+        "to_node": "node.planner_core",
+        "span_kind": "AGENT",
+        "protocol": "internal/http+json",
+        "summary": "Request enters planner",
+        "payload_preview": "node.chat_gateway -> node.planner_core",
+        "payload_detail": {
+          "step_index": 0,
+          "step_count": 6,
+          "scenario": "mcp_chain",
+          "from": "node.chat_gateway",
+          "to": "node.planner_core",
+          "protocol": "internal/http+json",
+          "target": "mock",
+          "redaction": {
+            "enabled": true,
+            "strategy": "field-mask-v1",
+            "masked_fields": [
+              "api_key",
+              "auth_token",
+              "user_email"
+            ]
+          }
+        },
+        "direction": "outbound",
+        "latency_ms": 174,
+        "status": "success",
+        "timestamp": "2026-04-01T15:55:11.293250Z",
+        "attributes": {
+          "scenario_id": "scenario_5",
+          "scenario_name": "mcp_chain",
+          "target": "mock",
+          "otlp_compatible": true,
+          "openinference_span_kind": "AGENT"
+        },
+        "retry_count": 0,
+        "fallback_from": null
+      },
+      {
+        "trace_id": "trace_a4d2268215",
+        "span_id": "span_68215_02",
+        "parent_span_id": "span_68215_01",
+        "from_node": "node.planner_core",
+        "to_node": "node.mcp_gateway",
+        "span_kind": "MCP",
+        "protocol": "mcp",
+        "summary": "Planner calls MCP route",
+        "payload_preview": "node.planner_core -> node.mcp_gateway",
+        "payload_detail": {
+          "step_index": 1,
+          "step_count": 6,
+          "scenario": "mcp_chain",
+          "from": "node.planner_core",
+          "to": "node.mcp_gateway",
+          "protocol": "mcp",
+          "target": "mock",
+          "redaction": {
+            "enabled": true,
+            "strategy": "field-mask-v1",
+            "masked_fields": [
+              "api_key",
+              "auth_token",
+              "user_email"
+            ]
+          }
+        },
+        "direction": "outbound",
+        "latency_ms": 72,
+        "status": "success",
+        "timestamp": "2026-04-01T15:55:11.365250Z",
+        "attributes": {
+          "scenario_id": "scenario_5",
+          "scenario_name": "mcp_chain",
+          "target": "mock",
+          "otlp_compatible": true,
+          "openinference_span_kind": "MCP"
+        },
+        "retry_count": 0,
+        "fallback_from": null
+      },
+      {
+        "trace_id": "trace_a4d2268215",
+        "span_id": "span_68215_03",
+        "parent_span_id": "span_68215_02",
+        "from_node": "node.mcp_gateway",
+        "to_node": "node.tool_registry",
+        "span_kind": "TOOL",
+        "protocol": "mcp",
+        "summary": "MCP resolves tool backend",
+        "payload_preview": "node.mcp_gateway -> node.tool_registry",
+        "payload_detail": {
+          "step_index": 2,
+          "step_count": 6,
+          "scenario": "mcp_chain",
+          "from": "node.mcp_gateway",
+          "to": "node.tool_registry",
+          "protocol": "mcp",
+          "target": "mock",
+          "redaction": {
+            "enabled": true,
+            "strategy": "field-mask-v1",
+            "masked_fields": [
+              "api_key",
+              "auth_token",
+              "user_email"
+            ]
+          }
+        },
+        "direction": "outbound",
+        "latency_ms": 245,
+        "status": "success",
+        "timestamp": "2026-04-01T15:55:11.610250Z",
+        "attributes": {
+          "scenario_id": "scenario_5",
+          "scenario_name": "mcp_chain",
+          "target": "mock",
+          "otlp_compatible": true,
+          "openinference_span_kind": "TOOL"
+        },
+        "retry_count": 0,
+        "fallback_from": null
+      },
+      {
+        "trace_id": "trace_a4d2268215",
+        "span_id": "span_68215_04",
+        "parent_span_id": "span_68215_03",
+        "from_node": "node.tool_registry",
+        "to_node": "node.mcp_result_adapter",
+        "span_kind": "MCP",
+        "protocol": "mcp",
+        "summary": "Tool result adaptation",
+        "payload_preview": "node.tool_registry -> node.mcp_result_adapter",
+        "payload_detail": {
+          "step_index": 3,
+          "step_count": 6,
+          "scenario": "mcp_chain",
+          "from": "node.tool_registry",
+          "to": "node.mcp_result_adapter",
+          "protocol": "mcp",
+          "target": "mock",
+          "redaction": {
+            "enabled": true,
+            "strategy": "field-mask-v1",
+            "masked_fields": [
+              "api_key",
+              "auth_token",
+              "user_email"
+            ]
+          }
+        },
+        "direction": "outbound",
+        "latency_ms": 578,
+        "status": "success",
+        "timestamp": "2026-04-01T15:55:12.188250Z",
+        "attributes": {
+          "scenario_id": "scenario_5",
+          "scenario_name": "mcp_chain",
+          "target": "mock",
+          "otlp_compatible": true,
+          "openinference_span_kind": "MCP"
+        },
+        "retry_count": 0,
+        "fallback_from": null
+      },
+      {
+        "trace_id": "trace_a4d2268215",
+        "span_id": "span_68215_05",
+        "parent_span_id": "span_68215_04",
+        "from_node": "node.mcp_result_adapter",
+        "to_node": "node.llm_router",
+        "span_kind": "LLM",
+        "protocol": "internal/http+json",
+        "summary": "MCP result to model",
+        "payload_preview": "node.mcp_result_adapter -> node.llm_router",
+        "payload_detail": {
+          "step_index": 4,
+          "step_count": 6,
+          "scenario": "mcp_chain",
+          "from": "node.mcp_result_adapter",
+          "to": "node.llm_router",
+          "protocol": "internal/http+json",
+          "target": "mock",
+          "redaction": {
+            "enabled": true,
+            "strategy": "field-mask-v1",
+            "masked_fields": [
+              "api_key",
+              "auth_token",
+              "user_email"
+            ]
+          }
+        },
+        "direction": "outbound",
+        "latency_ms": 665,
+        "status": "success",
+        "timestamp": "2026-04-01T15:55:12.853250Z",
+        "attributes": {
+          "scenario_id": "scenario_5",
+          "scenario_name": "mcp_chain",
+          "target": "mock",
+          "otlp_compatible": true,
+          "openinference_span_kind": "LLM"
+        },
+        "retry_count": 0,
+        "fallback_from": null
+      },
+      {
+        "trace_id": "trace_a4d2268215",
+        "span_id": "span_68215_06",
+        "parent_span_id": "span_68215_05",
+        "from_node": "node.llm_router",
+        "to_node": "node.final_renderer",
+        "span_kind": "CHAIN",
+        "protocol": "internal/http+json",
+        "summary": "Answer generation complete",
+        "payload_preview": "node.llm_router -> node.final_renderer",
+        "payload_detail": {
+          "step_index": 5,
+          "step_count": 6,
+          "scenario": "mcp_chain",
+          "from": "node.llm_router",
+          "to": "node.final_renderer",
+          "protocol": "internal/http+json",
+          "target": "mock",
+          "redaction": {
+            "enabled": true,
+            "strategy": "field-mask-v1",
+            "masked_fields": [
+              "api_key",
+              "auth_token",
+              "user_email"
+            ]
+          }
+        },
+        "direction": "outbound",
+        "latency_ms": 272,
+        "status": "success",
+        "timestamp": "2026-04-01T15:55:13.125250Z",
+        "attributes": {
+          "scenario_id": "scenario_5",
+          "scenario_name": "mcp_chain",
+          "target": "mock",
+          "otlp_compatible": true,
+          "openinference_span_kind": "CHAIN"
+        },
+        "retry_count": 0,
+        "fallback_from": null
+      }
+    ]
+  }
+]
