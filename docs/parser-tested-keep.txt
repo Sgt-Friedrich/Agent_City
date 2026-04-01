@@ -1,0 +1,12 @@
+﻿browser-use__browser-use
+cloudwego__eino
+elizaOS__eliza
+langchain4j__langchain4j
+langchain-ai__langgraph
+langchain-ai__langgraphjs
+liquidos-ai__autoagents
+mastra-ai__mastra
+microsoft__autogen
+microsoft__semantic-kernel
+openai__openai-agents-python
+OpenHands__OpenHands

@@ -43,6 +43,22 @@ def parse_args() -> argparse.Namespace:
         help="Delete threshold in MB (default: 200).",
     )
     parser.add_argument(
+        "--keep",
+        nargs="*",
+        default=[],
+        help="Directory names to keep (matched against immediate child dir names).",
+    )
+    parser.add_argument(
+        "--keep-list-file",
+        default=None,
+        help="Path to file with one directory name per line for keep allowlist.",
+    )
+    parser.add_argument(
+        "--delete-unlisted",
+        action="store_true",
+        help="Delete directories not present in keep allowlist (applies before size threshold).",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Only print actions without deleting directories.",
@@ -86,12 +102,22 @@ def main() -> int:
     args = parse_args()
     root = Path(args.root).resolve()
     threshold_bytes = int(args.threshold_mb * 1024 * 1024)
+    keep_set = set(args.keep)
+
+    if args.keep_list_file:
+        keep_file = (root / args.keep_list_file).resolve()
+        if keep_file.exists() and keep_file.is_file():
+            for line in keep_file.read_text(encoding="utf-8", errors="ignore").splitlines():
+                stripped = line.strip().lstrip("\ufeff")
+                if stripped and not stripped.startswith("#"):
+                    keep_set.add(stripped)
 
     entries = scan(root, args.targets)
 
     print(f"[cleanup_refs] root={root}")
     print(f"[cleanup_refs] targets={args.targets}")
     print(f"[cleanup_refs] threshold={args.threshold_mb:.1f}MB dry_run={args.dry_run}")
+    print(f"[cleanup_refs] delete_unlisted={args.delete_unlisted} keep_count={len(keep_set)}")
 
     if not entries:
         print("[cleanup_refs] no reference directories found.")
@@ -100,10 +126,20 @@ def main() -> int:
     removed = 0
     kept = 0
     for entry in entries:
-        status = "DELETE" if entry.bytes_size > threshold_bytes else "KEEP"
+        unlisted = args.delete_unlisted and entry.path.name not in keep_set
+        too_large = entry.bytes_size > threshold_bytes
+        should_delete = unlisted or too_large
+
+        if unlisted:
+            status = "DELETE(unlisted)"
+        elif too_large:
+            status = "DELETE(size)"
+        else:
+            status = "KEEP"
+
         print(f"[{status}] {entry.size_mb:9.2f} MB  {entry.path}")
 
-        if entry.bytes_size > threshold_bytes:
+        if should_delete:
             if args.dry_run:
                 continue
             shutil.rmtree(entry.path, ignore_errors=True)

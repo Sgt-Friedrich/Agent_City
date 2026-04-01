@@ -245,6 +245,19 @@ Reference notes and executed cleanup log:
 
 - `docs/reference-notes.md`
 
+Parser regression artifacts:
+
+- `docs/parser-test-plan.md`
+- `docs/parser-test-results.md`
+- `docs/parser-capability-summary.md`
+- `tests/fixtures/parsed_samples/*.json`
+
+Run parser regression:
+
+```bash
+python scripts/run_parser_regression.py
+```
+
 ## 9) Real Repo Validation (Claude/Codex)
 
 Implemented and validated with local repos:

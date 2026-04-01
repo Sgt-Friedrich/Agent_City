@@ -11,3 +11,8 @@ frontend/out/
 # local
 .env
 .env.local
+
+# parser regression references (never commit external repos)
+refs/
+tmp_refs/
+external_examples/

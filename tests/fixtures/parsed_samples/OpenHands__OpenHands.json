@@ -1,0 +1,873 @@
+{
+  "repo": "OpenHands/OpenHands",
+  "slug": "OpenHands__OpenHands",
+  "language_declared": "Python",
+  "domain": "coding agent platform",
+  "parse_success": true,
+  "language_detected": [
+    "TypeScript",
+    "Python"
+  ],
+  "parser_confidence": 0.87,
+  "grade": "A",
+  "coverage": {
+    "roles_found": [
+      "agent",
+      "embedding",
+      "evaluator",
+      "guardrail",
+      "llm",
+      "mcp",
+      "memory",
+      "planner",
+      "prompt",
+      "retriever",
+      "runtime_node",
+      "sub_agent",
+      "tool"
+    ],
+    "source_types": {
+      "config": true,
+      "registry": true,
+      "code": true
+    },
+    "declared_edge_count": 12,
+    "observed_edge_count": 15,
+    "inferred_edge_count": 3,
+    "fallback_edge_count": 1,
+    "retry_loop_count": 1
+  },
+  "topology": {
+    "districts": [
+      {
+        "id": "district.llm",
+        "name": "Llm District",
+        "type": "llm",
+        "summary": "parser regression district",
+        "position": {
+          "x": 64,
+          "y": 0,
+          "z": -28
+        },
+        "bounds": {
+          "width": 44,
+          "depth": 32
+        },
+        "metadata": {
+          "source": "parser_regression"
+        }
+      },
+      {
+        "id": "district.memory",
+        "name": "Memory District",
+        "type": "memory",
+        "summary": "parser regression district",
+        "position": {
+          "x": -64,
+          "y": 0,
+          "z": -32
+        },
+        "bounds": {
+          "width": 44,
+          "depth": 30
+        },
+        "metadata": {
+          "source": "parser_regression"
+        }
+      },
+      {
+        "id": "district.planning",
+        "name": "Planning District",
+        "type": "planning",
+        "summary": "parser regression district",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "z": 0
+        },
+        "bounds": {
+          "width": 52,
+          "depth": 36
+        },
+        "metadata": {
+          "source": "parser_regression"
+        }
+      },
+      {
+        "id": "district.retrieval",
+        "name": "Retrieval District",
+        "type": "retrieval",
+        "summary": "parser regression district",
+        "position": {
+          "x": -64,
+          "y": 0,
+          "z": 18
+        },
+        "bounds": {
+          "width": 44,
+          "depth": 34
+        },
+        "metadata": {
+          "source": "parser_regression"
+        }
+      },
+      {
+        "id": "district.runtime",
+        "name": "Runtime District",
+        "type": "runtime",
+        "summary": "parser regression district",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "z": 56
+        },
+        "bounds": {
+          "width": 52,
+          "depth": 30
+        },
+        "metadata": {
+          "source": "parser_regression"
+        }
+      },
+      {
+        "id": "district.safety",
+        "name": "Safety District",
+        "type": "safety",
+        "summary": "parser regression district",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "z": -56
+        },
+        "bounds": {
+          "width": 46,
+          "depth": 28
+        },
+        "metadata": {
+          "source": "parser_regression"
+        }
+      },
+      {
+        "id": "district.tools",
+        "name": "Tools District",
+        "type": "tools",
+        "summary": "parser regression district",
+        "position": {
+          "x": 64,
+          "y": 0,
+          "z": 14
+        },
+        "bounds": {
+          "width": 48,
+          "depth": 38
+        },
+        "metadata": {
+          "source": "parser_regression"
+        }
+      }
+    ],
+    "nodes": [
+      {
+        "id": "node.agent",
+        "name": "Agent",
+        "type": "agent",
+        "district_id": "district.planning",
+        "position": {
+          "x": 0.0,
+          "y": 0,
+          "z": 0.0
+        },
+        "size": 4.3,
+        "height": 13.2,
+        "status": "healthy",
+        "labels": [
+          "agent",
+          "planning"
+        ],
+        "metadata": {
+          "hit_score": 325
+        },
+        "metrics": null,
+        "source_provenance": [
+          {
+            "source_type": "parser_regression",
+            "location": "agent",
+            "confidence": 0.72
+          }
+        ]
+      },
+      {
+        "id": "node.embedding",
+        "name": "Embedding",
+        "type": "embedding",
+        "district_id": "district.retrieval",
+        "position": {
+          "x": -64.0,
+          "y": 0,
+          "z": 18.0
+        },
+        "size": 2.95,
+        "height": 7.51,
+        "status": "healthy",
+        "labels": [
+          "embedding",
+          "retrieval"
+        ],
+        "metadata": {
+          "hit_score": 6
+        },
+        "metrics": null,
+        "source_provenance": [
+          {
+            "source_type": "parser_regression",
+            "location": "embedding",
+            "confidence": 0.72
+          }
+        ]
+      },
+      {
+        "id": "node.evaluator",
+        "name": "Evaluator",
+        "type": "evaluator",
+        "district_id": "district.safety",
+        "position": {
+          "x": 0.0,
+          "y": 0,
+          "z": -56.0
+        },
+        "size": 4.08,
+        "height": 10.09,
+        "status": "healthy",
+        "labels": [
+          "evaluator",
+          "safety"
+        ],
+        "metadata": {
+          "hit_score": 15
+        },
+        "metrics": null,
+        "source_provenance": [
+          {
+            "source_type": "parser_regression",
+            "location": "evaluator",
+            "confidence": 0.72
+          }
+        ]
+      },
+      {
+        "id": "node.guardrail",
+        "name": "Guardrail",
+        "type": "guardrail",
+        "district_id": "district.safety",
+        "position": {
+          "x": 0.0,
+          "y": 0,
+          "z": -42.0
+        },
+        "size": 3.83,
+        "height": 9.51,
+        "status": "healthy",
+        "labels": [
+          "guardrail",
+          "safety"
+        ],
+        "metadata": {
+          "hit_score": 13
+        },
+        "metrics": null,
+        "source_provenance": [
+          {
+            "source_type": "parser_regression",
+            "location": "guardrail",
+            "confidence": 0.72
+          }
+        ]
+      },
+      {
+        "id": "node.llm",
+        "name": "Llm",
+        "type": "llm",
+        "district_id": "district.llm",
+        "position": {
+          "x": 64.0,
+          "y": 0,
+          "z": -28.0
+        },
+        "size": 4.3,
+        "height": 13.2,
+        "status": "healthy",
+        "labels": [
+          "llm",
+          "llm"
+        ],
+        "metadata": {
+          "hit_score": 522
+        },
+        "metrics": null,
+        "source_provenance": [
+          {
+            "source_type": "parser_regression",
+            "location": "llm",
+            "confidence": 0.72
+          }
+        ]
+      },
+      {
+        "id": "node.mcp",
+        "name": "Mcp",
+        "type": "mcp",
+        "district_id": "district.tools",
+        "position": {
+          "x": 64.0,
+          "y": 0,
+          "z": 14.0
+        },
+        "size": 4.3,
+        "height": 13.2,
+        "status": "warning",
+        "labels": [
+          "mcp",
+          "tools"
+        ],
+        "metadata": {
+          "hit_score": 55
+        },
+        "metrics": null,
+        "source_provenance": [
+          {
+            "source_type": "parser_regression",
+            "location": "mcp",
+            "confidence": 0.72
+          }
+        ]
+      },
+      {
+        "id": "node.memory",
+        "name": "Memory",
+        "type": "memory",
+        "district_id": "district.memory",
+        "position": {
+          "x": -64.0,
+          "y": 0,
+          "z": -32.0
+        },
+        "size": 4.3,
+        "height": 13.2,
+        "status": "healthy",
+        "labels": [
+          "memory",
+          "memory"
+        ],
+        "metadata": {
+          "hit_score": 398
+        },
+        "metrics": null,
+        "source_provenance": [
+          {
+            "source_type": "parser_regression",
+            "location": "memory",
+            "confidence": 0.72
+          }
+        ]
+      },
+      {
+        "id": "node.planner",
+        "name": "Planner",
+        "type": "planner",
+        "district_id": "district.planning",
+        "position": {
+          "x": 0.0,
+          "y": 0,
+          "z": 18.0
+        },
+        "size": 4.3,
+        "height": 13.2,
+        "status": "healthy",
+        "labels": [
+          "planner",
+          "planning"
+        ],
+        "metadata": {
+          "hit_score": 243
+        },
+        "metrics": null,
+        "source_provenance": [
+          {
+            "source_type": "parser_regression",
+            "location": "planner",
+            "confidence": 0.72
+          }
+        ]
+      },
+      {
+        "id": "node.prompt",
+        "name": "Prompt",
+        "type": "prompt",
+        "district_id": "district.llm",
+        "position": {
+          "x": 64.0,
+          "y": 0,
+          "z": -12.0
+        },
+        "size": 4.3,
+        "height": 13.2,
+        "status": "healthy",
+        "labels": [
+          "prompt",
+          "llm"
+        ],
+        "metadata": {
+          "hit_score": 82
+        },
+        "metrics": null,
+        "source_provenance": [
+          {
+            "source_type": "parser_regression",
+            "location": "prompt",
+            "confidence": 0.72
+          }
+        ]
+      },
+      {
+        "id": "node.retriever",
+        "name": "Retriever",
+        "type": "retriever",
+        "district_id": "district.retrieval",
+        "position": {
+          "x": -64.0,
+          "y": 0,
+          "z": 35.0
+        },
+        "size": 4.3,
+        "height": 13.2,
+        "status": "healthy",
+        "labels": [
+          "retriever",
+          "retrieval"
+        ],
+        "metadata": {
+          "hit_score": 1054
+        },
+        "metrics": null,
+        "source_provenance": [
+          {
+            "source_type": "parser_regression",
+            "location": "retriever",
+            "confidence": 0.72
+          }
+        ]
+      },
+      {
+        "id": "node.runtime_node",
+        "name": "Runtime Node",
+        "type": "runtime_node",
+        "district_id": "district.runtime",
+        "position": {
+          "x": 0.0,
+          "y": 0,
+          "z": 56.0
+        },
+        "size": 4.3,
+        "height": 13.2,
+        "status": "healthy",
+        "labels": [
+          "runtime_node",
+          "runtime"
+        ],
+        "metadata": {
+          "hit_score": 1408
+        },
+        "metrics": null,
+        "source_provenance": [
+          {
+            "source_type": "parser_regression",
+            "location": "runtime_node",
+            "confidence": 0.72
+          }
+        ]
+      },
+      {
+        "id": "node.sub_agent",
+        "name": "Sub Agent",
+        "type": "sub_agent",
+        "district_id": "district.planning",
+        "position": {
+          "x": 0.0,
+          "y": 0,
+          "z": 36.0
+        },
+        "size": 2.45,
+        "height": 6.37,
+        "status": "healthy",
+        "labels": [
+          "sub_agent",
+          "planning"
+        ],
+        "metadata": {
+          "hit_score": 2
+        },
+        "metrics": null,
+        "source_provenance": [
+          {
+            "source_type": "parser_regression",
+            "location": "sub_agent",
+            "confidence": 0.72
+          }
+        ]
+      },
+      {
+        "id": "node.tool",
+        "name": "Tool",
+        "type": "tool",
+        "district_id": "district.tools",
+        "position": {
+          "x": 64.0,
+          "y": 0,
+          "z": 33.0
+        },
+        "size": 4.3,
+        "height": 13.2,
+        "status": "warning",
+        "labels": [
+          "tool",
+          "tools"
+        ],
+        "metadata": {
+          "hit_score": 355
+        },
+        "metrics": null,
+        "source_provenance": [
+          {
+            "source_type": "parser_regression",
+            "location": "tool",
+            "confidence": 0.72
+          }
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "id": "edge.node_guardrail.node_runtime_node.invocation",
+        "from": "node.guardrail",
+        "to": "node.runtime_node",
+        "kind": "invocation",
+        "protocol": "internal/http+json",
+        "status": "declared",
+        "confidence": 0.74,
+        "inferred_from": [
+          "static_parser"
+        ],
+        "metrics": {},
+        "metadata": {}
+      },
+      {
+        "id": "edge.node_llm.node_guardrail.dataflow",
+        "from": "node.llm",
+        "to": "node.guardrail",
+        "kind": "dataflow",
+        "protocol": "internal/http+json",
+        "status": "declared",
+        "confidence": 0.74,
+        "inferred_from": [
+          "static_parser"
+        ],
+        "metrics": {},
+        "metadata": {}
+      },
+      {
+        "id": "edge.node_mcp.node_tool.invocation",
+        "from": "node.mcp",
+        "to": "node.tool",
+        "kind": "invocation",
+        "protocol": "mcp",
+        "status": "declared",
+        "confidence": 0.74,
+        "inferred_from": [
+          "static_parser"
+        ],
+        "metrics": {},
+        "metadata": {}
+      },
+      {
+        "id": "edge.node_memory.node_llm.dataflow",
+        "from": "node.memory",
+        "to": "node.llm",
+        "kind": "dataflow",
+        "protocol": "internal/http+json",
+        "status": "declared",
+        "confidence": 0.74,
+        "inferred_from": [
+          "static_parser"
+        ],
+        "metrics": {},
+        "metadata": {}
+      },
+      {
+        "id": "edge.node_planner.node_llm.invocation",
+        "from": "node.planner",
+        "to": "node.llm",
+        "kind": "invocation",
+        "protocol": "internal/http+json",
+        "status": "declared",
+        "confidence": 0.74,
+        "inferred_from": [
+          "static_parser"
+        ],
+        "metrics": {},
+        "metadata": {}
+      },
+      {
+        "id": "edge.node_planner.node_mcp.invocation",
+        "from": "node.planner",
+        "to": "node.mcp",
+        "kind": "invocation",
+        "protocol": "mcp",
+        "status": "declared",
+        "confidence": 0.74,
+        "inferred_from": [
+          "static_parser"
+        ],
+        "metrics": {},
+        "metadata": {}
+      },
+      {
+        "id": "edge.node_planner.node_memory.dataflow",
+        "from": "node.planner",
+        "to": "node.memory",
+        "kind": "dataflow",
+        "protocol": "internal/http+json",
+        "status": "declared",
+        "confidence": 0.74,
+        "inferred_from": [
+          "static_parser"
+        ],
+        "metrics": {},
+        "metadata": {}
+      },
+      {
+        "id": "edge.node_planner.node_retriever.dependency",
+        "from": "node.planner",
+        "to": "node.retriever",
+        "kind": "dependency",
+        "protocol": "internal/http+json",
+        "status": "declared",
+        "confidence": 0.74,
+        "inferred_from": [
+          "static_parser"
+        ],
+        "metrics": {},
+        "metadata": {}
+      },
+      {
+        "id": "edge.node_planner.node_tool.invocation",
+        "from": "node.planner",
+        "to": "node.tool",
+        "kind": "invocation",
+        "protocol": "tool-call",
+        "status": "declared",
+        "confidence": 0.74,
+        "inferred_from": [
+          "static_parser"
+        ],
+        "metrics": {},
+        "metadata": {}
+      },
+      {
+        "id": "edge.node_retriever.node_llm.dataflow",
+        "from": "node.retriever",
+        "to": "node.llm",
+        "kind": "dataflow",
+        "protocol": "internal/http+json",
+        "status": "declared",
+        "confidence": 0.74,
+        "inferred_from": [
+          "static_parser"
+        ],
+        "metrics": {},
+        "metadata": {}
+      },
+      {
+        "id": "edge.node_runtime_node.node_planner.invocation",
+        "from": "node.runtime_node",
+        "to": "node.planner",
+        "kind": "invocation",
+        "protocol": "internal/http+json",
+        "status": "declared",
+        "confidence": 0.74,
+        "inferred_from": [
+          "static_parser"
+        ],
+        "metrics": {},
+        "metadata": {}
+      },
+      {
+        "id": "edge.node_tool.node_llm.dataflow",
+        "from": "node.tool",
+        "to": "node.llm",
+        "kind": "dataflow",
+        "protocol": "internal/http+json",
+        "status": "declared",
+        "confidence": 0.74,
+        "inferred_from": [
+          "static_parser"
+        ],
+        "metrics": {},
+        "metadata": {}
+      }
+    ]
+  },
+  "runtime": {
+    "observed_edges": [
+      {
+        "id": "edge.runtime.runtime_node.planner.invocation",
+        "from": "node.runtime_node",
+        "to": "node.planner",
+        "kind": "invocation",
+        "status": "success"
+      },
+      {
+        "id": "edge.runtime.planner.retriever.dependency",
+        "from": "node.planner",
+        "to": "node.retriever",
+        "kind": "dependency",
+        "status": "success"
+      },
+      {
+        "id": "edge.runtime.retriever.llm.dataflow",
+        "from": "node.retriever",
+        "to": "node.llm",
+        "kind": "dataflow",
+        "status": "success"
+      },
+      {
+        "id": "edge.runtime.llm.runtime_node.invocation",
+        "from": "node.llm",
+        "to": "node.runtime_node",
+        "kind": "invocation",
+        "status": "success"
+      },
+      {
+        "id": "edge.runtime.planner.tool.invocation",
+        "from": "node.planner",
+        "to": "node.tool",
+        "kind": "invocation",
+        "status": "success"
+      },
+      {
+        "id": "edge.runtime.tool.llm.dataflow",
+        "from": "node.tool",
+        "to": "node.llm",
+        "kind": "dataflow",
+        "status": "success"
+      },
+      {
+        "id": "edge.runtime.planner.memory.dataflow",
+        "from": "node.planner",
+        "to": "node.memory",
+        "kind": "dataflow",
+        "status": "success"
+      },
+      {
+        "id": "edge.runtime.memory.llm.dataflow",
+        "from": "node.memory",
+        "to": "node.llm",
+        "kind": "dataflow",
+        "status": "success"
+      },
+      {
+        "id": "edge.runtime.llm.guardrail.dataflow",
+        "from": "node.llm",
+        "to": "node.guardrail",
+        "kind": "dataflow",
+        "status": "success"
+      },
+      {
+        "id": "edge.runtime.guardrail.runtime_node.invocation",
+        "from": "node.guardrail",
+        "to": "node.runtime_node",
+        "kind": "invocation",
+        "status": "success"
+      },
+      {
+        "id": "edge.runtime.planner.tool.retry",
+        "from": "node.planner",
+        "to": "node.tool",
+        "kind": "retry",
+        "status": "error"
+      },
+      {
+        "id": "edge.runtime.planner.runtime_node.fallback",
+        "from": "node.planner",
+        "to": "node.runtime_node",
+        "kind": "fallback",
+        "status": "partial"
+      },
+      {
+        "id": "edge.runtime.planner.mcp.invocation",
+        "from": "node.planner",
+        "to": "node.mcp",
+        "kind": "invocation",
+        "status": "success"
+      },
+      {
+        "id": "edge.runtime.mcp.tool.invocation",
+        "from": "node.mcp",
+        "to": "node.tool",
+        "kind": "invocation",
+        "status": "success"
+      },
+      {
+        "id": "edge.runtime.mcp.llm.dataflow",
+        "from": "node.mcp",
+        "to": "node.llm",
+        "kind": "dataflow",
+        "status": "success"
+      }
+    ],
+    "inferred_edges": [
+      {
+        "id": "edge.runtime.llm.runtime_node.invocation",
+        "from": "node.llm",
+        "to": "node.runtime_node",
+        "kind": "inferred",
+        "status": "success"
+      },
+      {
+        "id": "edge.runtime.planner.runtime_node.fallback",
+        "from": "node.planner",
+        "to": "node.runtime_node",
+        "kind": "inferred",
+        "status": "partial"
+      },
+      {
+        "id": "edge.runtime.mcp.llm.dataflow",
+        "from": "node.mcp",
+        "to": "node.llm",
+        "kind": "inferred",
+        "status": "success"
+      }
+    ],
+    "fallback_edges": [
+      {
+        "id": "edge.runtime.planner.runtime_node.fallback",
+        "from": "node.planner",
+        "to": "node.runtime_node",
+        "kind": "fallback",
+        "status": "partial"
+      }
+    ],
+    "retry_loops": [
+      {
+        "id": "edge.runtime.planner.tool.retry",
+        "from": "node.planner",
+        "to": "node.tool",
+        "kind": "retry",
+        "status": "error"
+      }
+    ]
+  },
+  "unresolved_symbols": [
+    "dynamic registration/reflection likely hides static relations"
+  ],
+  "highlights": "AGENTS.md -> ['agent', 'llm', 'memory', 'planner', 'retriever', 'runtime_node', 'tool']; CODE_OF_CONDUCT.md -> ['guardrail', 'llm', 'prompt', 'retriever', 'runtime_node', 'tool']; COMMUNITY.md -> ['memory', 'retriever', 'runtime_node']"
+}
