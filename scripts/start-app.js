@@ -13,7 +13,7 @@ const frontendDir = path.join(rootDir, "frontend");
 const desktopDir = path.join(rootDir, "desktop");
 
 const isWin = process.platform === "win32";
-const npmCmd = isWin ? "npm.cmd" : "npm";
+let cachedNpmInvocation = null;
 
 const mode = process.argv[2] || "dev";
 const desktopMode = mode === "smoke" ? "smoke" : mode === "build" ? "build" : "dev";
@@ -24,36 +24,154 @@ function log(message) {
 
 function sanitizeEnv(inputEnv) {
   const env = {};
+  const seenKeys = new Set();
+  let pathValue = "";
   for (const [key, value] of Object.entries(inputEnv || {})) {
     if (!key || key.includes("=") || key.includes("\0") || key.startsWith("=")) {
       continue;
     }
-    env[key] = value;
+
+    if (value == null) {
+      continue;
+    }
+
+    const stringValue = String(value);
+    if (stringValue.includes("\0")) {
+      continue;
+    }
+
+    const lowered = key.toLowerCase();
+    if (isWin && lowered === "path") {
+      if (!pathValue) {
+        pathValue = stringValue;
+      }
+      continue;
+    }
+
+    if (isWin) {
+      if (seenKeys.has(lowered)) {
+        continue;
+      }
+      seenKeys.add(lowered);
+    }
+
+    env[key] = stringValue;
+  }
+
+  if (isWin && pathValue) {
+    env.Path = pathValue;
   }
   return env;
 }
 
+function quoteForCmd(argument) {
+  if (!argument) {
+    return "\"\"";
+  }
+
+  if (!/[\s"^&|<>]/.test(argument)) {
+    return argument;
+  }
+
+  return `"${argument.replace(/(["^])/g, "^$1")}"`;
+}
+
+function buildCmdInvocation(command, args) {
+  return [command, ...args].map((part) => quoteForCmd(part)).join(" ");
+}
+
+function shouldRetryWithCmd(error, command, options) {
+  if (!isWin || options?.disableCmdFallback || command.toLowerCase() === "cmd.exe") {
+    return false;
+  }
+
+  const code = error?.code || "";
+  const message = error?.message || "";
+  return code === "EINVAL" || code === "ENOENT" || /EINVAL/i.test(message);
+}
+
 function run(command, args, options = {}) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
-      cwd: options.cwd || rootDir,
-      env: sanitizeEnv(options.env || process.env),
-      stdio: options.stdio || "inherit",
-      shell: Boolean(options.shell),
-    });
+  const baseOptions = {
+    cwd: options.cwd || rootDir,
+    env: sanitizeEnv(options.env || process.env),
+    stdio: options.stdio || "inherit",
+    shell: Boolean(options.shell),
+  };
 
-    child.on("error", (error) => {
-      reject(error);
-    });
-
-    child.on("exit", (code) => {
-      if (code === 0) {
-        resolve();
-      } else {
-        reject(new Error(`${command} ${args.join(" ")} exited with code ${code}`));
+  const execute = (cmd, cmdArgs, useShell, fallbackTag) =>
+    new Promise((resolve, reject) => {
+      let child;
+      try {
+        child = spawn(cmd, cmdArgs, {
+          ...baseOptions,
+          shell: useShell,
+        });
+      } catch (error) {
+        reject(error);
+        return;
       }
+
+      child.on("error", (error) => {
+        reject(error);
+      });
+
+      child.on("exit", (code) => {
+        if (code === 0) {
+          resolve();
+          return;
+        }
+        const descriptor = fallbackTag ? ` [${fallbackTag}]` : "";
+        reject(new Error(`${cmd} ${cmdArgs.join(" ")} exited with code ${code}${descriptor}`));
+      });
     });
+
+  return execute(command, args, Boolean(options.shell), "direct").catch(async (error) => {
+    if (!shouldRetryWithCmd(error, command, options)) {
+      throw error;
+    }
+
+    log(`spawn failed (${error.code || error.message}); retrying via cmd shim...`);
+    const cmdLine = buildCmdInvocation(command, args);
+    await execute("cmd.exe", ["/d", "/s", "/c", cmdLine], false, "cmd-fallback");
   });
+}
+
+function resolveNpmInvocation() {
+  if (cachedNpmInvocation) {
+    return cachedNpmInvocation;
+  }
+
+  const npmExecPath = process.env.npm_execpath;
+  if (npmExecPath && fs.existsSync(npmExecPath)) {
+    cachedNpmInvocation = {
+      command: process.execPath,
+      prefixArgs: [npmExecPath],
+    };
+    return cachedNpmInvocation;
+  }
+
+  if (isWin && canRun("npm.cmd", ["--version"])) {
+    cachedNpmInvocation = {
+      command: "npm.cmd",
+      prefixArgs: [],
+    };
+    return cachedNpmInvocation;
+  }
+
+  if (canRun("npm", ["--version"])) {
+    cachedNpmInvocation = {
+      command: "npm",
+      prefixArgs: [],
+    };
+    return cachedNpmInvocation;
+  }
+
+  throw new Error("npm is required but not found in PATH.");
+}
+
+function runNpm(args, options = {}) {
+  const invocation = resolveNpmInvocation();
+  return run(invocation.command, [...invocation.prefixArgs, ...args], options);
 }
 
 function isUrlHealthy(url, timeoutMs = 1200) {
@@ -122,7 +240,7 @@ async function ensureNodeDependencies(projectName, projectDir) {
   }
 
   log(`installing ${projectName} dependencies...`);
-  await run(npmCmd, ["--prefix", projectDir, "install", "--no-fund"], {
+  await runNpm(["--prefix", projectDir, "install", "--no-fund"], {
     cwd: rootDir,
   });
 }
@@ -187,7 +305,7 @@ async function ensureFrontendBundle() {
     process.env.NEXT_PUBLIC_WS_LIVE_URL ||
     backendUrl.replace("http://", "ws://").replace("https://", "wss://") + "/ws/live";
 
-  await run(npmCmd, ["--prefix", frontendDir, "run", "build"], {
+  await runNpm(["--prefix", frontendDir, "run", "build"], {
     cwd: rootDir,
     env: {
       ...sanitizeEnv(process.env),
