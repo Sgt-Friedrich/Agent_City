@@ -29,14 +29,17 @@ export function SettingsCenter() {
   const setAppSettings = useDashboardStore((state) => state.setAppSettings);
   const [form, setForm] = useState<FormState | undefined>(appSettings);
   const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
   const [message, setMessage] = useState("");
   const [validationErrors, setValidationErrors] = useState<SettingsValidationErrors>({});
 
   useEffect(() => {
     if (appSettings) {
-      setForm(appSettings);
+      if (!dirty || !form) {
+        setForm(appSettings);
+      }
     }
-  }, [appSettings]);
+  }, [appSettings, dirty, form]);
 
   if (!form) {
     return (
@@ -79,6 +82,8 @@ export function SettingsCenter() {
     try {
       const response = await api.updateSettings(form);
       setAppSettings(response.settings);
+      setForm(response.settings);
+      setDirty(false);
       setLocale(response.settings.language);
       setMessage(t("settings.saved"));
     } catch (error) {
@@ -92,6 +97,12 @@ export function SettingsCenter() {
     always_simulated: t("settings.liveFlowMode.always_simulated"),
     manual: t("settings.liveFlowMode.manual"),
     codex_real_only: t("settings.liveFlowMode.codex_real_only"),
+  };
+
+  const patchForm = (patch: Partial<FormState>) => {
+    setForm((prev) => (prev ? { ...prev, ...patch } : prev));
+    setDirty(true);
+    setMessage("");
   };
 
   return (
@@ -116,7 +127,7 @@ export function SettingsCenter() {
                     : "border-line bg-[#102136] text-slate-300 hover:border-sky-300"
                 }`}
                 onClick={() => {
-                  setForm({ ...form, language: option.code });
+                  patchForm({ language: option.code });
                   setLocale(option.code);
                 }}
               >
@@ -154,8 +165,7 @@ export function SettingsCenter() {
             className="mt-2 w-full rounded border border-line bg-[#091524] px-2 py-1 text-xs text-slate-100 outline-none focus:border-sky-400"
             value={form.live_flow_mode}
             onChange={(event) =>
-              setForm({
-                ...form,
+              patchForm({
                 live_flow_mode: event.target.value as FormState["live_flow_mode"],
               })
             }
@@ -176,9 +186,7 @@ export function SettingsCenter() {
             step="0.1"
             className="mt-1 w-full rounded border border-line bg-[#091524] px-2 py-1 text-xs text-slate-100 outline-none focus:border-sky-400"
             value={form.codex_activity_poll_sec}
-            onChange={(event) =>
-              setForm({ ...form, codex_activity_poll_sec: Number(event.target.value) || 1.8 })
-            }
+            onChange={(event) => patchForm({ codex_activity_poll_sec: Number(event.target.value) || 1.8 })}
           />
           <div className="mt-1 text-[10px] text-slate-500">{t("settings.codexPollSecHint")}</div>
           {validationErrors.codex_activity_poll_sec ? (
@@ -193,7 +201,7 @@ export function SettingsCenter() {
           <input
             className="mt-1 w-full rounded border border-line bg-[#091524] px-2 py-1 text-xs text-slate-100 outline-none focus:border-sky-400"
             value={form.workspace_dir}
-            onChange={(event) => setForm({ ...form, workspace_dir: event.target.value })}
+            onChange={(event) => patchForm({ workspace_dir: event.target.value })}
           />
           {validationErrors.workspace_dir ? (
             <div className="mt-1 text-[10px] text-rose-300">{validationErrors.workspace_dir}</div>
@@ -204,7 +212,7 @@ export function SettingsCenter() {
           <input
             className="mt-1 w-full rounded border border-line bg-[#091524] px-2 py-1 text-xs text-slate-100 outline-none focus:border-sky-400"
             value={form.data_dir}
-            onChange={(event) => setForm({ ...form, data_dir: event.target.value })}
+            onChange={(event) => patchForm({ data_dir: event.target.value })}
           />
           {validationErrors.data_dir ? (
             <div className="mt-1 text-[10px] text-rose-300">{validationErrors.data_dir}</div>
@@ -215,7 +223,7 @@ export function SettingsCenter() {
           <input
             className="mt-1 w-full rounded border border-line bg-[#091524] px-2 py-1 text-xs text-slate-100 outline-none focus:border-sky-400"
             value={form.export_dir}
-            onChange={(event) => setForm({ ...form, export_dir: event.target.value })}
+            onChange={(event) => patchForm({ export_dir: event.target.value })}
           />
           {validationErrors.export_dir ? (
             <div className="mt-1 text-[10px] text-rose-300">{validationErrors.export_dir}</div>
@@ -227,9 +235,7 @@ export function SettingsCenter() {
             type="number"
             className="mt-1 w-full rounded border border-line bg-[#091524] px-2 py-1 text-xs text-slate-100 outline-none focus:border-sky-400"
             value={form.cleanup_threshold_mb}
-            onChange={(event) =>
-              setForm({ ...form, cleanup_threshold_mb: Number(event.target.value) || 200 })
-            }
+            onChange={(event) => patchForm({ cleanup_threshold_mb: Number(event.target.value) || 200 })}
           />
           {validationErrors.cleanup_threshold_mb ? (
             <div className="mt-1 text-[10px] text-rose-300">{validationErrors.cleanup_threshold_mb}</div>
@@ -245,7 +251,7 @@ export function SettingsCenter() {
               type="checkbox"
               checked={Boolean(form.telemetry.enabled)}
               onChange={(event) =>
-                setForm({ ...form, telemetry: { ...form.telemetry, enabled: event.target.checked } })
+                patchForm({ telemetry: { ...form.telemetry, enabled: event.target.checked } })
               }
             />
             {t("settings.telemetryEnabled")}
@@ -255,7 +261,7 @@ export function SettingsCenter() {
             <select
               className="rounded border border-line bg-[#091524] px-2 py-1 text-xs text-slate-100"
               value={String(form.logging.level ?? "info")}
-              onChange={(event) => setForm({ ...form, logging: { ...form.logging, level: event.target.value } })}
+              onChange={(event) => patchForm({ logging: { ...form.logging, level: event.target.value } })}
             >
               <option value="debug">debug</option>
               <option value="info">info</option>
@@ -275,6 +281,7 @@ export function SettingsCenter() {
           onClick={() => {
             if (appSettings) {
               setForm(appSettings);
+              setDirty(false);
               setValidationErrors({});
               setMessage(t("settings.restored"));
             }

@@ -66,7 +66,8 @@ class RuntimeActivityGate:
             "$matches = Get-CimInstance Win32_Process | "
             "Where-Object { "
             "$_.ProcessId -ne $selfPid -and "
-            "(($_.Name -match '(?i)codex') -or ($_.CommandLine -match '(?i)\\bcodex\\b')) -and "
+            "($_.Name -match '(?i)^codex\\.exe$') -and "
+            "($_.CommandLine -match '(?i)resources\\\\codex\\.exe\"\\s+app-server') -and "
             "($_.CommandLine -notmatch '(?i)agent-city|start-app\\.js|run-tauri\\.js|uvicorn') "
             "}; "
             "$result = @(); "
@@ -74,7 +75,7 @@ class RuntimeActivityGate:
             "$p = Get-Process -Id $m.ProcessId -ErrorAction SilentlyContinue; "
             "if ($null -ne $p) { "
             "$cpu = 0.0; if ($null -ne $p.CPU) { $cpu = [double]$p.CPU }; "
-            "$result += [PSCustomObject]@{ pid=[int]$m.ProcessId; cpu=$cpu } "
+            "$result += [PSCustomObject]@{ pid=[int]$m.ProcessId; cpu=$cpu; cmd=[string]$m.CommandLine } "
             "} "
             "}; "
             "$result | ConvertTo-Json -Compress"
@@ -113,9 +114,12 @@ class RuntimeActivityGate:
             try:
                 pid = int(item.get("pid", 0))
                 cpu_total = float(item.get("cpu", 0.0))
+                cmd = str(item.get("cmd", ""))
             except Exception:
                 continue
             if pid <= 0:
+                continue
+            if "app-server" not in cmd.lower():
                 continue
             next_samples[pid] = cpu_total
             previous = self._cpu_samples.get(pid)
@@ -137,11 +141,7 @@ class RuntimeActivityGate:
 
     def _probe_codex_activity_unix(self) -> ProbeResult:
         completed = subprocess.run(
-            [
-                "sh",
-                "-lc",
-                "ps -Ao pid,pcpu,command | grep -Ei '\\bcodex\\b' | grep -Evi 'grep|agent-city|uvicorn'",
-            ],
+            ["sh", "-lc", "ps -Ao pid,pcpu,command | grep -Ei 'codex(\\.exe)?\\s+app-server' | grep -Evi 'grep|agent-city|uvicorn'"],
             capture_output=True,
             text=True,
             timeout=3,

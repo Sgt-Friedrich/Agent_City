@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 import { api } from "@/lib/api";
 import { useLocaleStore } from "@/store/useLocaleStore";
@@ -13,6 +13,7 @@ export function useControlPlaneData(): void {
   const setAppSettings = useDashboardStore((state) => state.setAppSettings);
   const locale = useLocaleStore((state) => state.locale);
   const setLocale = useLocaleStore((state) => state.setLocale);
+  const localeBootstrappedRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -31,8 +32,11 @@ export function useControlPlaneData(): void {
         setControlJobs(jobs.items);
         setRuntimeStatus(runtime.runtime);
         setAppSettings(settings.settings);
-        if (settings.settings.language && settings.settings.language !== locale) {
-          setLocale(settings.settings.language);
+        if (!localeBootstrappedRef.current) {
+          if (settings.settings.language && settings.settings.language !== locale) {
+            setLocale(settings.settings.language);
+          }
+          localeBootstrappedRef.current = true;
         }
       } catch {
         if (!cancelled) {
