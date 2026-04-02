@@ -20,9 +20,15 @@ class ControlPlaneApiTest(unittest.TestCase):
             repo_resp = client.get("/api/control/repositories")
             runtime_resp = client.get("/api/control/runtime")
             settings_resp = client.get("/api/control/settings")
-            update_resp = client.put("/api/control/settings", json={"language": "zh"})
+            update_resp = client.put(
+                "/api/control/settings",
+                json={"language": "zh", "live_flow_mode": "codex_real_only", "codex_activity_poll_sec": 1.2},
+            )
             updated_settings_resp = client.get("/api/control/settings")
-            reset_resp = client.put("/api/control/settings", json={"language": "en"})
+            reset_resp = client.put(
+                "/api/control/settings",
+                json={"language": "en", "live_flow_mode": "always_simulated", "codex_activity_poll_sec": 1.8},
+            )
 
         self.assertEqual(repo_resp.status_code, 200)
         self.assertIn("items", repo_resp.json())
@@ -32,8 +38,10 @@ class ControlPlaneApiTest(unittest.TestCase):
         self.assertIn("settings", settings_resp.json())
         self.assertEqual(update_resp.status_code, 200)
         self.assertEqual(update_resp.json()["settings"]["language"], "zh")
+        self.assertEqual(update_resp.json()["settings"]["live_flow_mode"], "codex_real_only")
         self.assertEqual(updated_settings_resp.status_code, 200)
         self.assertEqual(updated_settings_resp.json()["settings"]["language"], "zh")
+        self.assertEqual(updated_settings_resp.json()["settings"]["live_flow_mode"], "codex_real_only")
         self.assertEqual(reset_resp.status_code, 200)
 
     def test_run_control_job(self) -> None:
@@ -64,11 +72,23 @@ class ControlPlaneApiTest(unittest.TestCase):
                 "/api/control/settings",
                 json={"cleanup_threshold_mb": 5},
             )
+            invalid_mode_resp = client.put(
+                "/api/control/settings",
+                json={"live_flow_mode": "unknown_mode"},
+            )
+            invalid_poll_resp = client.put(
+                "/api/control/settings",
+                json={"codex_activity_poll_sec": 0.1},
+            )
 
         self.assertEqual(invalid_path_resp.status_code, 422)
         self.assertIn("absolute path is required", invalid_path_resp.json().get("detail", ""))
         self.assertEqual(invalid_threshold_resp.status_code, 422)
         self.assertIn("must be between 50 and 5000", invalid_threshold_resp.json().get("detail", ""))
+        self.assertEqual(invalid_mode_resp.status_code, 422)
+        self.assertIn("live_flow_mode", str(invalid_mode_resp.json()))
+        self.assertEqual(invalid_poll_resp.status_code, 422)
+        self.assertIn("codex_activity_poll_sec", invalid_poll_resp.json().get("detail", ""))
 
 
 if __name__ == "__main__":

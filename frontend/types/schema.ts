@@ -204,6 +204,8 @@ export interface LiveMessage {
   message?: string;
   active_trace_id?: string;
   target?: string;
+  live_mode?: LiveFlowMode;
+  flow_gate?: string;
 }
 
 export interface TargetOption {
@@ -491,11 +493,15 @@ export interface AppSettings {
   data_dir: string;
   export_dir: string;
   cleanup_threshold_mb: number;
+  live_flow_mode: LiveFlowMode;
+  codex_activity_poll_sec: number;
   parser_options: Record<string, unknown>;
   telemetry: Record<string, unknown>;
   logging: Record<string, unknown>;
   integrations: Record<string, unknown>;
 }
+
+export type LiveFlowMode = "always_simulated" | "manual" | "codex_real_only";
 
 export interface SettingsResponse {
   settings: AppSettings;

@@ -95,6 +95,8 @@ Each job has status, progress, timestamps, log summary, detail output, and optio
 ### Settings / 设置中心
 - workspace/data/export directory
 - cleanup threshold
+- live flow mode (`always_simulated` / `manual` / `codex_real_only`)
+- codex activity poll interval (seconds)
 - telemetry/logging options
 - runtime status snapshot
 - **language switch (中文 / English)**

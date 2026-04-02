@@ -506,12 +506,20 @@ class AppLanguage(str, Enum):
     ZH = "zh"
 
 
+class LiveFlowMode(str, Enum):
+    ALWAYS_SIMULATED = "always_simulated"
+    MANUAL = "manual"
+    CODEX_REAL_ONLY = "codex_real_only"
+
+
 class AppSettings(BaseModel):
     language: AppLanguage = AppLanguage.EN
     workspace_dir: str = ""
     data_dir: str = ""
     export_dir: str = ""
     cleanup_threshold_mb: float = 200.0
+    live_flow_mode: LiveFlowMode = LiveFlowMode.ALWAYS_SIMULATED
+    codex_activity_poll_sec: float = 1.8
     parser_options: dict[str, Any] = Field(default_factory=lambda: {"strict_mode": False})
     telemetry: dict[str, Any] = Field(default_factory=lambda: {"enabled": False, "level": "basic"})
     logging: dict[str, Any] = Field(default_factory=lambda: {"level": "info"})
@@ -524,6 +532,8 @@ class UpdateSettingsRequest(BaseModel):
     data_dir: str | None = None
     export_dir: str | None = None
     cleanup_threshold_mb: float | None = None
+    live_flow_mode: LiveFlowMode | None = None
+    codex_activity_poll_sec: float | None = None
     parser_options: dict[str, Any] | None = None
     telemetry: dict[str, Any] | None = None
     logging: dict[str, Any] | None = None

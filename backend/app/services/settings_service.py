@@ -106,6 +106,27 @@ class SettingsService:
         except Exception:
             errors.append("cleanup_threshold_mb: invalid numeric value")
 
+        live_mode_raw = normalized.get("live_flow_mode", "always_simulated")
+        if isinstance(live_mode_raw, str):
+            live_mode = live_mode_raw.strip()
+        elif hasattr(live_mode_raw, "value"):
+            live_mode = str(getattr(live_mode_raw, "value")).strip()
+        else:
+            live_mode = str(live_mode_raw).strip()
+        if live_mode not in {"always_simulated", "manual", "codex_real_only"}:
+            errors.append("live_flow_mode: must be one of always_simulated/manual/codex_real_only")
+        else:
+            normalized["live_flow_mode"] = live_mode
+
+        poll_raw = normalized.get("codex_activity_poll_sec", 1.8)
+        try:
+            poll_sec = float(poll_raw)
+            if poll_sec < 0.5 or poll_sec > 30:
+                errors.append("codex_activity_poll_sec: must be between 0.5 and 30")
+            normalized["codex_activity_poll_sec"] = poll_sec
+        except Exception:
+            errors.append("codex_activity_poll_sec: invalid numeric value")
+
         logging_cfg = normalized.get("logging") or {}
         if isinstance(logging_cfg, dict):
             level = str(logging_cfg.get("level", "info")).lower()

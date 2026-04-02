@@ -9,7 +9,12 @@ import { AppSettings } from "@/types/schema";
 
 type FormState = AppSettings;
 
-type SettingsValidationErrors = Partial<Record<"workspace_dir" | "data_dir" | "export_dir" | "cleanup_threshold_mb" | "logging", string>>;
+type SettingsValidationErrors = Partial<
+  Record<
+    "workspace_dir" | "data_dir" | "export_dir" | "cleanup_threshold_mb" | "codex_activity_poll_sec" | "logging",
+    string
+  >
+>;
 
 const ABSOLUTE_PATH_RE = /^(?:[a-zA-Z]:[\\/]|\/)/;
 
@@ -55,6 +60,9 @@ export function SettingsCenter() {
     if (form.cleanup_threshold_mb < 50 || form.cleanup_threshold_mb > 5000) {
       nextErrors.cleanup_threshold_mb = t("settings.error.threshold");
     }
+    if (form.codex_activity_poll_sec < 0.5 || form.codex_activity_poll_sec > 30) {
+      nextErrors.codex_activity_poll_sec = t("settings.error.codexPoll");
+    }
     const loggingLevel = String(form.logging.level ?? "info");
     if (!["debug", "info", "warn", "error"].includes(loggingLevel)) {
       nextErrors.logging = t("settings.error.logging");
@@ -78,6 +86,12 @@ export function SettingsCenter() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const liveFlowModeLabelMap: Record<FormState["live_flow_mode"], string> = {
+    always_simulated: t("settings.liveFlowMode.always_simulated"),
+    manual: t("settings.liveFlowMode.manual"),
+    codex_real_only: t("settings.liveFlowMode.codex_real_only"),
   };
 
   return (
@@ -128,6 +142,49 @@ export function SettingsCenter() {
             <div>{t("settings.runtimeLastJob")}: {runtime?.last_job_id ?? t("common.na")}</div>
           </div>
         </section>
+      </div>
+
+      <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
+        <section className="rounded border border-line bg-[#0a1626] p-3">
+          <div className="panel-title text-xs uppercase tracking-wide text-slate-300">
+            {t("settings.liveFlowMode")}
+          </div>
+          <div className="mt-1 text-[11px] text-slate-500">{t("settings.liveFlowModeHint")}</div>
+          <select
+            className="mt-2 w-full rounded border border-line bg-[#091524] px-2 py-1 text-xs text-slate-100 outline-none focus:border-sky-400"
+            value={form.live_flow_mode}
+            onChange={(event) =>
+              setForm({
+                ...form,
+                live_flow_mode: event.target.value as FormState["live_flow_mode"],
+              })
+            }
+          >
+            <option value="always_simulated">{t("settings.liveFlowMode.always_simulated")}</option>
+            <option value="manual">{t("settings.liveFlowMode.manual")}</option>
+            <option value="codex_real_only">{t("settings.liveFlowMode.codex_real_only")}</option>
+          </select>
+          <div className="mt-2 text-[11px] text-slate-400">
+            {liveFlowModeLabelMap[form.live_flow_mode]}
+          </div>
+        </section>
+
+        <label className="rounded border border-line bg-[#0a1626] p-3 text-xs text-slate-300">
+          {t("settings.codexPollSec")}
+          <input
+            type="number"
+            step="0.1"
+            className="mt-1 w-full rounded border border-line bg-[#091524] px-2 py-1 text-xs text-slate-100 outline-none focus:border-sky-400"
+            value={form.codex_activity_poll_sec}
+            onChange={(event) =>
+              setForm({ ...form, codex_activity_poll_sec: Number(event.target.value) || 1.8 })
+            }
+          />
+          <div className="mt-1 text-[10px] text-slate-500">{t("settings.codexPollSecHint")}</div>
+          {validationErrors.codex_activity_poll_sec ? (
+            <div className="mt-1 text-[10px] text-rose-300">{validationErrors.codex_activity_poll_sec}</div>
+          ) : null}
+        </label>
       </div>
 
       <div className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
