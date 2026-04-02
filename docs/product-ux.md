@@ -1,116 +1,128 @@
 # Product UX
 
-## 1. UX Objective
+## 1. UX Goal
 
-Agent_City is a desktop analysis workbench. The UX goal is:
+Turn Agent_City from a visualization surface into a complete desktop workbench where users can:
+- import repositories,
+- launch parsing/testing jobs,
+- monitor runtime flow in city view,
+- diagnose issues,
+- replay traces,
+- export reports,
+- and iterate with confidence.
 
-1. Understand architecture quickly.
-2. Observe runtime behavior continuously.
-3. Diagnose issues with minimal interaction friction.
-4. Close the loop from issue -> fix -> regression -> report.
+## 2. Navigation Model
 
-## 2. Workbench Navigation Model
-
-The left navigation provides direct mode switching:
-
+Primary left navigation modes:
 - Overview
 - Live
+- Replay
 - Diagnostics
 - Parser Analysis
+- Repositories
+- Jobs
 - Reports
+- Settings
 
-This avoids deep nested menus and keeps mode transitions explicit.
+Design intent: one-step access to common workflows, no deep nested menu.
 
-## 3. Main Window Information Hierarchy
+## 3. Information Hierarchy
 
 ### Top strip
-- KPI summary
-- active mode
-- desktop shell status
-- local service readiness
+- KPIs
+- current mode
+- shell/backend/frontend status
+- global control actions
 
 ### Left panel
 - mode switch
-- filters
-- search
-- diagnostic toggles
+- quick analysis entry
+- filters/search
+- legends
+- DSL search shortcuts and diagnostic focus chips
 
 ### Center workspace
-- city view (overview/live/diagnostics)
-- parser analysis surface
-- reports document center
+- city view (overview/live/replay/diagnostics)
+- parser analysis center
+- repositories center
+- jobs center
+- reports center
+- settings center
 
 ### Right inspector
-- node/span details
-- diagnostics hotspot list
+- node/span detail
+- diagnostics hotspot support
+- context actions
+- intelligent next-step recommendations when nothing is selected
 
-### Bottom timeline
-- request path progression
-- event stream context
+### Bottom strip
+- timeline (architecture modes)
+- task stream (control modes)
 
 ## 4. Interaction Principles
 
-1. Default simple, drill-down rich.
-2. Hover for summary, click for detail.
-3. Mode-specific emphasis:
-   - overview: structure first
-   - live: motion first
-   - diagnostics: anomaly first
-   - parser analysis: confidence first
-   - reports: evidence first
+1. Information first: readability before visual effects.
+2. Default concise, click for depth.
+3. Keep mode semantics explicit:
+   - Overview: structure first
+   - Live: flow first
+   - Replay: path + timing first
+   - Diagnostics: anomaly first
+   - Parser Analysis: confidence first
+   - Repositories/Jobs/Reports/Settings: control first
 
-## 5. Visual Semantics
+## 5. Control Plane UX
 
-### District
-- clear semantic zoning, not random placement.
+### Repositories center
+- list + health/quality indicators
+- parse/re-parse/open/remove/export actions
+- direct jump to parser analysis or topology
 
-### Building
-- height = activity/heat
-- footprint = component scope
-- color = health status
+### Jobs center
+- active job visibility
+- status/progress/timestamps/log summary
+- quick-run actions for common operational tasks
 
-### Flow
-- color by span kind/status
-- speed and trail convey latency/load
-- retry/fallback/error with explicit visual patterns
+### Reports center
+- report list + preview + export/open
 
-## 6. Diagnostics UX
+### Settings center
+- runtime snapshot + persistent app settings
+- language switching (`zh` / `en`) with immediate UI refresh
 
-Diagnostics is designed for quick triage:
-- slow nodes
-- error nodes
-- congested nodes
-- unstable edges (retry/fallback/error)
-- trace handles for focused follow-up
+### Command palette and shortcuts
+- command palette (Ctrl/Cmd + K)
+- quick mode switch (Alt + 1..9)
+- operational shortcuts for import and diagnostics
 
-## 7. Parser Analysis UX
+## 6. i18n UX Rules
 
-Parser analysis emphasizes explainability:
-- parser confidence and grade
-- source coverage map
-- unresolved symbols
-- low-confidence edges
-- issue list with suggestions
+- locale switch should be immediate and persistent
+- status labels must remain consistent across panels
+- avoid mixed-language UI in main workflows
+- date/time should follow locale format where context is user-facing
 
-## 8. Reports UX
+## 7. Diagnostics UX
 
-Reports center supports:
-- artifact catalog
-- inline content preview
-- export selected document
-- export live analysis report
-- open docs directory from desktop shell
+Diagnostics should answer quickly:
+- where errors cluster,
+- which nodes are slow/congested,
+- where retry/fallback is happening,
+- and how to drill down into trace/replay/report.
 
-## 9. Desktop-first Behavior
+## 8. First-Time Flow
 
-Compared with browser-only tools, this workbench adds:
-- local service orchestration awareness
-- desktop save/open capabilities
-- stable long-session operation context
-- consistent local environment assumptions
+1. Open App
+2. Click “add local repository”
+3. Use import wizard:
+   - select path
+   - detect stack
+   - preview topology confidence
+   - parse and attach
+4. Enter Overview/Diagnostics/Parser Analysis
+5. Export report or trigger regression jobs
 
-## 10. Known UX Boundaries
+## 9. Known UX Boundaries
 
-- Extremely large topologies may require future clustering strategy.
-- Parser confidence remains heuristic-driven for unknown frameworks.
-- Desktop shell uses Tauri; production signing/notarization remains outside current scope.
+- Large-scale topology still needs future clustering and progressive disclosure tuning.
+- Some deep technical strings remain intentionally raw in low-level debug panels.

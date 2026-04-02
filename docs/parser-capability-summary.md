@@ -2,10 +2,10 @@
 
 ## Coverage Stats
 
-- Successful tested projects: **13**
-- Grade distribution: {'A': 13}
-- Language coverage: {'.NET/mixed': 1, 'Go': 1, 'Java/JVM': 1, 'Python': 6, 'Rust': 1, 'TypeScript': 3}
-- Domain coverage: {'agent framework': 1, 'agent runtime': 1, 'browser automation': 1, 'coding agent platform': 1, 'enterprise mixed platform': 1, 'enterprise workflow framework': 1, 'enterprise/workflow': 1, 'general agent framework': 1, 'graph/workflow framework': 1, 'multi-agent orchestration': 2, 'plugin-heavy agent': 1, 'tool-heavy framework': 1}
+- Successful tested projects: **14**
+- Grade distribution: {'A': 13, 'D': 1}
+- Language coverage: {'.NET/mixed': 1, 'Go': 1, 'Java/JVM': 1, 'Python': 7, 'Rust': 1, 'TypeScript': 3}
+- Domain coverage: {'agent framework': 1, 'agent runtime': 1, 'browser automation': 1, 'coding agent': 1, 'coding agent platform': 1, 'enterprise mixed platform': 1, 'enterprise workflow framework': 1, 'enterprise/workflow': 1, 'general agent framework': 1, 'graph/workflow framework': 1, 'multi-agent orchestration': 2, 'plugin-heavy agent': 1, 'tool-heavy framework': 1}
 
 ## Easiest Patterns
 

@@ -1,13 +1,22 @@
 ﻿import { API_BASE_URL } from "@/lib/config";
 import {
+  AppRuntimeStatus,
+  AppSettings,
   BoundTraceResponse,
   DiagnosticsSummary,
+  JobRunRequest,
+  JobRunResponse,
+  JobsResponse,
   MetricsSummary,
   ParseJobsResponse,
   ParserAnalysisReport,
+  RepositoriesResponse,
   ReportContentResponse,
   RegisterTargetRequest,
   RegisterTargetResponse,
+  SettingsResponse,
+  TargetPreviewRequest,
+  TargetPreviewResponse,
   ReportsResponse,
   TopologyGraph,
   TargetsResponse,
@@ -60,6 +69,8 @@ async function requestPost<T>(path: string, body: unknown): Promise<T> {
 
 export const api = {
   getTargets: () => request<TargetsResponse>("/api/targets"),
+  previewTarget: (payload: TargetPreviewRequest) =>
+    requestPost<TargetPreviewResponse>("/api/targets/preview", payload),
   registerTarget: (payload: RegisterTargetRequest) =>
     requestPost<RegisterTargetResponse>("/api/targets/register", payload),
   getTopology: (target: string) => request<TopologyGraph>("/api/topology", { target }),
@@ -86,4 +97,32 @@ export const api = {
   getReports: (category?: string) => request<ReportsResponse>("/api/reports", { category }),
   getReportContent: (reportId: string) =>
     request<ReportContentResponse>(`/api/reports/${encodeURIComponent(reportId)}`),
+  getRepositories: () => request<RepositoriesResponse>("/api/control/repositories"),
+  removeRepository: (targetId: string) =>
+    fetch(`${API_BASE_URL}/api/control/repositories/${encodeURIComponent(targetId)}`, {
+      method: "DELETE",
+    }).then(async (response) => {
+      if (!response.ok) {
+        throw new Error(`Request failed: delete repository -> ${response.status}`);
+      }
+      return response.json() as Promise<{ ok: boolean; target_id: string }>;
+    }),
+  getJobs: () => request<JobsResponse>("/api/control/jobs"),
+  runJob: (payload: JobRunRequest) => requestPost<JobRunResponse>("/api/control/jobs", payload),
+  cancelJob: (jobId: string) =>
+    requestPost<JobRunResponse>(`/api/control/jobs/${encodeURIComponent(jobId)}/cancel`, {}),
+  getSettings: () => request<SettingsResponse>("/api/control/settings"),
+  updateSettings: (payload: Partial<AppSettings>) =>
+    fetch(`${API_BASE_URL}/api/control/settings`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then(async (response) => {
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Request failed: /api/control/settings -> ${response.status} ${text}`);
+      }
+      return response.json() as Promise<SettingsResponse>;
+    }),
+  getRuntimeStatus: () => request<{ runtime: AppRuntimeStatus }>("/api/control/runtime"),
 };

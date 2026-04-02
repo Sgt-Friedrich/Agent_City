@@ -29,3 +29,4 @@ external_examples/
 # tauri
 desktop/src-tauri/target/
 
+backend/app_settings.json

@@ -1,7 +1,7 @@
 # Parser Regression Test Results
 
-Successful parses: **13**
-Skipped/failed clones: **2**
+Successful parses: **14**
+Skipped/failed clones: **1**
 
 ## langchain-ai/langgraph
 
@@ -58,6 +58,20 @@ Skipped/failed clones: **2**
 - Roles found: agent, embedding, evaluator, guardrail, llm, mcp, memory, planner, prompt, reranker, retriever, runtime_node, sub_agent, tool
 - Difficulties: dynamic registration/reflection likely hides static relations
 - Notes: AGENTS.md -> ['agent', 'evaluator', 'guardrail', 'llm', 'mcp', 'memory', 'planner', 'prompt', 'retriever', 'runtime_node', 'tool']; CLAUDE.md -> ['agent']; docs\agents.md -> ['agent', 'guardrail', 'llm', 'mcp', 'memory', 'planner', 'prompt', 'retriever', 'runtime_node', 'sub_agent', 'tool']
+
+## swe-agent/swe-agent
+
+- Language (declared/detected): Python / Unknown
+- Domain: coding agent
+- Parse success: no
+- Parser confidence: 0.24
+- Grade: **D**
+- Topology: 1 districts, 1 nodes, 0 declared edges
+- Runtime edges: observed=0, inferred=0, fallback=0, retry=0
+- Source coverage: config=False, registry=False, code=False
+- Roles found: runtime_node
+- Difficulties: config-driven topology evidence limited, llm/model gateway signal weak, planner/orchestrator signal weak, registry/factory evidence limited, tool execution signal weak
+- Notes: no parser evidence snippets
 
 ## browser-use/browser-use
 
@@ -188,4 +202,3 @@ Skipped/failed clones: **2**
 ## Skipped / Failed
 
 - `pydantic/pydantic-ai`: clone failed: fatal: destination path 'D:\others\OD\OneDrive - University of Glasgow\妗岄潰\claude code\agent-city-mvp\refs\pydantic__pydantic-ai' already exists and is not an empty directory.
-- `swe-agent/swe-agent`: clone failed: fatal: destination path 'D:\others\OD\OneDrive - University of Glasgow\妗岄潰\claude code\agent-city-mvp\refs\swe-agent__swe-agent' already exists and is not an empty directory.

@@ -12,6 +12,7 @@ import { FlowEvent, Node } from "@/types/schema";
 interface LiveFlowsProps {
   events: FlowEvent[];
   nodesById: Record<string, Node>;
+  focusTraceId?: string;
   replay?: {
     enabled: boolean;
     traceId?: string;
@@ -28,6 +29,7 @@ interface FlowTrackProps {
   fromNode: Node;
   toNode: Node;
   highlighted: boolean;
+  dimmed: boolean;
   replayEnabled: boolean;
   diagnosticMode: DiagnosticMode;
   onHoverEvent: (event?: FlowEvent) => void;
@@ -117,6 +119,7 @@ function FlowTrack({
   fromNode,
   toNode,
   highlighted,
+  dimmed,
   replayEnabled,
   diagnosticMode,
   onHoverEvent,
@@ -143,8 +146,8 @@ function FlowTrack({
   }, [end, event.fallback_from, event.retry_count, event.status, start]);
 
   const visual = useMemo(
-    () => flowStyle(event, { replay: replayEnabled, active: highlighted, diagnosticMode }),
-    [diagnosticMode, event, highlighted, replayEnabled],
+    () => flowStyle(event, { replay: replayEnabled, active: highlighted, dimmed, diagnosticMode }),
+    [diagnosticMode, dimmed, event, highlighted, replayEnabled],
   );
   const curvePoints = useMemo(() => sampleCurve(start, control, end, 26), [control, end, start]);
 
@@ -204,6 +207,7 @@ function FlowTrack({
 export function LiveFlows({
   events,
   nodesById,
+  focusTraceId,
   replay,
   selectedSpanId,
   diagnosticMode = "realtime",
@@ -235,6 +239,7 @@ export function LiveFlows({
             fromNode={fromNode}
             toNode={toNode}
             highlighted={selectedSpanId === event.span_id}
+            dimmed={Boolean(focusTraceId && event.trace_id !== focusTraceId)}
             replayEnabled={Boolean(replay?.enabled)}
             diagnosticMode={diagnosticMode}
             onHoverEvent={onHoverEvent}

@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.dependencies import get_platform_service
-from app.models.schemas import RegisterTargetRequest
+from app.models.schemas import PreviewTargetRequest, RegisterTargetRequest
 from app.services.platform_service import PlatformService
 
 router = APIRouter(prefix="/api", tags=["topology"])
@@ -25,6 +25,19 @@ def register_target(
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     return {"target": target}
+
+
+@router.post("/targets/preview")
+def preview_target(
+    payload: PreviewTargetRequest,
+    service: PlatformService = Depends(get_platform_service),
+) -> dict:
+    try:
+        preview = service.preview_repository_target(payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return {"preview": preview.model_dump(mode="json")}
 
 
 @router.get("/topology")

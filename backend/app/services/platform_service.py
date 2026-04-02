@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from collections import deque
+from collections import Counter, deque
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -22,6 +22,8 @@ from app.models.schemas import (
     ParserAnalysisIssue,
     ParserAnalysisReport,
     ParseJobStatus,
+    PreviewTargetRequest,
+    PreviewTargetResponse,
     RegisterTargetRequest,
     SpanEvent,
     TargetDescriptor,
@@ -116,6 +118,19 @@ class PlatformService:
             contexts = list(self._contexts.values())
         return [self._to_target_descriptor(context).model_dump(mode="json") for context in contexts]
 
+    def remove_target(self, target_id: str) -> bool:
+        with self._lock:
+            if target_id not in self._contexts:
+                return False
+            # Preserve the baseline mock target to keep the app operable.
+            if target_id == "mock":
+                return False
+            del self._contexts[target_id]
+            for job in self._parse_jobs.values():
+                if job.target_id == target_id:
+                    job.target_id = None
+            return True
+
     def register_repository_target(
         self,
         request: RegisterTargetRequest,
@@ -170,6 +185,49 @@ class PlatformService:
             progress_cb(100, "completed", f"topology ready for target {final_target}")
 
         return self._to_target_descriptor(context).model_dump(mode="json")
+
+    def preview_repository_target(self, request: PreviewTargetRequest) -> PreviewTargetResponse:
+        repo_path = Path(request.repo_path).expanduser().resolve()
+        if not repo_path.exists() or not repo_path.is_dir():
+            raise ValueError(f"invalid repository path: {request.repo_path}")
+
+        source_type, source = self._source_for_path(repo_path)
+
+        discovery_result = TopologyDiscovery(source).discover()
+        topology = TopologyNormalizer().normalize(discovery_result)
+        parser_confidence = float(topology.metadata.get("parser_confidence", 0.5) or 0.5)
+        parser_grade = str(topology.metadata.get("parser_grade", "C"))
+
+        profile = self._infer_repo_profile(repo_path)
+        warnings: list[str] = []
+        if parser_confidence < 0.7:
+            warnings.append(
+                "parser confidence is below 0.70; runtime binding may rely on inferred nodes/edges"
+            )
+        unresolved = list(topology.metadata.get("unresolved_symbols", []))
+        if unresolved:
+            warnings.append(
+                f"{len(unresolved)} unresolved symbols detected in static discovery"
+            )
+
+        target_hint = request.target_id or repo_path.name
+        with self._lock:
+            suggested_target = self._sanitize_target_id(target_hint, allow_existing=False)
+
+        return PreviewTargetResponse(
+            repo_path=str(repo_path),
+            source_type=source_type,
+            suggested_target_id=suggested_target,
+            suggested_label=request.label or f"Auto: {repo_path.name}",
+            language_hints=profile["languages"],
+            framework_hints=profile["frameworks"],
+            parser_confidence=round(parser_confidence, 3),
+            parser_grade=parser_grade,
+            node_count=len(topology.nodes),
+            edge_count=len(topology.edges),
+            unresolved_count=len(unresolved),
+            warnings=warnings,
+        )
 
     def get_topology(self, target: str = "mock") -> TopologyGraph:
         with self._lock:
@@ -762,6 +820,100 @@ class PlatformService:
             "intelligent_repo_scan",
             IntelligentTopologySource(repo_path, target_hint="auto"),
         )
+
+    def _infer_repo_profile(self, repo_path: Path) -> dict[str, list[str]]:
+        extension_hits: Counter[str] = Counter()
+        max_files = 4200
+        scanned = 0
+
+        for path in repo_path.rglob("*"):
+            if scanned >= max_files:
+                break
+            if not path.is_file():
+                continue
+            if any(part.startswith(".") for part in path.parts):
+                continue
+            lower = path.as_posix().lower()
+            if any(
+                blocked in lower
+                for blocked in (
+                    "/node_modules/",
+                    "/.next/",
+                    "/dist/",
+                    "/build/",
+                    "/target/",
+                    "/coverage/",
+                    "/venv/",
+                    "/.venv/",
+                )
+            ):
+                continue
+
+            extension_hits[path.suffix.lower()] += 1
+            scanned += 1
+
+        language_weights = {
+            "python": extension_hits[".py"],
+            "typescript": extension_hits[".ts"] + extension_hits[".tsx"],
+            "javascript": extension_hits[".js"] + extension_hits[".jsx"],
+            "go": extension_hits[".go"],
+            "rust": extension_hits[".rs"],
+            "java": extension_hits[".java"],
+            "csharp": extension_hits[".cs"],
+        }
+        languages = [
+            name
+            for name, weight in sorted(language_weights.items(), key=lambda item: (-item[1], item[0]))
+            if weight > 0
+        ][:4]
+
+        frameworks: list[str] = []
+        if (repo_path / "pyproject.toml").exists():
+            content = (repo_path / "pyproject.toml").read_text(encoding="utf-8", errors="ignore").lower()
+            if "langgraph" in content:
+                frameworks.append("langgraph")
+            if "autogen" in content:
+                frameworks.append("autogen")
+            if "crewai" in content:
+                frameworks.append("crewai")
+            if "pydantic-ai" in content or "pydantic_ai" in content:
+                frameworks.append("pydantic-ai")
+            if "openai-agents" in content:
+                frameworks.append("openai-agents")
+
+        package_json = repo_path / "package.json"
+        if package_json.exists():
+            content = package_json.read_text(encoding="utf-8", errors="ignore").lower()
+            if "langchain" in content or "langgraph" in content:
+                frameworks.append("langchain-js")
+            if "\"mastra\"" in content:
+                frameworks.append("mastra")
+            if "\"@vercel/ai\"" in content or "\"ai\"" in content:
+                frameworks.append("vercel-ai")
+            if "\"eliza\"" in content:
+                frameworks.append("eliza")
+
+        go_mod = repo_path / "go.mod"
+        if go_mod.exists():
+            content = go_mod.read_text(encoding="utf-8", errors="ignore").lower()
+            if "cloudwego/eino" in content:
+                frameworks.append("eino")
+            if "trpc-agent-go" in content:
+                frameworks.append("trpc-agent-go")
+
+        if (repo_path / "cargo.toml").exists() or (repo_path / "Cargo.toml").exists():
+            frameworks.append("rust-agent")
+
+        if (repo_path / "pom.xml").exists() or (repo_path / "build.gradle").exists() or (repo_path / "build.gradle.kts").exists():
+            frameworks.append("jvm-agent")
+
+        if not frameworks:
+            frameworks.append("generic-agent-structure")
+
+        return {
+            "languages": languages or ["unknown"],
+            "frameworks": sorted(set(frameworks)),
+        }
 
     def _sanitize_target_id(self, raw_target: str, allow_existing: bool = False) -> str:
         sanitized = re.sub(r"[^a-zA-Z0-9_-]+", "_", raw_target.strip().lower()).strip("_")

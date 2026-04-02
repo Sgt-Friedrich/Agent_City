@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, Locator, test } from "@playwright/test";
 
 const ignoredConsolePatterns = [
   /favicon\.ico/i,
@@ -8,6 +8,18 @@ const ignoredConsolePatterns = [
 
 function isIgnoredConsoleMessage(message: string): boolean {
   return ignoredConsolePatterns.some((pattern) => pattern.test(message));
+}
+
+async function safeClick(locator: Locator) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      await locator.click({ timeout: 10_000 });
+      return;
+    } catch (error) {
+      if (attempt === 2) throw error;
+      await locator.waitFor({ state: "visible", timeout: 10_000 });
+    }
+  }
 }
 
 test("dashboard renders core zones and replay route is reachable", async ({ page }) => {
@@ -40,19 +52,32 @@ test("dashboard renders core zones and replay route is reachable", async ({ page
   await expect(page.getByTestId("detail-drawer")).toBeVisible();
   await expect(page.getByTestId("timeline-panel")).toBeVisible();
 
-  await page.getByRole("button", { name: /diagnostics/i }).click();
+  await page.getByTestId("command-palette-toggle").click();
+  await expect(page.getByTestId("command-palette-input")).toBeVisible();
+  await page.keyboard.press("Escape");
+
+  await page.getByTestId("timeline-group-trace").click();
+  await expect(page.getByTestId("timeline-trace-groups")).toBeVisible();
+  await page.getByTestId("timeline-group-time").click();
+  await expect(page.getByTestId("timeline-time-groups")).toBeVisible();
+
+  await page.getByTestId("header-add-repository").click();
+  await expect(page.getByTestId("import-wizard")).toBeVisible();
+  await page.getByTestId("import-wizard-close").click();
+
+  await safeClick(page.getByTestId("view-mode-diagnostics"));
   await expect(page.getByTestId("diagnostics-center")).toBeVisible();
 
-  await page.getByRole("button", { name: /parser/i }).click();
+  await safeClick(page.getByTestId("view-mode-parser_analysis"));
   await expect(page.getByTestId("parser-analysis-center")).toBeVisible();
 
-  await page.getByRole("button", { name: /reports/i }).click();
+  await safeClick(page.getByTestId("view-mode-reports"));
   await expect(page.getByTestId("reports-center")).toBeVisible();
 
-  await page.getByRole("button", { name: /overview/i }).click();
+  await safeClick(page.getByTestId("view-mode-overview"));
   await expect(page.getByTestId("city-scene")).toBeVisible();
 
-  const replayLink = page.getByRole("link", { name: /open replay/i });
+  const replayLink = page.getByTestId("open-replay-link");
   await expect(replayLink).toBeVisible();
   await replayLink.click();
 

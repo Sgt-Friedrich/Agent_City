@@ -14,6 +14,80 @@ interface DistrictGroundProps {
   diagnosticMode?: DiagnosticMode;
 }
 
+function motifLines(district: District): Array<Array<[number, number, number]>> {
+  const halfW = district.bounds.width / 2;
+  const halfD = district.bounds.depth / 2;
+  if (district.type === "retrieval") {
+    return [
+      [
+        [-halfW + 3, 0.03, -halfD + 3],
+        [-halfW + 3, 0.03, halfD - 3],
+      ],
+      [
+        [0, 0.03, -halfD + 3],
+        [0, 0.03, halfD - 3],
+      ],
+      [
+        [halfW - 3, 0.03, -halfD + 3],
+        [halfW - 3, 0.03, halfD - 3],
+      ],
+    ];
+  }
+  if (district.type === "memory") {
+    return [
+      [
+        [-halfW + 3, 0.03, -halfD + 3],
+        [halfW - 3, 0.03, -halfD + 3],
+      ],
+      [
+        [-halfW + 3, 0.03, 0],
+        [halfW - 3, 0.03, 0],
+      ],
+      [
+        [-halfW + 3, 0.03, halfD - 3],
+        [halfW - 3, 0.03, halfD - 3],
+      ],
+    ];
+  }
+  if (district.type === "tools") {
+    return [
+      [
+        [-halfW + 2.5, 0.03, -halfD + 2.5],
+        [halfW - 2.5, 0.03, halfD - 2.5],
+      ],
+      [
+        [halfW - 2.5, 0.03, -halfD + 2.5],
+        [-halfW + 2.5, 0.03, halfD - 2.5],
+      ],
+    ];
+  }
+  if (district.type === "planning") {
+    return [
+      [
+        [-halfW + 3, 0.03, 0],
+        [halfW - 3, 0.03, 0],
+      ],
+      [
+        [0, 0.03, -halfD + 3],
+        [0, 0.03, halfD - 3],
+      ],
+    ];
+  }
+  if (district.type === "safety") {
+    return [
+      [
+        [-halfW + 3, 0.03, -halfD + 3],
+        [halfW - 3, 0.03, -halfD + 3],
+      ],
+      [
+        [-halfW + 3, 0.03, halfD - 3],
+        [halfW - 3, 0.03, halfD - 3],
+      ],
+    ];
+  }
+  return [];
+}
+
 export function DistrictGround({
   district,
   dimmed,
@@ -36,6 +110,7 @@ export function DistrictGround({
     [-halfW, 0.02, halfD],
     [-halfW, 0.02, -halfD],
   ];
+  const motifs = motifLines(district);
 
   return (
     <group position={[district.position.x, 0, district.position.z]}>
@@ -54,8 +129,18 @@ export function DistrictGround({
         color={style.border}
         transparent
         opacity={style.borderOpacity}
-        lineWidth={1.2}
+        lineWidth={active ? 2.2 : 1.3}
       />
+      {motifs.map((points, index) => (
+        <Line
+          key={`${district.id}-motif-${index}`}
+          points={points}
+          color={style.glow}
+          transparent
+          opacity={active ? 0.46 : 0.24}
+          lineWidth={1}
+        />
+      ))}
 
       <Html position={[0, 0.08, -district.bounds.depth / 2 + 2.4]} center>
         <div className="rounded-full border border-line bg-[#071525cc] px-3 py-1 text-[11px] font-medium tracking-wide text-slate-300">

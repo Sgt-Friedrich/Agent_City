@@ -2,6 +2,8 @@
 
 import { useEffect } from "react";
 
+import { MessageKey } from "@/i18n/messages";
+import { useI18n } from "@/hooks/useI18n";
 import { shortId } from "@/lib/utils";
 import { useDashboardStore } from "@/store/useDashboardStore";
 import { SpanKind, TraceRecord } from "@/types/schema";
@@ -10,23 +12,15 @@ interface ReplayControllerProps {
   trace?: TraceRecord;
 }
 
-const spanSubtitle: Record<SpanKind, string> = {
-  AGENT: "planner is decomposing task",
-  CHAIN: "orchestrator is chaining execution",
-  LLM: "llm is generating",
-  TOOL: "tool execution in progress",
-  RETRIEVER: "retriever is searching",
-  RERANKER: "reranker is ranking",
-  EMBEDDING: "embedding context vectors",
-  GUARDRAIL: "guardrail is checking output",
-  EVALUATOR: "evaluator is scoring response",
-  MEMORY: "memory is reading/writing state",
-  MCP: "mcp bridge is resolving tools",
-};
+function spanSubtitle(t: (key: MessageKey) => string, spanKind: SpanKind): string {
+  const key = `replay.subtitle.${spanKind}` as MessageKey;
+  return t(key);
+}
 
 const replaySpeeds = [0.5, 1, 1.5, 2, 4];
 
 export function ReplayController({ trace }: ReplayControllerProps) {
+  const { t } = useI18n();
   const replay = useDashboardStore((state) => state.replay);
   const setReplayCursor = useDashboardStore((state) => state.setReplayCursor);
   const setReplayPlaying = useDashboardStore((state) => state.setReplayPlaying);
@@ -54,7 +48,7 @@ export function ReplayController({ trace }: ReplayControllerProps) {
   if (!trace) {
     return (
       <div data-testid="replay-controller" className="border-b border-line bg-[#091323ee] p-3 text-xs text-slate-400">
-        Replay: trace not found.
+        {t("replay.notFound")}
       </div>
     );
   }
@@ -72,7 +66,7 @@ export function ReplayController({ trace }: ReplayControllerProps) {
           className="rounded border border-line bg-[#0c1f33] px-2 py-1 text-xs text-slate-200 hover:bg-[#14304f]"
           onClick={() => setReplayPlaying(!replay.playing)}
         >
-          {replay.playing ? "Pause" : "Play"}
+          {replay.playing ? t("replay.pause") : t("replay.play")}
         </button>
         <button
           className="rounded border border-line bg-[#0c1f33] px-2 py-1 text-xs text-slate-200 hover:bg-[#14304f]"
@@ -81,7 +75,7 @@ export function ReplayController({ trace }: ReplayControllerProps) {
             setReplayPlaying(false);
           }}
         >
-          Reset
+          {t("replay.reset")}
         </button>
         <button
           className="rounded border border-line bg-[#0c1f33] px-2 py-1 text-xs text-slate-200 hover:bg-[#14304f]"
@@ -90,7 +84,7 @@ export function ReplayController({ trace }: ReplayControllerProps) {
             setReplayPlaying(true);
           }}
         >
-          Replay
+          {t("replay.replay")}
         </button>
 
         <input
@@ -126,19 +120,44 @@ export function ReplayController({ trace }: ReplayControllerProps) {
       {current && (
         <div className="mt-3 grid grid-cols-1 gap-1 text-xs text-slate-300 md:grid-cols-3">
           <div className="rounded border border-line bg-[#0b1828] px-2 py-1">
-            from -&gt; to: {current.from_node} -&gt; {current.to_node}
+            {t("replay.statusFromTo")}: {current.from_node} -&gt; {current.to_node}
           </div>
           <div className="rounded border border-line bg-[#0b1828] px-2 py-1">
-            kind/protocol: {current.span_kind} / {current.protocol}
+            {t("replay.statusKindProtocol")}: {current.span_kind} / {current.protocol}
           </div>
           <div className="rounded border border-line bg-[#0b1828] px-2 py-1">
-            status/latency: {current.status} / {current.latency_ms} ms
+            {t("replay.statusLatency")}: {current.status} / {current.latency_ms} ms
           </div>
           <div className="rounded border border-line bg-[#10233a] px-2 py-1 text-[11px] text-cyan-200 md:col-span-3">
-            {spanSubtitle[current.span_kind]}
+            {spanSubtitle(t, current.span_kind)}
           </div>
         </div>
       )}
+
+      <div className="mt-3 flex items-center gap-1 overflow-x-auto pb-1">
+        {spans.map((span, index) => {
+          const active = replay.cursor - 1 === index;
+          const done = replay.cursor - 1 > index;
+          return (
+            <button
+              key={span.span_id}
+              type="button"
+              onClick={() => {
+                setReplayCursor(index + 1);
+                setReplayPlaying(false);
+              }}
+              className={`h-2 min-w-6 rounded transition-all ${
+                active
+                  ? "bg-cyan-300"
+                  : done
+                    ? "bg-sky-500/70"
+                    : "bg-slate-700"
+              }`}
+              title={`${index + 1}. ${span.span_kind} ${span.latency_ms}ms`}
+            />
+          );
+        })}
+      </div>
     </section>
   );
 }

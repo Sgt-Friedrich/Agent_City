@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.dependencies import get_platform_service
 from app.generators.live_event_generator import LiveEventGenerator
 from app.routers.analysis import router as analysis_router
+from app.routers.control import router as control_router
 from app.routers.metrics import router as metrics_router
 from app.routers.nodes import router as nodes_router
 from app.routers.parsing import router as parsing_router
@@ -73,6 +74,7 @@ app.include_router(metrics_router)
 app.include_router(parsing_router)
 app.include_router(analysis_router)
 app.include_router(reports_router)
+app.include_router(control_router)
 
 
 @app.get("/healthz")

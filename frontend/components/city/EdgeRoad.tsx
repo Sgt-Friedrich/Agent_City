@@ -14,6 +14,7 @@ interface EdgeRoadProps {
   toNode: Node;
   dimmed?: boolean;
   highlighted?: boolean;
+  renderLayer?: "primary" | "secondary" | "suppressed";
   diagnosticMode?: DiagnosticMode;
 }
 
@@ -23,9 +24,10 @@ export function EdgeRoad({
   toNode,
   dimmed,
   highlighted,
+  renderLayer = "secondary",
   diagnosticMode = "realtime",
 }: EdgeRoadProps) {
-  const style = edgeStyle(edge, { highlighted, dimmed, diagnosticMode });
+  const style = edgeStyle(edge, { highlighted, dimmed, diagnosticMode, renderLayer });
 
   const points = useMemo<[number, number, number][]>(() => {
     const start: [number, number, number] = [fromNode.position.x, 0.6, fromNode.position.z];

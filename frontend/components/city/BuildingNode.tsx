@@ -6,6 +6,7 @@ import { Html } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 
+import { useI18n } from "@/hooks/useI18n";
 import { animationPresets, DiagnosticMode, nodeStyle } from "@/lib/visualTheme";
 import { Node } from "@/types/schema";
 
@@ -154,6 +155,7 @@ export function BuildingNode({
   diagnosticMode = "realtime",
   onSelect,
 }: BuildingNodeProps) {
+  const { t } = useI18n();
   const [hovered, setHovered] = useState(false);
   const [showNearLabel, setShowNearLabel] = useState(false);
   const { camera } = useThree();
@@ -242,16 +244,16 @@ export function BuildingNode({
             <div className="mt-1 text-[10px] text-slate-400">
               {node.type} | {activity?.districtName ?? node.district_id}
             </div>
-            <div className="mt-1 text-[10px] text-slate-400">status: {node.status}</div>
+            <div className="mt-1 text-[10px] text-slate-400">{t("city.node.status")}: {node.status}</div>
             <div className="text-[10px] text-slate-400">
-              qps/p95/error: {(node.metrics?.qps ?? 0).toFixed(1)} / {(node.metrics?.p95_ms ?? 0).toFixed(0)}ms / {((node.metrics?.error_rate ?? 0) * 100).toFixed(2)}%
+              {t("city.node.qpsP95Error")}: {(node.metrics?.qps ?? 0).toFixed(1)} / {(node.metrics?.p95_ms ?? 0).toFixed(0)}ms / {((node.metrics?.error_rate ?? 0) * 100).toFixed(2)}%
             </div>
-            <div className="text-[10px] text-slate-400">last active: {activity?.lastActiveLabel ?? "no recent flow"}</div>
+            <div className="text-[10px] text-slate-400">{t("city.node.lastActive")}: {activity?.lastActiveLabel ?? t("city.node.noRecentFlow")}</div>
             <div className="mt-1 text-[10px] text-slate-400">
-              in: {(activity?.inboundTop.length ? activity.inboundTop.join(", ") : "n/a")}
+              {t("city.node.in")}: {(activity?.inboundTop.length ? activity.inboundTop.join(", ") : t("common.na"))}
             </div>
             <div className="text-[10px] text-slate-400">
-              out: {(activity?.outboundTop.length ? activity.outboundTop.join(", ") : "n/a")}
+              {t("city.node.out")}: {(activity?.outboundTop.length ? activity.outboundTop.join(", ") : t("common.na"))}
             </div>
           </div>
         </Html>
