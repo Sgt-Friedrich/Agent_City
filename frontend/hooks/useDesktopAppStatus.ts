@@ -1,7 +1,8 @@
-﻿"use client";
+"use client";
 
 import { useEffect } from "react";
 
+import { getDesktopAppStatus } from "@/lib/desktopBridge";
 import { useDashboardStore } from "@/store/useDashboardStore";
 
 export function useDesktopAppStatus(): void {
@@ -13,31 +14,9 @@ export function useDesktopAppStatus(): void {
 
     async function poll() {
       try {
-        if (window.agentCityDesktop?.getAppStatus) {
-          const status = await window.agentCityDesktop.getAppStatus();
-          if (!cancelled) {
-            setDesktopStatus(status);
-          }
-        } else if (!cancelled) {
-          setDesktopStatus({
-            shellMode: "browser",
-            backend: {
-              url: "http://127.0.0.1:8000",
-              ready: true,
-              managed: false,
-              pid: null,
-              message: "browser_preview",
-            },
-            frontend: {
-              url: "http://127.0.0.1:3000",
-              ready: true,
-              managed: false,
-              pid: null,
-              message: "browser_preview",
-            },
-            lastError: null,
-            updatedAt: new Date().toISOString(),
-          });
+        const status = await getDesktopAppStatus();
+        if (!cancelled) {
+          setDesktopStatus(status);
         }
       } catch {
         if (!cancelled) {

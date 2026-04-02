@@ -1,6 +1,6 @@
-﻿# Agent_City Desktop Shell
+# Agent_City Desktop Shell (Tauri)
 
-This folder contains the desktop workbench shell.
+This folder contains the Tauri shell for the Agent_City desktop workbench.
 
 ## Commands
 
@@ -14,6 +14,11 @@ The shell starts local services when needed:
 - frontend: Next.js workbench UI at `http://127.0.0.1:3000`
 
 If services are already running, the shell reuses them.
+
+## Prerequisites
+
+- Rust toolchain (`cargo`, `rustc`) available in PATH.
+- On Windows, if PATH is not refreshed yet after Rust install, `desktop/scripts/run-tauri.js` prepends `%USERPROFILE%\\.cargo\\bin` automatically.
 
 ## Environment Variables
 

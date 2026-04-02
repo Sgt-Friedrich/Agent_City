@@ -1,4 +1,4 @@
-﻿# Product UX
+# Product UX
 
 ## 1. UX Objective
 
@@ -113,4 +113,4 @@ Compared with browser-only tools, this workbench adds:
 
 - Extremely large topologies may require future clustering strategy.
 - Parser confidence remains heuristic-driven for unknown frameworks.
-- Desktop shell currently uses Electron; Tauri migration is planned through shell boundaries.
+- Desktop shell uses Tauri; production signing/notarization remains outside current scope.

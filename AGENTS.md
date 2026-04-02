@@ -1,10 +1,10 @@
-ï»¿# AGENTS.md
+# AGENTS.md
 
 ## Project Summary
 Agent_City is a desktop workbench for Agent architecture parsing, runtime trace observation, city-style visualization, replay diagnostics, parser analysis, and report export.
 
 ## Stack
-- Desktop shell: Electron (shell adapter boundary ready for future Tauri migration)
+- Desktop shell: Tauri
 - UI workbench: Next.js + TypeScript + Tailwind + React Three Fiber + Zustand
 - Local service: FastAPI + WebSocket
 - Automation tests: Playwright
@@ -51,4 +51,4 @@ Prefer this repository-local sequence:
 - `frontend-report`
 
 ## Trigger Hints
-When tasks mention â€œæ˜¾ç¤ºé—®é¢˜ / layout / responsive / overflow / overlap / replay / z-index / canvas / visual regressionâ€, use the debug skill chain.
+When tasks mention ¡°ÏÔÊ¾ÎÊÌâ / layout / responsive / overflow / overlap / replay / z-index / canvas / visual regression¡±, use the debug skill chain.

@@ -1,0 +1,22 @@
+[package]
+name = "agent_city_desktop"
+version = "0.3.0"
+description = "Agent_City desktop shell"
+authors = ["Agent_City"]
+license = "MIT"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "1.5", features = [] }
+
+[dependencies]
+chrono = { version = "0.4", features = ["clock"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = { version = "1.7", features = ["dialog-save", "shell-open"] }
+ureq = "2.10"
+url = "2.5"
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]

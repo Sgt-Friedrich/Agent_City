@@ -1,4 +1,4 @@
-﻿# App Workbench Design
+# App Workbench Design
 
 ## 1. Workbench Objective
 
@@ -73,7 +73,7 @@ The main window uses a 5-region workbench layout:
 
 ## 4. Desktop Service Orchestration
 
-The desktop shell orchestrates local services:
+The Tauri desktop shell orchestrates local services:
 
 - Backend (FastAPI): `127.0.0.1:8000`
 - Frontend workbench UI: `127.0.0.1:3000`
@@ -81,19 +81,19 @@ The desktop shell orchestrates local services:
 Behavior:
 1. Detect existing external services and reuse when available.
 2. Spawn managed services when not available.
-3. Expose runtime status to renderer via IPC bridge.
+3. Expose runtime status to renderer via Tauri invoke bridge.
 4. Terminate managed services on app quit.
 
-## 5. Desktop IPC Contract
+## 5. Desktop Command Contract
 
-The preload bridge exposes:
+The shell exposes:
 
-- `getAppStatus()`
-- `saveTextReport({ defaultFileName, content })`
-- `openPath(targetPath)`
-- `openReportsDirectory()`
+- `get_app_status`
+- `save_text_report({ defaultFileName, content })`
+- `open_path(targetPath)`
+- `open_reports_directory()`
 
-This keeps renderer logic independent from direct Node/Electron APIs.
+The renderer uses `frontend/lib/desktopBridge.ts` and falls back to browser behavior when shell APIs are unavailable.
 
 ## 6. Interaction Principles
 
@@ -107,14 +107,11 @@ This keeps renderer logic independent from direct Node/Electron APIs.
 
 ## 7. Known Boundaries
 
-1. Desktop shell currently uses Electron for tighter Next.js/FastAPI integration speed.
+1. Desktop shell uses Tauri and local process spawn; signed bundle pipeline is out of current scope.
 2. Packaging workflow is lightweight; production notarization/signing is not included.
 3. Parser extraction remains heuristic-first for cross-language robustness.
 
 ## 8. Migration Readiness
 
-Shell and service orchestration are isolated under `desktop/src/*`.
-This boundary allows migration to Tauri shell with minimal changes to:
-- frontend workbench code
-- backend parser/runtime services
-- report/data contracts
+Shell and service orchestration are isolated under `desktop/src-tauri` and `frontend/lib/desktopBridge.ts`.
+This boundary keeps shell replacement cost low for future packaging/runtime changes.

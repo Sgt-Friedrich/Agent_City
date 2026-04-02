@@ -1,17 +1,16 @@
-﻿{
+{
   "name": "agent_city_desktop",
   "private": true,
-  "version": "0.2.0",
-  "description": "Agent_City Desktop Workbench shell",
-  "main": "main.js",
+  "version": "0.3.0",
+  "description": "Agent_City Desktop Workbench shell (Tauri)",
   "scripts": {
-    "dev": "cross-env NODE_ENV=development electron .",
-    "start": "cross-env NODE_ENV=production electron .",
-    "smoke": "cross-env NODE_ENV=development AGENT_CITY_DESKTOP_SMOKE=1 electron .",
+    "dev": "node scripts/run-tauri.js dev",
+    "build": "node scripts/run-tauri.js build",
+    "smoke": "node scripts/run-tauri.js smoke",
+    "tauri": "node scripts/run-tauri.js",
     "test:smoke": "node tests/smoke.js"
   },
   "devDependencies": {
-    "cross-env": "^7.0.3",
-    "electron": "^31.7.7"
+    "@tauri-apps/cli": "^1.6.0"
   }
 }

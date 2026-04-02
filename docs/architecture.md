@@ -1,10 +1,10 @@
-﻿# Agent_City Architecture
+# Agent_City Architecture
 
 ## 1. Architecture Overview
 
 Agent_City is a **desktop application workbench** composed of four layers:
 
-1. Desktop shell layer (Electron)
+1. Desktop shell layer (Tauri)
 2. UI workbench layer (Next.js/React)
 3. Local service layer (FastAPI)
 4. Parsing/runtime core layer (discovery/normalization/binding)
@@ -13,10 +13,9 @@ Agent_City is a **desktop application workbench** composed of four layers:
 
 ```mermaid
 flowchart LR
-  subgraph Desktop["Desktop Shell (Electron)"]
-    Main["main.js"]
-    Preload["preload.js"]
-    IPC["IPC bridge"]
+  subgraph Desktop["Desktop Shell (Tauri)"]
+    RustMain["src-tauri/src/main.rs"]
+    IPC["Tauri invoke commands"]
     ProcMgr["local service manager"]
   end
 
@@ -28,6 +27,7 @@ flowchart LR
     Parser["Parser Analysis Center"]
     Reports["Reports Center"]
     Store["Zustand app state"]
+    Bridge["desktopBridge adapter"]
   end
 
   subgraph API["Local Service (FastAPI)"]
@@ -44,10 +44,10 @@ flowchart LR
     Parsers["Multi-language parsers"]
   end
 
-  Main --> ProcMgr
-  Main --> IPC
-  IPC --> Preload
-  Preload --> ShellUI
+  RustMain --> ProcMgr
+  RustMain --> IPC
+  IPC --> Bridge
+  Bridge --> ShellUI
   ShellUI --> Store
   Store --> City
   Store --> Replay
@@ -69,16 +69,15 @@ flowchart LR
 
 - Start and supervise local backend/frontend services when needed.
 - Reuse existing local services if already running.
-- Expose desktop-safe capabilities through preload bridge:
+- Expose desktop-safe capabilities through Tauri commands:
   - report save
   - open local path
   - app status query
-- Keep renderer isolated from Node internals.
+- Keep renderer logic isolated from shell internals.
 
 Code paths:
-- `desktop/main.js`
-- `desktop/preload.js`
-- `desktop/src/serviceManager.js`
+- `desktop/src-tauri/src/main.rs`
+- `frontend/lib/desktopBridge.ts`
 
 ## 4. Local Service Responsibilities
 

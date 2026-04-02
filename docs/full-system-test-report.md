@@ -1,6 +1,6 @@
 # Full System Test Report
 
-Generated at (UTC): 2026-04-01T19:13:09.152689+00:00
+Generated at (UTC): 2026-04-02T03:57:47.643151+00:00
 
 ## Summary
 - Total checks: 7
@@ -10,7 +10,7 @@ Generated at (UTC): 2026-04-01T19:13:09.152689+00:00
 ## Results
 ### Backend compile
 - Status: PASS
-- Duration: 0.08s
+- Duration: 0.09s
 - Command: `C:\Users\ASUS\AppData\Local\Programs\Python\Python310\python.exe -m compileall backend/app`
 - Output:
 ```text
@@ -25,7 +25,7 @@ Listing 'backend/app\\sources'...
 
 ### Parser unit tests
 - Status: PASS
-- Duration: 0.69s
+- Duration: 0.70s
 - Command: `C:\Users\ASUS\AppData\Local\Programs\Python\Python310\python.exe -m unittest discover -s tests/parser -p test_*.py -v`
 - Output:
 ```text
@@ -43,14 +43,14 @@ test_discovery_includes_confidence_and_unresolved (test_topology_discovery.Topol
 test_creates_provisional_node_for_unresolved_relation_endpoint (test_topology_normalizer.TopologyNormalizerTest) ... ok
 
 ----------------------------------------------------------------------
-Ran 12 tests in 0.125s
+Ran 12 tests in 0.128s
 
 OK
 ```
 
 ### Parser representative retest
 - Status: PASS
-- Duration: 11.07s
+- Duration: 12.66s
 - Command: `C:\Users\ASUS\AppData\Local\Programs\Python\Python310\python.exe scripts/run_parser_retest.py`
 - Output:
 ```text
@@ -59,7 +59,7 @@ OK
 
 ### Frontend build
 - Status: PASS
-- Duration: 15.05s
+- Duration: 14.72s
 - Command: `C:\Program Files\nodejs\npm.CMD --prefix frontend run build:clean`
 - Output:
 ```text
@@ -81,13 +81,13 @@ OK
    Collecting build traces ...
 
 Route (app)                              Size     First Load JS
-┌ ○ /                                    11 kB           341 kB
+┌ ○ /                                    11.1 kB         341 kB
 ├ ○ /_not-found                          873 B          88.2 kB
 └ ƒ /replay/[traceId]                    2.78 kB         333 kB
-+ First Load JS shared by all            87.3 kB
++ First Load JS shared by all            87.4 kB
   ├ chunks/117-1d3c99a8c7ff6319.js       31.7 kB
   ├ chunks/fd9d1056-6952ca70748862da.js  53.6 kB
-  └ other shared chunks (total)          1.95 kB
+  └ other shared chunks (total)          1.98 kB
 
 
 ○  (Static)   prerendered as static content
@@ -96,7 +96,7 @@ Route (app)                              Size     First Load JS
 
 ### App UI automation tests
 - Status: PASS
-- Duration: 36.67s
+- Duration: 34.36s
 - Command: `C:\Program Files\nodejs\npm.CMD --prefix frontend run e2e`
 - Output:
 ```text
@@ -106,39 +106,40 @@ Route (app)                              Size     First Load JS
 
 Running 4 tests using 1 worker
 
-  ok 1 [chromium] › tests\e2e\layout.spec.ts:13:5 › dashboard renders core zones and replay route is reachable (9.3s)
+  ok 1 [chromium] › tests\e2e\layout.spec.ts:13:5 › dashboard renders core zones and replay route is reachable (8.2s)
   ok 2 [chromium] › tests\e2e\responsive.spec.ts:11:9 › responsive layout › core dashboard zones stay visible at desktop (5.0s)
-  ok 3 [chromium] › tests\e2e\responsive.spec.ts:11:9 › responsive layout › core dashboard zones stay visible at tablet (5.2s)
-  ok 4 [chromium] › tests\e2e\responsive.spec.ts:11:9 › responsive layout › core dashboard zones stay visible at mobile (5.0s)
+  ok 3 [chromium] › tests\e2e\responsive.spec.ts:11:9 › responsive layout › core dashboard zones stay visible at tablet (4.7s)
+  ok 4 [chromium] › tests\e2e\responsive.spec.ts:11:9 › responsive layout › core dashboard zones stay visible at mobile (4.7s)
 
-  4 passed (35.3s)
-[2m[WebServer] [22mINFO:     Started server process [30792]
+  4 passed (33.0s)
+[2m[WebServer] [22mINFO:     Started server process [29912]
 [2m[WebServer] [22mINFO:     Waiting for application startup.
 [2m[WebServer] [22mINFO:     Application startup complete.
 [2m[WebServer] [22mINFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
 [2m[WebServer] [22m [33m[1m⚠[22m[39m Cross origin request detected from 127.0.0.1 to /_next/* resource. In a future major version of Next.js, you will need to explicitly configure "allowedDevOrigins" in next.config to allow this.
 [2m[WebServer] [22mRead more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
-[2m[WebServer] [22mINFO:     127.0.0.1:6885 - "WebSocket /ws/live?target=mock" [accepted]
+[2m[WebServer] [22mINFO:     127.0.0.1:4271 - "WebSocket /ws/live?target=mock" [accepted]
 [2m[WebServer] [22mINFO:     connection open
 [2m[WebServer] [22mINFO:     connection closed
-[2m[WebServer] [22mINFO:     127.0.0.1:6058 - "WebSocket /ws/live?target=mock" [accepted]
+[2m[WebServer] [22mINFO:     127.0.0.1:13996 - "WebSocket /ws/live?target=mock" [accepted]
 [2m[WebServer] [22mINFO:     connection open
 [2m[WebServer] [22mINFO:     connection closed
-[2m[WebServer] [22mINFO:     127.0.0.1:11266 - "WebSocket /ws/live?target=mock" [accepted]
+[2m[WebServer] [22mINFO:     127.0.0.1:10210 - "WebSocket /ws/live?target=mock" [accepted]
 [2m[WebServer] [22mINFO:     connection open
 [2m[WebServer] [22mINFO:     connection closed
-[2m[WebServer] [22mINFO:     127.0.0.1:4061 - "WebSocket /ws/live?target=mock" [accepted]
+[2m[WebServer] [22mINFO:     127.0.0.1:2177 - "WebSocket /ws/live?target=mock" [accepted]
 [2m[WebServer] [22mINFO:     connection open
 [2m[WebServer] [22mINFO:     connection closed
-[2m[WebServer] [22mINFO:     127.0.0.1:2347 - "WebSocket /ws/live?target=mock" [accepted]
+[2m[WebServer] [22mINFO:     127.0.0.1:3688 - "WebSocket /ws/live?target=mock" [accepted]
 [2m[WebServer] [22mINFO:     connection open
 [2m[WebServer] [22mINFO:     connection closed
-[2m[WebServer] [22mINFO:     127.0.0.1:2829 - "WebSocket /ws/live?target=mock" [accepted]
+[2m[WebServer] [22mINFO:     127.0.0.1:14916 - "WebSocket /ws/live?target=mock" [accepted]
 [2m[WebServer] [22mINFO:     connection open
 [2m[WebServer] [22mINFO:     connection closed
-[2m[WebServer] [22mINFO:     127.0.0.1:14471 - "WebSocket /ws/live?target=mock" [accepted]
+[2m[WebServer] [22mINFO:     127.0.0.1:6063 - "WebSocket /ws/live?target=mock" [accepted]
+[2m[WebServer] [22mINFO:     connection open
 [2m[WebServer] [22mINFO:     connection closed
-[2m[WebServer] [22mINFO:     127.0.0.1:11894 - "WebSocket /ws/live?target=mock" [accepted]
+[2m[WebServer] [22mINFO:     127.0.0.1:6064 - "WebSocket /ws/live?target=mock" [accepted]
 [2m[WebServer] [22mINFO:     connection open
 [2m[WebServer] [22mINFO:     connection closed
 ```
@@ -149,15 +150,15 @@ Running 4 tests using 1 worker
 - Command: `C:\Program Files\nodejs\npm.CMD --prefix desktop run test:smoke`
 - Output:
 ```text
-> agent_city_desktop@0.2.0 test:smoke
+> agent_city_desktop@0.3.0 test:smoke
 > node tests/smoke.js
 
-[desktop-smoke] desktop shell files are present
+[desktop-smoke] tauri shell files are present
 ```
 
 ### Reference cleanup dry-run
 - Status: PASS
-- Duration: 6.57s
+- Duration: 6.30s
 - Command: `C:\Users\ASUS\AppData\Local\Programs\Python\Python310\python.exe scripts/cleanup_refs.py --root . --targets refs --threshold-mb 200 --keep-list-file docs/parser-tested-keep.txt --delete-unlisted --dry-run`
 - Output:
 ```text

@@ -1,8 +1,9 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 
 import { api } from "@/lib/api";
+import { openReportsDirectory, saveDesktopTextReport } from "@/lib/desktopBridge";
 import { shortId } from "@/lib/utils";
 import { useDashboardStore } from "@/store/useDashboardStore";
 import { ReportArtifact } from "@/types/schema";
@@ -20,12 +21,13 @@ function formatTime(value: string): string {
 }
 
 async function saveReportContent(defaultFileName: string, content: string): Promise<{ ok: boolean; path?: string }> {
-  if (window.agentCityDesktop?.saveTextReport) {
-    const result = await window.agentCityDesktop.saveTextReport({
-      defaultFileName,
-      content,
-    });
-    return { ok: Boolean(result.ok), path: result.path };
+  const desktopResult = await saveDesktopTextReport({
+    defaultFileName,
+    content,
+  });
+
+  if (desktopResult.ok) {
+    return { ok: true, path: desktopResult.path };
   }
 
   const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
@@ -86,7 +88,7 @@ export function ReportsCenter() {
     return () => {
       cancelled = true;
     };
-  }, [target]);
+  }, [target, selectedReportId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -145,15 +147,10 @@ export function ReportsCenter() {
   };
 
   const openDocsDirectory = async () => {
-    if (window.agentCityDesktop?.openReportsDirectory) {
-      const result = await window.agentCityDesktop.openReportsDirectory();
-      if (!result.ok) {
-        setMessage(result.message ?? "failed to open docs directory");
-      }
-      return;
+    const result = await openReportsDirectory();
+    if (!result.ok) {
+      setMessage(result.message ?? `desktop shell not attached; docs root: ${docsRoot}`);
     }
-
-    setMessage(`desktop shell not attached; docs root: ${docsRoot}`);
   };
 
   return (

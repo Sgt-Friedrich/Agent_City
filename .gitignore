@@ -25,3 +25,7 @@ desktop/release/
 refs/
 tmp_refs/
 external_examples/
+
+# tauri
+desktop/src-tauri/target/
+

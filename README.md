@@ -1,16 +1,16 @@
-﻿# Agent_City Desktop App
+# Agent_City Desktop App
 
-Agent_City 是一个本地桌面应用工作台，用于 Agent 系统的**架构解析、运行时追踪、城市化可视表达、诊断、回放与报告闭环**。  
+Agent_City ��һ����������Ӧ�ù���̨������ Agent ϵͳ��**�ܹ�����������ʱ׷�١����л����ӱ����ϡ��ط��뱨��ջ�**��  
 Agent_City is a local desktop workbench for **architecture parsing, runtime tracing, city-style observability, diagnostics, replay, and reporting closure**.
 
 ---
 
-## 1) 这不是普通网页 | Why This Is Not a Typical Web Dashboard
+## 1) �ⲻ����ͨ��ҳ | Why This Is Not a Typical Web Dashboard
 
-**中文**
-- 这是桌面 App 工作台，主窗口内集成了本地服务编排状态、报告导出和长期分析路径。
-- 不只是静态拓扑图，支持 live/replay/diagnostics/parser analysis/reports 全链路视图。
-- 支持从“解析 -> 追踪 -> 可视诊断 -> 修复回归 -> 报告沉淀”的闭环。
+**����**
+- �������� App ����̨���������ڼ����˱��ط������״̬�����浼���ͳ��ڷ���·����
+- ��ֻ�Ǿ�̬����ͼ��֧�� live/replay/diagnostics/parser analysis/reports ȫ��·��ͼ��
+- ֧�ִӡ����� -> ׷�� -> ������� -> �޸��ع� -> ����������ıջ���
 
 **English**
 - This is a desktop app workbench with local service orchestration awareness and local report export.
@@ -19,48 +19,48 @@ Agent_City is a local desktop workbench for **architecture parsing, runtime trac
 
 ---
 
-## 2) 核心能力 | Core Capabilities
+## 2) �������� | Core Capabilities
 
-1. **静态架构解析 | Static Architecture Parsing**
+1. **��̬�ܹ����� | Static Architecture Parsing**
 - Topology Discovery + Normalizer
 - Multi-language parsing (Python / TypeScript / Go / Rust / Java / C# / config)
 - Provenance + confidence + graceful degradation
 
-2. **运行时追踪 | Runtime Tracing**
+2. **����ʱ׷�� | Runtime Tracing**
 - TraceEnvelope / SpanEvent / FlowEvent
 - retry / fallback / error / rejection handling
 - topology binding with declared/observed/inferred edges
 
-3. **城市化表达 | City-style Visualization**
+3. **���л����� | City-style Visualization**
 - district = module domain
 - building = component
 - road = dependency/runtime path
 - flow = runtime data movement
 
-4. **诊断与回放 | Diagnostics and Replay**
+4. **�����ط� | Diagnostics and Replay**
 - slow/error/congested nodes
 - unstable edges
 - trace replay with timeline
 
-5. **解析能力分析 | Parser Analysis**
+5. **������������ | Parser Analysis**
 - parser confidence, coverage, unresolved symbols, low-confidence edges
 
-6. **报告中心 | Reports Center**
+6. **�������� | Reports Center**
 - parser/app/system report catalog
 - document preview + export
 - desktop file save/open actions
 
 ---
 
-## 3) 应用形态 | App Form
+## 3) Ӧ����̬ | App Form
 
-- Desktop shell: **Electron** (shell boundary is isolated for future Tauri migration)
+- Desktop shell: **Tauri**
 - Workbench UI: Next.js + React + TypeScript + Tailwind + React Three Fiber + Zustand
 - Local service: FastAPI + WebSocket
 
 ---
 
-## 4) 展示截图 | Screenshots
+## 4) չʾ��ͼ | Screenshots
 
 ### Main Workbench (Desktop)
 ![Agent_City Dashboard Desktop](docs/screenshots/dashboard-desktop.png)
@@ -73,14 +73,14 @@ Agent_City is a local desktop workbench for **architecture parsing, runtime trac
 
 ---
 
-## 5) 应用结构 | Application Structure
+## 5) Ӧ�ýṹ | Application Structure
 
 ```text
 Agent_City/
-  desktop/                     # desktop shell
-    main.js
-    preload.js
-    src/serviceManager.js
+  desktop/                     # Tauri desktop shell
+    src-tauri/src/main.rs
+    src-tauri/tauri.conf.json
+    scripts/run-tauri.js
   frontend/                    # workbench UI
   backend/                     # local FastAPI service
   docs/                        # architecture/ux/reports
@@ -91,7 +91,7 @@ Agent_City/
 
 ---
 
-## 6) 工作台视图 | Workbench Views
+## 6) ����̨��ͼ | Workbench Views
 
 - `Overview`
 - `Live`
@@ -100,18 +100,18 @@ Agent_City/
 - `Parser Analysis`
 - `Reports`
 
-窗口信息架构：
-- 顶部：KPI + 模式状态 + 本地服务状态
-- 左侧：导航 + 过滤
-- 中部：城市/分析工作区
-- 右侧：检查器
-- 底部：时间线
+������Ϣ�ܹ���
+- ������KPI + ģʽ״̬ + ���ط���״̬
+- ��ࣺ���� + ����
+- �в�������/����������
+- �Ҳࣺ�����
+- �ײ���ʱ����
 
 ---
 
-## 7) 启动方式 | How To Run
+## 7) ������ʽ | How To Run
 
-### 7.1 安装依赖 | Install
+### 7.1 ��װ���� | Install
 
 ```bash
 npm --prefix frontend install
@@ -119,17 +119,17 @@ npm --prefix desktop install
 python -m pip install -r backend/requirements.txt
 ```
 
-### 7.2 启动桌面应用 | Start Desktop App
+### 7.2 ��������Ӧ�� | Start Desktop App
 
 ```bash
 npm --prefix desktop run dev
 ```
 
-桌面壳会尝试：
-1. 复用已在本机运行的 frontend/backend 服务；
-2. 若不存在则自动拉起本地服务（backend + frontend）。
+����ǻ᳢�ԣ�
+1. �������ڱ������е� frontend/backend ����
+2. �����������Զ����𱾵ط���backend + frontend����
 
-### 7.3 可选：独立启动本地服务 | Optional standalone local services
+### 7.3 ��ѡ�������������ط��� | Optional standalone local services
 
 ```bash
 # backend
@@ -142,15 +142,15 @@ npm --prefix frontend run dev
 
 ---
 
-## 8) 自动解析投递目录 | Drop-in Parse Workflow
+## 8) �Զ�����Ͷ��Ŀ¼ | Drop-in Parse Workflow
 
-1. 启动应用后，将待解析 agent 目录复制到：`refs/agent_drop/`
-2. 主窗口顶部显示解析进度条
-3. 解析完成后自动切换 target 并展开城市工作区
+1. ����Ӧ�ú󣬽������� agent Ŀ¼���Ƶ���`refs/agent_drop/`
+2. �����ڶ�����ʾ����������
+3. ������ɺ��Զ��л� target ��չ�����й�����
 
 ---
 
-## 9) 后端接口 | Local Service APIs
+## 9) ��˽ӿ� | Local Service APIs
 
 ### Topology & Runtime
 - `GET /api/targets`
@@ -177,9 +177,9 @@ npm --prefix frontend run dev
 
 ---
 
-## 10) 解析器结构 | Parser Architecture
+## 10) �������ṹ | Parser Architecture
 
-核心模块：
+����ģ�飺
 - `backend/app/services/topology_discovery.py`
 - `backend/app/services/topology_normalizer.py`
 - `backend/app/services/runtime_trace_resolver.py`
@@ -187,16 +187,16 @@ npm --prefix frontend run dev
 - `backend/app/parsers/*.py`
 - `backend/app/services/confidence_scoring.py`
 
-语义支持：
+����֧�֣�
 - declared / observed / inferred edges
 - fallback / retry loop
 - unresolved symbols + confidence
 
 ---
 
-## 11) 自调试工具链 | Self-Debug Toolchain
+## 11) �Ե��Թ����� | Self-Debug Toolchain
 
-仓库内置调试流程（面向 App 界面问题）：
+�ֿ����õ������̣����� App �������⣩��
 - `AGENTS.md`
 - `.agents/skills/frontend-repro`
 - `.agents/skills/frontend-visual-debug`
@@ -204,17 +204,17 @@ npm --prefix frontend run dev
 - `.agents/skills/frontend-regression`
 - `.agents/skills/frontend-report`
 
-目标：
-1. 复现问题
-2. 采集证据（截图/控制台/日志）
-3. 根因分类
-4. 最小修复
-5. 回归验证
-6. 输出修复报告
+Ŀ�꣺
+1. ��������
+2. �ɼ�֤�ݣ���ͼ/����̨/��־��
+3. �������
+4. ��С�޸�
+5. �ع���֤
+6. ����޸�����
 
 ---
 
-## 12) 测试与闭环验证 | Testing and Closure
+## 12) ������ջ���֤ | Testing and Closure
 
 ### Parser regression
 ```bash
@@ -238,11 +238,11 @@ npm --prefix desktop run test:smoke
 python scripts/run_full_system_tests.py
 ```
 
-输出：`docs/full-system-test-report.md`
+�����`docs/full-system-test-report.md`
 
 ---
 
-## 13) 文档入口 | Docs Index
+## 13) �ĵ���� | Docs Index
 
 - `docs/architecture.md`
 - `docs/product-ux.md`
@@ -258,30 +258,30 @@ python scripts/run_full_system_tests.py
 
 ---
 
-## 14) 清理机制 | Cleanup Mechanism
+## 14) �������� | Cleanup Mechanism
 
 ```bash
 python scripts/cleanup_refs.py --root . --targets refs --threshold-mb 200 --keep-list-file docs/parser-tested-keep.txt --delete-unlisted --dry-run
 ```
 
-规则：
-- 任意单个参考目录 > 200MB 必须删除
-- 未列入保留清单且无测试价值目录可删除
-- `refs/agent_drop` 作为运行时投递目录保留
+����
+- ���ⵥ���ο�Ŀ¼ > 200MB ����ɾ��
+- δ���뱣���嵥���޲��Լ�ֵĿ¼��ɾ��
+- `refs/agent_drop` ��Ϊ����ʱͶ��Ŀ¼����
 
 ---
 
-## 15) 已知边界 | Known Boundaries
+## 15) ��֪�߽� | Known Boundaries
 
-1. 当前桌面壳采用 Electron（为了与 Next.js + FastAPI 集成效率）。
-2. 解析器是实用主义多策略方案，不是全语言 AST 完整编译器。
-3. 极大规模拓扑尚未做聚类/分层折叠优化。
+1. ��ǰ����ǲ��� Tauri��
+2. ��������ʵ���������Է���������ȫ���� AST ������������
+3. �����ģ������δ������/�ֲ��۵��Ż���
 
 ---
 
-## 16) 后续扩展 | Future Extensions
+## 16) ������չ | Future Extensions
 
-- Tauri shell migration (reuse existing shell-service boundary)
 - OTel / Jaeger / Phoenix / Langfuse adapters
 - richer desktop shortcuts/menu integration
 - CI pipeline for full-system closure tests
+
