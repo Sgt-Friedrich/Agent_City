@@ -4,11 +4,22 @@ import { useMemo } from "react";
 
 import { useDashboardStore } from "@/store/useDashboardStore";
 
-type SearchKey = "type" | "district" | "protocol" | "status" | "trace" | "kind" | "node";
+type SearchKey = "type" | "district" | "protocol" | "status" | "trace" | "kind" | "node" | "has";
+type NumericKey = "latency" | "qps";
+type NumericOp = ">" | ">=" | "<" | "<=";
+
+interface NumericExpr {
+  key: NumericKey;
+  op: NumericOp;
+  value: number;
+}
 
 interface ParsedSearch {
-  terms: string[];
-  kv: Partial<Record<SearchKey, string[]>>;
+  includeTerms: string[];
+  excludeTerms: string[];
+  includeKv: Partial<Record<SearchKey, string[]>>;
+  excludeKv: Partial<Record<SearchKey, string[]>>;
+  numeric: NumericExpr[];
 }
 
 function parseSearch(raw: string): ParsedSearch {
@@ -17,32 +28,85 @@ function parseSearch(raw: string): ParsedSearch {
     .split(/\s+/)
     .filter(Boolean);
 
-  const kv: Partial<Record<SearchKey, string[]>> = {};
-  const terms: string[] = [];
+  const parsed: ParsedSearch = {
+    includeTerms: [],
+    excludeTerms: [],
+    includeKv: {},
+    excludeKv: {},
+    numeric: [],
+  };
 
   for (const token of tokens) {
-    const sep = token.indexOf(":");
-    if (sep <= 0) {
-      terms.push(token.toLowerCase());
+    const numericMatch = token.match(/^(latency|qps)(>=|<=|>|<)(\d+(?:\.\d+)?)$/i);
+    if (numericMatch) {
+      parsed.numeric.push({
+        key: numericMatch[1].toLowerCase() as NumericKey,
+        op: numericMatch[2] as NumericOp,
+        value: Number(numericMatch[3]),
+      });
       continue;
     }
-    const key = token.slice(0, sep).toLowerCase() as SearchKey;
-    const value = token.slice(sep + 1).toLowerCase();
-    if (!value.length) continue;
-    if (["type", "district", "protocol", "status", "trace", "kind", "node"].includes(key)) {
-      kv[key] = [...(kv[key] ?? []), value];
+
+    const kvExcludeMatch = token.match(/^([a-z_]+)!=([^]+)$/i);
+    if (kvExcludeMatch) {
+      const key = kvExcludeMatch[1].toLowerCase() as SearchKey;
+      const values = kvExcludeMatch[2]
+        .toLowerCase()
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+      if (isSearchKey(key) && values.length > 0) {
+        parsed.excludeKv[key] = [...(parsed.excludeKv[key] ?? []), ...values];
+        continue;
+      }
+    }
+
+    const kvIncludeMatch = token.match(/^([a-z_]+):([^]+)$/i);
+    if (kvIncludeMatch) {
+      const key = kvIncludeMatch[1].toLowerCase() as SearchKey;
+      const values = kvIncludeMatch[2]
+        .toLowerCase()
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+      if (isSearchKey(key) && values.length > 0) {
+        parsed.includeKv[key] = [...(parsed.includeKv[key] ?? []), ...values];
+        continue;
+      }
+    }
+
+    if (token.startsWith("-") || token.startsWith("!")) {
+      const value = token.slice(1).toLowerCase();
+      if (value) parsed.excludeTerms.push(value);
     } else {
-      terms.push(token.toLowerCase());
+      parsed.includeTerms.push(token.toLowerCase());
     }
   }
 
-  return { terms, kv };
+  return parsed;
 }
 
-function matchAny(value: string, patterns: string[]): boolean {
+function isSearchKey(value: string): value is SearchKey {
+  return ["type", "district", "protocol", "status", "trace", "kind", "node", "has"].includes(value);
+}
+
+function includesAny(value: string, patterns: string[]): boolean {
   if (!patterns.length) return true;
   const lower = value.toLowerCase();
   return patterns.some((pattern) => lower.includes(pattern));
+}
+
+function excludesAny(value: string, patterns: string[]): boolean {
+  if (!patterns.length) return false;
+  const lower = value.toLowerCase();
+  return patterns.some((pattern) => lower.includes(pattern));
+}
+
+function compareNumeric(op: NumericOp, value: number, expected: number): boolean {
+  if (op === ">") return value > expected;
+  if (op === ">=") return value >= expected;
+  if (op === "<") return value < expected;
+  return value <= expected;
 }
 
 export function useFilteredTopology() {
@@ -50,6 +114,7 @@ export function useFilteredTopology() {
   const filters = useDashboardStore((state) => state.filters);
   const liveEvents = useDashboardStore((state) => state.liveEvents);
   const searchQuery = useDashboardStore((state) => state.searchQuery);
+  const diagnosticFocus = useDashboardStore((state) => state.diagnosticFocus);
 
   return useMemo(() => {
     if (!topology) {
@@ -74,17 +139,32 @@ export function useFilteredTopology() {
           const statusPass =
             filters.statuses.length === 0 || filters.statuses.includes(node.status);
 
-          const kvTypePass = matchAny(node.type, parsed.kv.type ?? []);
-          const kvDistrictPass =
-            (parsed.kv.district?.length ?? 0) === 0 ||
-            matchAny(node.district_id, parsed.kv.district ?? []) ||
-            matchAny(districtMap.get(node.district_id) ?? "", parsed.kv.district ?? []);
-          const kvStatusPass = matchAny(node.status, parsed.kv.status ?? []);
-          const kvNodePass = matchAny(node.id, parsed.kv.node ?? []) || matchAny(node.name, parsed.kv.node ?? []);
+          const includeTypePass = includesAny(node.type, parsed.includeKv.type ?? []);
+          const includeDistrictPass =
+            (parsed.includeKv.district?.length ?? 0) === 0 ||
+            includesAny(node.district_id, parsed.includeKv.district ?? []) ||
+            includesAny(districtMap.get(node.district_id) ?? "", parsed.includeKv.district ?? []);
+          const includeStatusPass = includesAny(node.status, parsed.includeKv.status ?? []);
+          const includeNodePass =
+            includesAny(node.id, parsed.includeKv.node ?? []) || includesAny(node.name, parsed.includeKv.node ?? []);
 
-          const freeTextPass =
-            parsed.terms.length === 0 ||
-            parsed.terms.every(
+          const excludeTypeHit = excludesAny(node.type, parsed.excludeKv.type ?? []);
+          const excludeDistrictHit =
+            excludesAny(node.district_id, parsed.excludeKv.district ?? []) ||
+            excludesAny(districtMap.get(node.district_id) ?? "", parsed.excludeKv.district ?? []);
+          const excludeStatusHit = excludesAny(node.status, parsed.excludeKv.status ?? []);
+          const excludeNodeHit =
+            excludesAny(node.id, parsed.excludeKv.node ?? []) ||
+            excludesAny(node.name, parsed.excludeKv.node ?? []);
+
+          const qpsValue = node.metrics?.qps ?? 0;
+          const qpsPass = parsed.numeric
+            .filter((expr) => expr.key === "qps")
+            .every((expr) => compareNumeric(expr.op, qpsValue, expr.value));
+
+          const includeTermPass =
+            parsed.includeTerms.length === 0 ||
+            parsed.includeTerms.every(
               (term) =>
                 node.id.toLowerCase().includes(term) ||
                 node.name.toLowerCase().includes(term) ||
@@ -92,15 +172,29 @@ export function useFilteredTopology() {
                 node.labels.some((label) => label.toLowerCase().includes(term)),
             );
 
+          const excludeTermHit = parsed.excludeTerms.some(
+            (term) =>
+              node.id.toLowerCase().includes(term) ||
+              node.name.toLowerCase().includes(term) ||
+              node.type.toLowerCase().includes(term) ||
+              node.labels.some((label) => label.toLowerCase().includes(term)),
+          );
+
           return (
             districtPass &&
             nodeTypePass &&
             statusPass &&
-            kvTypePass &&
-            kvDistrictPass &&
-            kvStatusPass &&
-            kvNodePass &&
-            freeTextPass
+            includeTypePass &&
+            includeDistrictPass &&
+            includeStatusPass &&
+            includeNodePass &&
+            !excludeTypeHit &&
+            !excludeDistrictHit &&
+            !excludeStatusHit &&
+            !excludeNodeHit &&
+            qpsPass &&
+            includeTermPass &&
+            !excludeTermHit
           );
         })
         .map((node) => node.id),
@@ -111,7 +205,9 @@ export function useFilteredTopology() {
       (edge) => nodeIds.has(edge.from) && nodeIds.has(edge.to),
     );
 
-    const queryTrace = parsed.kv.trace?.[0];
+    const queryTrace = parsed.includeKv.trace?.[0];
+    const requiredHas = parsed.includeKv.has ?? [];
+    const excludedHas = parsed.excludeKv.has ?? [];
 
     const events = liveEvents.filter((event) => {
       const nodePass = nodeIds.has(event.from_node) || (event.to_node ? nodeIds.has(event.to_node) : false);
@@ -122,17 +218,25 @@ export function useFilteredTopology() {
         filters.spanKinds.length === 0 || filters.spanKinds.includes(event.span_kind);
       const statusPass =
         (filters.statuses.length === 0 || filters.statuses.includes(event.status)) &&
-        matchAny(event.status, parsed.kv.status ?? []);
-      const protocolPass = matchAny(event.protocol, parsed.kv.protocol ?? []);
-      const kindPass = matchAny(event.span_kind, parsed.kv.kind ?? []);
+        includesAny(event.status, parsed.includeKv.status ?? []);
+      const protocolPass = includesAny(event.protocol, parsed.includeKv.protocol ?? []);
+      const kindPass = includesAny(event.span_kind, parsed.includeKv.kind ?? []);
       const nodeDslPass =
-        (parsed.kv.node?.length ?? 0) === 0 ||
-        matchAny(event.from_node, parsed.kv.node ?? []) ||
-        matchAny(event.to_node ?? "", parsed.kv.node ?? []);
+        (parsed.includeKv.node?.length ?? 0) === 0 ||
+        includesAny(event.from_node, parsed.includeKv.node ?? []) ||
+        includesAny(event.to_node ?? "", parsed.includeKv.node ?? []);
 
-      const freeTextPass =
-        parsed.terms.length === 0 ||
-        parsed.terms.every(
+      const excludedStatusHit = excludesAny(event.status, parsed.excludeKv.status ?? []);
+      const excludedProtocolHit = excludesAny(event.protocol, parsed.excludeKv.protocol ?? []);
+      const excludedKindHit = excludesAny(event.span_kind, parsed.excludeKv.kind ?? []);
+      const excludedNodeHit =
+        excludesAny(event.from_node, parsed.excludeKv.node ?? []) ||
+        excludesAny(event.to_node ?? "", parsed.excludeKv.node ?? []);
+      const excludedTraceHit = excludesAny(event.trace_id, parsed.excludeKv.trace ?? []);
+
+      const includeTermPass =
+        parsed.includeTerms.length === 0 ||
+        parsed.includeTerms.every(
           (term) =>
             event.trace_id.toLowerCase().includes(term) ||
             event.span_id.toLowerCase().includes(term) ||
@@ -141,8 +245,63 @@ export function useFilteredTopology() {
             event.from_node.toLowerCase().includes(term) ||
             (event.to_node?.toLowerCase().includes(term) ?? false),
         );
+      const excludeTermHit = parsed.excludeTerms.some(
+        (term) =>
+          event.trace_id.toLowerCase().includes(term) ||
+          event.span_id.toLowerCase().includes(term) ||
+          event.summary.toLowerCase().includes(term) ||
+          event.protocol.toLowerCase().includes(term) ||
+          event.from_node.toLowerCase().includes(term) ||
+          (event.to_node?.toLowerCase().includes(term) ?? false),
+      );
 
-      return nodePass && tracePass && spanKindPass && statusPass && protocolPass && kindPass && nodeDslPass && freeTextPass;
+      const latencyValue = event.latency_ms;
+      const latencyPass = parsed.numeric
+        .filter((expr) => expr.key === "latency")
+        .every((expr) => compareNumeric(expr.op, latencyValue, expr.value));
+
+      const hasRetry = event.retry_count > 0;
+      const hasFallback = Boolean(event.fallback_from);
+      const hasError = event.status === "error" || hasRetry || hasFallback;
+      const hasMcp = event.protocol.toLowerCase().includes("mcp");
+      const hasMap: Record<string, boolean> = {
+        retry: hasRetry,
+        fallback: hasFallback,
+        error: hasError,
+        mcp: hasMcp,
+      };
+      const requiredHasPass = requiredHas.every((key) => hasMap[key] ?? false);
+      const excludedHasHit = excludedHas.some((key) => hasMap[key] ?? false);
+
+      const focusPass = (() => {
+        if (diagnosticFocus === "all") return true;
+        if (diagnosticFocus === "errors") return hasError;
+        if (diagnosticFocus === "retry_fallback") return hasRetry || hasFallback;
+        if (diagnosticFocus === "slow") return event.latency_ms >= 700;
+        if (diagnosticFocus === "congestion") return (event.attributes?.queue_depth as number | undefined ?? 0) >= 5;
+        return true;
+      })();
+
+      return (
+        nodePass &&
+        tracePass &&
+        spanKindPass &&
+        statusPass &&
+        protocolPass &&
+        kindPass &&
+        nodeDslPass &&
+        !excludedStatusHit &&
+        !excludedProtocolHit &&
+        !excludedKindHit &&
+        !excludedNodeHit &&
+        !excludedTraceHit &&
+        includeTermPass &&
+        !excludeTermHit &&
+        latencyPass &&
+        requiredHasPass &&
+        !excludedHasHit &&
+        focusPass
+      );
     });
 
     return {
@@ -151,6 +310,5 @@ export function useFilteredTopology() {
       edges,
       events,
     };
-  }, [filters, liveEvents, searchQuery, topology]);
+  }, [diagnosticFocus, filters, liveEvents, searchQuery, topology]);
 }
-

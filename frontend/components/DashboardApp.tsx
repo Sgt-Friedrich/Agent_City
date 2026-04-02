@@ -16,6 +16,7 @@ import { FilterPanel } from "@/components/panels/FilterPanel";
 import { DetailDrawer } from "@/components/panels/DetailDrawer";
 import { FlowEventHoverCard } from "@/components/panels/FlowEventHoverCard";
 import { MetricsHeader } from "@/components/panels/MetricsHeader";
+import { CommandPalette } from "@/components/panels/CommandPalette";
 import { RepositoryImportWizard } from "@/components/panels/RepositoryImportWizard";
 import { TimelinePanel } from "@/components/panels/TimelinePanel";
 import { useAnalysisData } from "@/hooks/useAnalysisData";
@@ -149,6 +150,7 @@ export function DashboardApp() {
           </div>
 
           <div className="flex flex-wrap items-center justify-end gap-2">
+            <CommandPalette onOpenImportWizard={() => setImportWizardOpen(true)} />
             <button
               type="button"
               onClick={() => setImportWizardOpen(true)}

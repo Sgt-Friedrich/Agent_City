@@ -36,6 +36,7 @@ export function FilterPanel() {
   const filters = useDashboardStore((state) => state.filters);
   const viewMode = useDashboardStore((state) => state.viewMode);
   const diagnosticMode = useDashboardStore((state) => state.diagnosticMode);
+  const diagnosticFocus = useDashboardStore((state) => state.diagnosticFocus);
   const searchQuery = useDashboardStore((state) => state.searchQuery);
   const parseJobs = useDashboardStore((state) => state.parseJobs);
   const diagnostics = useDashboardStore((state) => state.diagnosticsSummary);
@@ -48,6 +49,7 @@ export function FilterPanel() {
   const setSearchQuery = useDashboardStore((state) => state.setSearchQuery);
   const setViewMode = useDashboardStore((state) => state.setViewMode);
   const setDiagnosticMode = useDashboardStore((state) => state.setDiagnosticMode);
+  const setDiagnosticFocus = useDashboardStore((state) => state.setDiagnosticFocus);
   const setSelectedTrace = useDashboardStore((state) => state.setSelectedTrace);
   const setTarget = useDashboardStore((state) => state.setTarget);
   const resetFilters = useDashboardStore((state) => state.resetFilters);
@@ -61,6 +63,13 @@ export function FilterPanel() {
     { id: "realtime", label: t("filter.mode.realtime") },
     { id: "heatmap", label: t("filter.mode.heatmap") },
     { id: "errors", label: t("filter.mode.errors") },
+  ];
+  const diagnosticFocusModes: Array<{ id: "all" | "errors" | "slow" | "congestion" | "retry_fallback"; label: string }> = [
+    { id: "all", label: "all" },
+    { id: "errors", label: "errors" },
+    { id: "slow", label: "slow" },
+    { id: "congestion", label: "congestion" },
+    { id: "retry_fallback", label: "retry/fallback" },
   ];
   const workbenchViews: Array<{ id: DashboardMode; label: string }> = [
     { id: "overview", label: t("nav.overview") },
@@ -122,6 +131,7 @@ export function FilterPanel() {
             onClick={() => {
               setViewMode("diagnostics");
               setDiagnosticMode("errors");
+              setDiagnosticFocus("errors");
               setStatusFilter(["error"]);
             }}
           >
@@ -138,7 +148,8 @@ export function FilterPanel() {
             onClick={() => {
               setViewMode("diagnostics");
               setDiagnosticMode("errors");
-              setSearchQuery("status:error retry fallback");
+              setDiagnosticFocus("retry_fallback");
+              setSearchQuery("has:retry,fallback");
             }}
           >
             {t("filter.quick.fallbackRetry")}{" "}
@@ -208,6 +219,25 @@ export function FilterPanel() {
             </button>
           ))}
         </div>
+        <div className="grid grid-cols-2 gap-1">
+          {diagnosticFocusModes.map((mode) => (
+            <button
+              key={mode.id}
+              type="button"
+              className={`rounded border px-2 py-1 text-[10px] uppercase tracking-wide ${
+                diagnosticFocus === mode.id
+                  ? "border-amber-400 bg-[#32230e] text-amber-100"
+                  : "border-line bg-[#0b1a2e] text-slate-500 hover:text-slate-300"
+              }`}
+              onClick={() => {
+                setViewMode("diagnostics");
+                setDiagnosticFocus(mode.id);
+              }}
+            >
+              {mode.label}
+            </button>
+          ))}
+        </div>
       </section>
 
       <section className="mt-4 space-y-2 rounded border border-line bg-[#0a1829] p-2">
@@ -219,6 +249,27 @@ export function FilterPanel() {
           placeholder={t("filter.searchPlaceholder")}
           className="w-full rounded border border-line bg-[#091425] px-2 py-1 text-xs text-slate-200 outline-none ring-0 placeholder:text-slate-500 focus:border-sky-400"
         />
+        <div className="mt-1 flex flex-wrap gap-1 text-[10px] text-slate-500">
+          {[
+            "type:tool",
+            "district:llm",
+            "status:error",
+            "has:retry",
+            "latency>700",
+            "qps>10",
+            "protocol:mcp",
+            "trace:trace_",
+          ].map((example) => (
+            <button
+              key={example}
+              type="button"
+              className="rounded border border-line bg-[#0b1728] px-1.5 py-0.5 hover:border-sky-400 hover:text-slate-300"
+              onClick={() => setSearchQuery(example)}
+            >
+              {example}
+            </button>
+          ))}
+        </div>
       </section>
 
       <section className="mt-4 space-y-2">

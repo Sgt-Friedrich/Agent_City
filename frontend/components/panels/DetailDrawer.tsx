@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 
+import { NextStepPanel } from "@/components/analysis/NextStepPanel";
 import { shortId } from "@/lib/utils";
 import { useDashboardStore } from "@/store/useDashboardStore";
 import { FlowEvent, Node } from "@/types/schema";
@@ -343,6 +344,8 @@ export function DetailDrawer({ hoveredEvent }: DetailDrawerProps) {
           </div>
         </section>
       )}
+
+      {!selectedNode && !selectedEvent && <NextStepPanel />}
     </aside>
   );
 }

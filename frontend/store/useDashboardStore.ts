@@ -33,9 +33,12 @@ interface ReplayState {
   speed: number;
 }
 
+export type DiagnosticFocus = "all" | "errors" | "slow" | "congestion" | "retry_fallback";
+
 interface DashboardState {
   viewMode: DashboardMode;
   diagnosticMode: DiagnosticMode;
+  diagnosticFocus: DiagnosticFocus;
   target: string;
   targets: TargetOption[];
   parseJobs: ParseJob[];
@@ -61,6 +64,7 @@ interface DashboardState {
   replay: ReplayState;
   setViewMode: (mode: DashboardMode) => void;
   setDiagnosticMode: (mode: DiagnosticMode) => void;
+  setDiagnosticFocus: (focus: DiagnosticFocus) => void;
   setTarget: (target: string) => void;
   setTargets: (targets: TargetOption[]) => void;
   setParseJobs: (jobs: ParseJob[]) => void;
@@ -109,6 +113,7 @@ const defaultFilters: Filters = {
 export const useDashboardStore = create<DashboardState>((set, get) => ({
   viewMode: "overview",
   diagnosticMode: "realtime",
+  diagnosticFocus: "all",
   target: "mock",
   targets: [],
   parseJobs: [],
@@ -146,6 +151,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
               : get().viewMode
           : "diagnostics",
     }),
+  setDiagnosticFocus: (diagnosticFocus) => set({ diagnosticFocus }),
 
   setTarget: (target) =>
     set({
@@ -157,6 +163,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       parserAnalysis: undefined,
       liveEvents: [],
       searchQuery: "",
+      diagnosticFocus: "all",
       selectedNodeId: undefined,
       selectedSpanId: undefined,
       selectedTraceId: undefined,

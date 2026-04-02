@@ -27,9 +27,12 @@ function Block({
 
 export function DiagnosticsCenter() {
   const diagnostics = useDashboardStore((state) => state.diagnosticsSummary);
+  const diagnosticFocus = useDashboardStore((state) => state.diagnosticFocus);
   const setSelectedNode = useDashboardStore((state) => state.setSelectedNode);
   const setTraceFilter = useDashboardStore((state) => state.setTraceFilter);
   const setViewMode = useDashboardStore((state) => state.setViewMode);
+  const setSearchQuery = useDashboardStore((state) => state.setSearchQuery);
+  const setDiagnosticFocus = useDashboardStore((state) => state.setDiagnosticFocus);
   const recentTraceHandles = Array.from(
     new Set(diagnostics?.error_nodes.flatMap((node) => node.recent_trace_ids) ?? []),
   ).slice(0, 10);
@@ -41,6 +44,44 @@ export function DiagnosticsCenter() {
       </section>
     );
   }
+
+  const focusCards: Array<{
+    id: "all" | "errors" | "slow" | "congestion" | "retry_fallback";
+    label: string;
+    count: number;
+    dsl: string;
+  }> = [
+    {
+      id: "all",
+      label: "all",
+      count: diagnostics.active_trace_count,
+      dsl: "",
+    },
+    {
+      id: "errors",
+      label: "errors",
+      count: diagnostics.error_event_count,
+      dsl: "status:error has:error",
+    },
+    {
+      id: "slow",
+      label: "slow",
+      count: diagnostics.slow_nodes.length,
+      dsl: "latency>700",
+    },
+    {
+      id: "congestion",
+      label: "congestion",
+      count: diagnostics.congested_nodes.length,
+      dsl: "has:error qps>5",
+    },
+    {
+      id: "retry_fallback",
+      label: "retry/fallback",
+      count: diagnostics.retry_event_count + diagnostics.fallback_event_count,
+      dsl: "has:retry,fallback",
+    },
+  ];
 
   return (
     <section data-testid="diagnostics-center" className="h-full overflow-y-auto p-3 scrollbar-thin">
@@ -56,6 +97,31 @@ export function DiagnosticsCenter() {
         </div>
       </div>
 
+      <section className="mt-3 rounded border border-line bg-[#0a1626] p-2">
+        <div className="panel-title text-xs uppercase tracking-wide text-slate-300">Diagnostic Focus</div>
+        <div className="mt-2 grid grid-cols-2 gap-2 xl:grid-cols-5">
+          {focusCards.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className={`rounded border px-2 py-1 text-left ${
+                diagnosticFocus === item.id
+                  ? "border-amber-400 bg-[#2f2512] text-amber-100"
+                  : "border-line bg-[#0f1f33] text-slate-300 hover:border-sky-400"
+              }`}
+              onClick={() => {
+                setViewMode("diagnostics");
+                setDiagnosticFocus(item.id);
+                setSearchQuery(item.dsl);
+              }}
+            >
+              <div className="text-[10px] uppercase tracking-wide">{item.label}</div>
+              <div className="mt-1 text-sm">{item.count}</div>
+            </button>
+          ))}
+        </div>
+      </section>
+
       <div className="mt-3 grid grid-cols-1 gap-3">
         <Block title="Slow Nodes" count={diagnostics.slow_nodes.length}>
           {diagnostics.slow_nodes.length === 0 && (
@@ -68,6 +134,8 @@ export function DiagnosticsCenter() {
               onClick={() => {
                 setSelectedNode(item.node_id);
                 setViewMode("diagnostics");
+                setDiagnosticFocus("slow");
+                setSearchQuery(`node:${item.node_id}`);
               }}
               className="w-full rounded border border-line bg-[#0c1a2d] px-2 py-1 text-left hover:border-sky-500"
             >
@@ -91,6 +159,8 @@ export function DiagnosticsCenter() {
               onClick={() => {
                 setSelectedNode(item.node_id);
                 setViewMode("diagnostics");
+                setDiagnosticFocus("errors");
+                setSearchQuery(`status:error node:${item.node_id}`);
               }}
               className="w-full rounded border border-rose-500/40 bg-[#2a1418] px-2 py-1 text-left hover:border-rose-400"
             >
@@ -116,6 +186,8 @@ export function DiagnosticsCenter() {
               onClick={() => {
                 setSelectedNode(item.node_id);
                 setViewMode("diagnostics");
+                setDiagnosticFocus("congestion");
+                setSearchQuery(`node:${item.node_id}`);
               }}
               className="w-full rounded border border-line bg-[#152438] px-2 py-1 text-left hover:border-yellow-300"
             >
@@ -140,6 +212,8 @@ export function DiagnosticsCenter() {
                 const traceId = diagnostics.slow_nodes.find((node) => node.node_id === edge.from_node)?.recent_trace_ids[0];
                 setTraceFilter(traceId);
                 setViewMode("diagnostics");
+                setDiagnosticFocus("retry_fallback");
+                setSearchQuery(`has:retry,fallback node:${edge.from_node}`);
               }}
               className="w-full rounded border border-line bg-[#0c1a2d] px-2 py-1 text-left hover:border-cyan-400"
             >
@@ -174,7 +248,10 @@ export function DiagnosticsCenter() {
             <button
               key={traceId}
               type="button"
-              onClick={() => setTraceFilter(traceId)}
+              onClick={() => {
+                setTraceFilter(traceId);
+                setViewMode("replay");
+              }}
               className="rounded border border-line bg-[#10253b] px-1.5 py-0.5 text-[10px] text-slate-200 hover:border-sky-400"
             >
               {shortId(traceId)}

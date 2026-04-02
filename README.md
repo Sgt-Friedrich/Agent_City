@@ -57,6 +57,13 @@ Main window layout:
 - Right: inspector / diagnostics details
 - Bottom: timeline / task stream
 
+Interaction accelerators:
+- clickable KPI cards with trend sparklines
+- semantic mini-map navigator (activity/errors/parser overlays)
+- search DSL (`type:tool`, `status:error`, `has:retry`, `latency>700`, `qps>10`, `-term`)
+- command palette + keyboard shortcuts (`Ctrl/Cmd+K`, `Alt+1..9`)
+- intelligent next-step recommendations in inspector
+
 ---
 
 ## 4. Control Plane Modules / 控制平面模块

@@ -35,6 +35,10 @@ function normalizeZ(value: number): number {
 
 export function CityMiniMap({ topology, nodes, events, replayTraceId }: CityMiniMapProps) {
   const [overlay, setOverlay] = useState<"activity" | "errors" | "parser">("activity");
+  const districtFilters = useDashboardStore((state) => state.filters.districtIds);
+  const setDiagnosticFocus = useDashboardStore((state) => state.setDiagnosticFocus);
+  const setDiagnosticMode = useDashboardStore((state) => state.setDiagnosticMode);
+  const setSearchQuery = useDashboardStore((state) => state.setSearchQuery);
   const setDistrictFilter = useDashboardStore((state) => state.setDistrictFilter);
   const setViewMode = useDashboardStore((state) => state.setViewMode);
   const diagnostics = useDashboardStore((state) => state.diagnosticsSummary);
@@ -124,11 +128,19 @@ export function CityMiniMap({ topology, nodes, events, replayTraceId }: CityMini
               {mode}
             </button>
           ))}
+          <button
+            type="button"
+            className="rounded border border-line bg-[#0b1728] px-1 py-0.5 text-[9px] uppercase text-slate-500 hover:text-slate-300"
+            onClick={() => setDistrictFilter([])}
+          >
+            reset
+          </button>
         </div>
       </div>
       <svg width={mapWidth} height={mapHeight} className="mt-1 overflow-visible">
         {districts.map(({ district, x, y, w, h }) => {
           const style = districtStyle(district.type, { active: activeSet.has(district.id) });
+          const selected = districtFilters.includes(district.id);
           return (
             <g key={district.id}>
               <rect
@@ -140,12 +152,23 @@ export function CityMiniMap({ topology, nodes, events, replayTraceId }: CityMini
                 fill={style.fill}
                 fillOpacity={activeSet.has(district.id) ? style.fillOpacity + 0.14 : style.fillOpacity + 0.05}
                 stroke={style.border}
-                strokeOpacity={style.borderOpacity}
-                strokeWidth={activeSet.has(district.id) ? 1.8 : 1}
+                strokeOpacity={selected ? 1 : style.borderOpacity}
+                strokeWidth={selected ? 2.4 : activeSet.has(district.id) ? 1.8 : 1}
                 className="cursor-pointer"
                 onClick={() => {
                   setDistrictFilter([district.id]);
-                  setViewMode("overview");
+                  if (overlay === "parser") {
+                    setViewMode("parser_analysis");
+                    setSearchQuery(`district:${district.id}`);
+                  } else if (overlay === "errors") {
+                    setViewMode("diagnostics");
+                    setDiagnosticMode("errors");
+                    setDiagnosticFocus("errors");
+                    setSearchQuery(`district:${district.id} status:error`);
+                  } else {
+                    setViewMode("overview");
+                    setSearchQuery(`district:${district.id}`);
+                  }
                 }}
               />
               <text
@@ -164,4 +187,3 @@ export function CityMiniMap({ topology, nodes, events, replayTraceId }: CityMini
     </div>
   );
 }
-

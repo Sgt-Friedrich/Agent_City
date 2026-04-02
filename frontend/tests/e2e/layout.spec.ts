@@ -40,6 +40,10 @@ test("dashboard renders core zones and replay route is reachable", async ({ page
   await expect(page.getByTestId("detail-drawer")).toBeVisible();
   await expect(page.getByTestId("timeline-panel")).toBeVisible();
 
+  await page.getByRole("button", { name: /command palette/i }).click();
+  await expect(page.getByPlaceholder(/type a command or shortcut/i)).toBeVisible();
+  await page.keyboard.press("Escape");
+
   await page.getByRole("button", { name: /^trace$/i }).click();
   await expect(page.getByText(/spans/i).first()).toBeVisible();
   await page.getByRole("button", { name: /^time$/i }).click();

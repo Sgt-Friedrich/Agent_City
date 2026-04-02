@@ -11,6 +11,7 @@ import { DistrictGround } from "@/components/city/DistrictGround";
 import { EdgeRoad } from "@/components/city/EdgeRoad";
 import { LiveFlows } from "@/components/city/LiveFlows";
 import { DashboardMode, DiagnosticMode } from "@/lib/visualTheme";
+import { useDashboardStore } from "@/store/useDashboardStore";
 import { Edge, FlowEvent, Node, TopologyGraph } from "@/types/schema";
 
 interface CitySceneProps {
@@ -58,6 +59,7 @@ export function CityScene({
   onSelectEvent,
   onHoverEvent,
 }: CitySceneProps) {
+  const diagnosticFocus = useDashboardStore((state) => state.diagnosticFocus);
   const nodesById = useMemo<Record<string, Node>>(() => {
     return nodes.reduce<Record<string, Node>>((acc, node) => {
       acc[node.id] = node;
@@ -117,6 +119,27 @@ export function CityScene({
       counts.set(key, (counts.get(key) ?? 0) + 1);
     }
     return counts;
+  }, [events]);
+
+  const edgeEventStats = useMemo(() => {
+    const map = new Map<
+      string,
+      { error: number; retry: number; fallback: number; maxLatency: number; maxQueue: number }
+    >();
+    for (const event of events) {
+      if (!event.to_node) continue;
+      const key = `${event.from_node}::${event.to_node}`;
+      const prev = map.get(key) ?? { error: 0, retry: 0, fallback: 0, maxLatency: 0, maxQueue: 0 };
+      const queueDepth = Number(event.attributes?.queue_depth ?? 0);
+      map.set(key, {
+        error: prev.error + (event.status === "error" ? 1 : 0),
+        retry: prev.retry + (event.retry_count > 0 ? 1 : 0),
+        fallback: prev.fallback + (event.fallback_from ? 1 : 0),
+        maxLatency: Math.max(prev.maxLatency, event.latency_ms),
+        maxQueue: Math.max(prev.maxQueue, queueDepth),
+      });
+    }
+    return map;
   }, [events]);
 
   const trunkEdgeSet = useMemo(() => {
@@ -277,10 +300,46 @@ export function CityScene({
             selectedEvent?.from_node === edge.from && selectedEvent?.to_node === edge.to;
           const inFocusedPath = focusedEdgeSet.has(pairKey);
           const isTrunkEdge = trunkEdgeSet.has(pairKey) || edge.kind === "invocation";
+          const stat = edgeEventStats.get(pairKey);
+          const hasErrorSignal = (stat?.error ?? 0) > 0 || (stat?.retry ?? 0) > 0 || (stat?.fallback ?? 0) > 0;
+          const hasSlowSignal = (stat?.maxLatency ?? 0) >= 700;
+          const hasCongestionSignal = (stat?.maxQueue ?? 0) >= 5;
+          const focusSignal =
+            diagnosticFocus === "all"
+              ? true
+              : diagnosticFocus === "errors"
+                ? hasErrorSignal
+                : diagnosticFocus === "retry_fallback"
+                  ? (stat?.retry ?? 0) > 0 || (stat?.fallback ?? 0) > 0
+                  : diagnosticFocus === "slow"
+                    ? hasSlowSignal
+                    : hasCongestionSignal;
           const renderLayer: "primary" | "secondary" | "suppressed" = focusedTraceId
             ? inFocusedPath
               ? "primary"
               : "suppressed"
+            : viewMode === "diagnostics"
+              ? diagnosticFocus !== "all"
+                ? focusSignal
+                  ? "primary"
+                  : "suppressed"
+                : diagnosticMode === "errors"
+                  ? hasErrorSignal
+                    ? "primary"
+                    : isTrunkEdge
+                      ? "secondary"
+                      : "suppressed"
+                  : diagnosticMode === "heatmap"
+                    ? hasSlowSignal || hasCongestionSignal
+                      ? "primary"
+                      : isTrunkEdge
+                        ? "secondary"
+                        : "suppressed"
+                    : highlighted
+                      ? "primary"
+                      : isTrunkEdge
+                        ? "secondary"
+                        : "suppressed"
             : highlighted
               ? "primary"
               : isTrunkEdge

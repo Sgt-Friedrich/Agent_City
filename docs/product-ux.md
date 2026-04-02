@@ -39,6 +39,7 @@ Design intent: one-step access to common workflows, no deep nested menu.
 - quick analysis entry
 - filters/search
 - legends
+- DSL search shortcuts and diagnostic focus chips
 
 ### Center workspace
 - city view (overview/live/replay/diagnostics)
@@ -52,6 +53,7 @@ Design intent: one-step access to common workflows, no deep nested menu.
 - node/span detail
 - diagnostics hotspot support
 - context actions
+- intelligent next-step recommendations when nothing is selected
 
 ### Bottom strip
 - timeline (architecture modes)
@@ -87,6 +89,11 @@ Design intent: one-step access to common workflows, no deep nested menu.
 ### Settings center
 - runtime snapshot + persistent app settings
 - language switching (`zh` / `en`) with immediate UI refresh
+
+### Command palette and shortcuts
+- command palette (Ctrl/Cmd + K)
+- quick mode switch (Alt + 1..9)
+- operational shortcuts for import and diagnostics
 
 ## 6. i18n UX Rules
 
