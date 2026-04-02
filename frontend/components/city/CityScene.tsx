@@ -1,15 +1,18 @@
 "use client";
 
-import { useMemo } from "react";
+import { RefObject, useCallback, useMemo, useRef, useState } from "react";
 
 import { OrbitControls } from "@react-three/drei";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import * as THREE from "three";
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 
 import { BuildingNode } from "@/components/city/BuildingNode";
 import { CityMiniMap } from "@/components/city/CityMiniMap";
 import { DistrictGround } from "@/components/city/DistrictGround";
 import { EdgeRoad } from "@/components/city/EdgeRoad";
 import { LiveFlows } from "@/components/city/LiveFlows";
+import { useI18n } from "@/hooks/useI18n";
 import { DashboardMode, DiagnosticMode } from "@/lib/visualTheme";
 import { useDashboardStore } from "@/store/useDashboardStore";
 import { Edge, FlowEvent, Node, TopologyGraph } from "@/types/schema";
@@ -34,14 +37,68 @@ interface CitySceneProps {
   onHoverEvent: (event?: FlowEvent) => void;
 }
 
-function relativeTimeLabel(timestamp?: string): string {
-  if (!timestamp) return "n/a";
-  const delta = Date.now() - new Date(timestamp).getTime();
-  if (!Number.isFinite(delta) || delta < 0) return "just now";
-  if (delta < 4_000) return "just now";
-  if (delta < 60_000) return `${Math.floor(delta / 1000)}s ago`;
-  if (delta < 3_600_000) return `${Math.floor(delta / 60_000)}m ago`;
-  return `${Math.floor(delta / 3_600_000)}h ago`;
+interface CameraViewSnapshot {
+  x: number;
+  z: number;
+  distance: number;
+}
+
+interface CameraDirectorProps {
+  controlsRef: RefObject<OrbitControlsImpl | null>;
+  navigationTarget?: { x: number; z: number };
+  replayFollowTarget?: { x: number; z: number };
+  onSnapshot: (snapshot: CameraViewSnapshot) => void;
+  onNavigationSettled: () => void;
+}
+
+function CameraDirector({
+  controlsRef,
+  navigationTarget,
+  replayFollowTarget,
+  onSnapshot,
+  onNavigationSettled,
+}: CameraDirectorProps) {
+  const { camera } = useThree();
+  const tick = useRef(0);
+
+  useFrame((_, delta) => {
+    const controls = controlsRef.current;
+    if (!controls) return;
+
+    let forceSnapshot = false;
+
+    if (navigationTarget) {
+      const target = new THREE.Vector3(navigationTarget.x, 0, navigationTarget.z);
+      controls.target.lerp(target, 0.2);
+      const desiredPos = target.clone().add(new THREE.Vector3(56, 112, 56));
+      camera.position.lerp(desiredPos, 0.14);
+      controls.update();
+      forceSnapshot = true;
+
+      if (controls.target.distanceTo(target) < 0.9 && camera.position.distanceTo(desiredPos) < 2.4) {
+        onNavigationSettled();
+      }
+    } else if (replayFollowTarget) {
+      const target = new THREE.Vector3(replayFollowTarget.x, 0, replayFollowTarget.z);
+      controls.target.lerp(target, 0.08);
+      const desiredPos = target.clone().add(new THREE.Vector3(50, 95, 48));
+      camera.position.lerp(desiredPos, 0.055);
+      controls.update();
+      forceSnapshot = true;
+    }
+
+    tick.current += delta;
+    if (forceSnapshot || tick.current > 0.17) {
+      tick.current = 0;
+      onSnapshot({
+        x: controls.target.x,
+        z: controls.target.z,
+        distance: camera.position.distanceTo(controls.target),
+      });
+    }
+  });
+
+  return null;
 }
 
 export function CityScene({
@@ -59,7 +116,15 @@ export function CityScene({
   onSelectEvent,
   onHoverEvent,
 }: CitySceneProps) {
+  const { t, formatRelativeTime } = useI18n();
+  const controlsRef = useRef<OrbitControlsImpl | null>(null);
+  const [cameraView, setCameraView] = useState<CameraViewSnapshot>({ x: 0, z: 0, distance: 165 });
+  const [navigationTarget, setNavigationTarget] = useState<{ x: number; z: number }>();
+
   const diagnosticFocus = useDashboardStore((state) => state.diagnosticFocus);
+  const setSelectedTrace = useDashboardStore((state) => state.setSelectedTrace);
+  const setSelectedSpan = useDashboardStore((state) => state.setSelectedSpan);
+
   const nodesById = useMemo<Record<string, Node>>(() => {
     return nodes.reduce<Record<string, Node>>((acc, node) => {
       acc[node.id] = node;
@@ -219,6 +284,26 @@ export function CityScene({
     });
   }, [edges]);
 
+  const replayFollowTarget = useMemo(() => {
+    if (!replay?.enabled || !selectedEvent) return undefined;
+    const nodeId = selectedEvent.to_node ?? selectedEvent.from_node;
+    const node = nodesById[nodeId];
+    if (!node) return undefined;
+    return { x: node.position.x, z: node.position.z };
+  }, [nodesById, replay?.enabled, selectedEvent]);
+
+  const focusedPathPreview = useMemo(() => {
+    if (!focusedEvents.length) return undefined;
+    const chain = focusedEvents.slice(0, 5).map((event) => {
+      const from = nodesById[event.from_node]?.name ?? event.from_node.split(".").at(-1) ?? event.from_node;
+      const to = event.to_node
+        ? nodesById[event.to_node]?.name ?? event.to_node.split(".").at(-1) ?? event.to_node
+        : "internal";
+      return `${from} -> ${to}`;
+    });
+    return chain.join(" | ");
+  }, [focusedEvents, nodesById]);
+
   const sceneTone = useMemo(() => {
     if (replay?.enabled) {
       return {
@@ -264,6 +349,34 @@ export function CityScene({
     };
   }, [diagnosticMode, replay?.enabled, viewMode]);
 
+  const handleSnapshot = useCallback((snapshot: CameraViewSnapshot) => {
+    setCameraView((prev) => {
+      const moved =
+        Math.abs(prev.x - snapshot.x) > 0.8 ||
+        Math.abs(prev.z - snapshot.z) > 0.8 ||
+        Math.abs(prev.distance - snapshot.distance) > 1.2;
+      return moved ? snapshot : prev;
+    });
+  }, []);
+
+  const modeHeadline =
+    viewMode === "diagnostics"
+      ? `${t("nav.diagnostics")} / ${diagnosticMode}`
+      : viewMode === "live"
+        ? t("nav.live")
+        : replay?.enabled
+          ? t("nav.replay")
+          : t("nav.overview");
+
+  const modeHint =
+    viewMode === "diagnostics"
+      ? t("city.modeHint.diagnostics")
+      : viewMode === "live"
+        ? t("city.modeHint.live")
+        : replay?.enabled
+          ? t("city.modeHint.replay")
+          : t("city.modeHint.overview");
+
   return (
     <div data-testid="city-scene" className="city-shell h-full w-full">
       <div className="grid-lines" />
@@ -288,6 +401,7 @@ export function CityScene({
             diagnosticMode={diagnosticMode}
             active={activeDistrictIds.has(district.id)}
             dimmed={Boolean(replay?.enabled && replay.traceId && !activeDistrictIds.has(district.id))}
+            compactLabel={cameraView.distance > 148}
           />
         ))}
 
@@ -340,16 +454,11 @@ export function CityScene({
                       : isTrunkEdge
                         ? "secondary"
                         : "suppressed"
-                    : highlighted
-                      ? "primary"
-                      : isTrunkEdge
-                        ? "secondary"
-                        : "suppressed";
-
-          // Suppressed links are intentionally hidden to reduce edge clutter.
-          if (renderLayer === "suppressed") {
-            return null;
-          }
+              : highlighted
+                ? "primary"
+                : isTrunkEdge
+                  ? "secondary"
+                  : "suppressed";
 
           return (
             <EdgeRoad
@@ -357,7 +466,7 @@ export function CityScene({
               edge={edge}
               fromNode={from}
               toNode={to}
-              highlighted={highlighted}
+              highlighted={highlighted || inFocusedPath}
               renderLayer={renderLayer}
               diagnosticMode={diagnosticMode}
               dimmed={false}
@@ -381,17 +490,13 @@ export function CityScene({
               key={node.id}
               node={node}
               highlighted={selectedNodeId === node.id}
+              pathHighlighted={focusedTraceId ? activeNodeIds.has(node.id) : false}
               active={activeNodeIds.has(node.id)}
               diagnosticMode={diagnosticMode}
-              dimmed={
-                Boolean(
-                  focusedTraceId &&
-                    !activeNodeIds.has(node.id),
-                )
-              }
+              dimmed={Boolean(focusedTraceId && !activeNodeIds.has(node.id))}
               activity={{
                 districtName: districtNameById[node.district_id],
-                lastActiveLabel: relativeTimeLabel(activity?.latest),
+                lastActiveLabel: formatRelativeTime(activity?.latest),
                 inboundTop,
                 outboundTop,
               }}
@@ -412,6 +517,7 @@ export function CityScene({
         />
 
         <OrbitControls
+          ref={controlsRef}
           makeDefault
           enablePan={false}
           minDistance={70}
@@ -419,13 +525,51 @@ export function CityScene({
           maxPolarAngle={Math.PI / 2.2}
           minPolarAngle={Math.PI / 4.6}
         />
+
+        <CameraDirector
+          controlsRef={controlsRef}
+          navigationTarget={navigationTarget}
+          replayFollowTarget={replay?.enabled ? replayFollowTarget : undefined}
+          onSnapshot={handleSnapshot}
+          onNavigationSettled={() => setNavigationTarget(undefined)}
+        />
       </Canvas>
+
+      <div className="pointer-events-none absolute right-3 top-3 z-10 w-[300px] rounded border border-line bg-[#081626dc] p-2 text-[11px] text-slate-200 shadow-glow">
+        <div className="panel-title text-[11px] uppercase tracking-wide text-cyan-200">{modeHeadline}</div>
+        <div className="mt-1 text-[10px] text-slate-400">{modeHint}</div>
+        <div className="mt-1 text-[10px] text-slate-400">
+          {t("metrics.activeFlows")}: {activeEvents.length} | {t("filter.trace")}: {focusedTraceId ? focusedTraceId.slice(-8) : t("common.none")}
+        </div>
+        {focusedPathPreview ? (
+          <div className="mt-2 rounded border border-line bg-[#0b1a2c] px-2 py-1 text-[10px] text-slate-300">{focusedPathPreview}</div>
+        ) : null}
+      </div>
+
+      {focusedTraceId ? (
+        <div className="absolute left-3 top-3 z-10 flex items-center gap-2 rounded border border-line bg-[#091323e3] px-2 py-1 text-[10px] text-slate-300 shadow-glow">
+          <span className="panel-title uppercase tracking-wide text-sky-200">{t("city.focusTrace")}</span>
+          <span>{focusedTraceId.slice(-10)}</span>
+          <button
+            type="button"
+            className="pointer-events-auto rounded border border-line bg-[#0f2238] px-1.5 py-0.5 text-[10px] hover:border-sky-400"
+            onClick={() => {
+              setSelectedTrace(undefined);
+              setSelectedSpan(undefined, undefined);
+            }}
+          >
+            {t("city.clearFocus")}
+          </button>
+        </div>
+      ) : null}
 
       <CityMiniMap
         topology={topology}
         nodes={nodes}
         events={activeEvents}
         replayTraceId={replay?.enabled ? replay.traceId : undefined}
+        cameraView={cameraView}
+        onNavigateDistrict={(district) => setNavigationTarget({ x: district.position.x, z: district.position.z })}
       />
     </div>
   );

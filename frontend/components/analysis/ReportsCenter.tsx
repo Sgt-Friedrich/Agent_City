@@ -187,7 +187,7 @@ export function ReportsCenter() {
   const openDocsDirectory = async () => {
     const result = await openReportsDirectory();
     if (!result.ok) {
-      setMessage(result.message ?? `desktop shell not attached; docs root: ${docsRoot}`);
+      setMessage(result.message ?? `${t("reports.docsHint")}: ${docsRoot}`);
     }
   };
 
@@ -244,9 +244,9 @@ export function ReportsCenter() {
         </div>
 
         <div className="mt-2 grid grid-cols-1 gap-1 text-[11px] text-slate-400 xl:grid-cols-3">
-          <div>target: {target}</div>
-          <div>shell: {desktopStatus?.shellMode ?? "browser"}</div>
-          <div>docs root: {docsRoot || "not available"}</div>
+          <div>{t("reports.meta.target")}: {target}</div>
+          <div>{t("reports.meta.shell")}: {desktopStatus?.shellMode ?? t("header.browserMode")}</div>
+          <div>{t("reports.meta.docsRoot")}: {docsRoot || t("common.na")}</div>
         </div>
 
         {message && <div className="mt-2 text-xs text-emerald-300">{message}</div>}
@@ -281,7 +281,7 @@ export function ReportsCenter() {
                   {artifact.file_name} | {prettySize(artifact.size_bytes)}
                 </div>
                 <div className="mt-1 text-[10px] text-slate-500">
-                  links: T{artifact.related_trace_ids?.length ?? 0} / N{artifact.related_node_ids?.length ?? 0} / J{artifact.related_job_ids?.length ?? 0}
+                  {t("reports.meta.links")}: T{artifact.related_trace_ids?.length ?? 0} / N{artifact.related_node_ids?.length ?? 0} / J{artifact.related_job_ids?.length ?? 0}
                 </div>
               </button>
             ))}

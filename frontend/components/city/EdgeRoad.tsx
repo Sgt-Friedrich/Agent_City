@@ -34,6 +34,11 @@ export function EdgeRoad({
     const end: [number, number, number] = [toNode.position.x, 0.6, toNode.position.z];
     return [start, end];
   }, [fromNode.position.x, fromNode.position.z, toNode.position.x, toNode.position.z]);
+  const roadBasePoints = useMemo<[number, number, number][]>(() => {
+    const start: [number, number, number] = [fromNode.position.x, 0.22, fromNode.position.z];
+    const end: [number, number, number] = [toNode.position.x, 0.22, toNode.position.z];
+    return [start, end];
+  }, [fromNode.position.x, fromNode.position.z, toNode.position.x, toNode.position.z]);
 
   const arrow = useMemo(() => {
     const start = new THREE.Vector3(fromNode.position.x, 0.8, fromNode.position.z);
@@ -47,6 +52,14 @@ export function EdgeRoad({
 
   return (
     <group>
+      <Line
+        points={roadBasePoints}
+        color="#223345"
+        lineWidth={renderLayer === "primary" ? style.width + 2.7 : style.width + 1.95}
+        transparent
+        opacity={renderLayer === "suppressed" ? 0.18 : 0.3}
+        dashed={false}
+      />
       <Line
         points={points}
         color={style.color}
@@ -66,10 +79,12 @@ export function EdgeRoad({
         opacity={style.glowOpacity}
         dashed={false}
       />
-      <mesh position={arrow.position} rotation={[Math.PI / 2, 0, -arrow.angle]} scale={[1, 1, 1]}>
-        <coneGeometry args={[0.48, 1.4, 6]} />
-        <meshStandardMaterial color={style.glowColor} emissive={style.glowColor} emissiveIntensity={0.18} transparent opacity={style.opacity} />
-      </mesh>
+      {renderLayer !== "suppressed" ? (
+        <mesh position={arrow.position} rotation={[Math.PI / 2, 0, -arrow.angle]} scale={[1, 1, 1]}>
+          <coneGeometry args={[0.48, 1.4, 6]} />
+          <meshStandardMaterial color={style.glowColor} emissive={style.glowColor} emissiveIntensity={0.18} transparent opacity={style.opacity} />
+        </mesh>
+      ) : null}
     </group>
   );
 }

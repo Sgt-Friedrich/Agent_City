@@ -12,16 +12,6 @@ interface DetailDrawerProps {
   hoveredEvent?: FlowEvent;
 }
 
-function recentLabel(timestamp?: string): string {
-  if (!timestamp) return "n/a";
-  const delta = Date.now() - new Date(timestamp).getTime();
-  if (!Number.isFinite(delta) || delta < 0) return "just now";
-  if (delta < 2_000) return "just now";
-  if (delta < 60_000) return `${Math.floor(delta / 1000)}s ago`;
-  if (delta < 3_600_000) return `${Math.floor(delta / 60_000)}m ago`;
-  return `${Math.floor(delta / 3_600_000)}h ago`;
-}
-
 function mockTrend(seed: string): number[] {
   let hash = 0;
   for (let i = 0; i < seed.length; i += 1) {
@@ -36,7 +26,7 @@ function mockTrend(seed: string): number[] {
 }
 
 export function DetailDrawer({ hoveredEvent }: DetailDrawerProps) {
-  const { t } = useI18n();
+  const { t, formatRelativeTime } = useI18n();
   const [showNodeDetail, setShowNodeDetail] = useState(false);
   const [showFlowDetail, setShowFlowDetail] = useState(false);
   const [payloadRaw, setPayloadRaw] = useState(false);
@@ -203,7 +193,7 @@ export function DetailDrawer({ hoveredEvent }: DetailDrawerProps) {
             <div className="text-[11px] text-slate-400">{nodeContext?.districtSummary}</div>
             <div className="mt-1 grid grid-cols-2 gap-1 text-[11px] text-slate-400">
               <div>{t("drawer.status")}: {selectedNode.status}</div>
-              <div>{t("drawer.lastActive")}: {recentLabel(nodeContext?.latestTimestamp)}</div>
+              <div>{t("drawer.lastActive")}: {formatRelativeTime(nodeContext?.latestTimestamp)}</div>
               <div>{t("drawer.qps")}: {(selectedNode.metrics?.qps ?? 0).toFixed(2)}</div>
               <div>{t("drawer.p95")}: {(selectedNode.metrics?.p95_ms ?? 0).toFixed(0)}ms</div>
               <div>{t("drawer.errorRate")}: {((selectedNode.metrics?.error_rate ?? 0) * 100).toFixed(2)}%</div>

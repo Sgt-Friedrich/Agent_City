@@ -57,8 +57,8 @@ export function DiagnosticsCenter() {
       incidents.push({
         id: `error-${node.node_id}`,
         severity: node.error_rate >= 0.2 ? "high" : "medium",
-        title: `${node.name} error hotspot`,
-        detail: `error=${prettyPct(node.error_rate)} queue=${node.queue_depth} active=${node.active_count}`,
+        title: `${node.name} ${t("diagnostics.incident.errorHotspot")}`,
+        detail: `${t("diagnostics.metric.error")}=${prettyPct(node.error_rate)} ${t("drawer.queue")}=${node.queue_depth} ${t("diagnostics.metric.active")}=${node.active_count}`,
         score: node.score * 1.5 + node.error_rate * 100,
         action: () => {
           setSelectedNode(node.node_id);
@@ -73,8 +73,8 @@ export function DiagnosticsCenter() {
       incidents.push({
         id: `slow-${node.node_id}`,
         severity: node.p95_ms >= 1200 ? "high" : "medium",
-        title: `${node.name} latency hotspot`,
-        detail: `p95=${prettyMs(node.p95_ms)} qps=${node.qps.toFixed(2)}`,
+        title: `${node.name} ${t("diagnostics.incident.latencyHotspot")}`,
+        detail: `${t("drawer.p95")}=${prettyMs(node.p95_ms)} ${t("drawer.qps")}=${node.qps.toFixed(2)}`,
         score: node.score * 1.2 + node.p95_ms / 10,
         action: () => {
           setSelectedNode(node.node_id);
@@ -90,8 +90,8 @@ export function DiagnosticsCenter() {
       incidents.push({
         id: `edge-${edge.edge_id}`,
         severity: edgeRisk >= 30 ? "high" : edgeRisk >= 16 ? "medium" : "low",
-        title: `${edge.from_node.split(".").at(-1)} -> ${edge.to_node.split(".").at(-1)} unstable edge`,
-        detail: `err=${edge.error_count} retry=${edge.retry_count} fallback=${edge.fallback_count}`,
+        title: `${edge.from_node.split(".").at(-1)} -> ${edge.to_node.split(".").at(-1)} ${t("diagnostics.incident.unstableEdge")}`,
+        detail: `${t("diagnostics.metric.errorShort")}=${edge.error_count} ${t("diagnostics.metric.retry")}=${edge.retry_count} ${t("diagnostics.metric.fallback")}=${edge.fallback_count}`,
         score: edge.score + edgeRisk,
         action: () => {
           setViewMode("diagnostics");
@@ -102,7 +102,7 @@ export function DiagnosticsCenter() {
     }
 
     return incidents.sort((a, b) => b.score - a.score).slice(0, 6);
-  }, [diagnostics, setDiagnosticFocus, setSearchQuery, setSelectedNode, setViewMode]);
+  }, [diagnostics, setDiagnosticFocus, setSearchQuery, setSelectedNode, setViewMode, t]);
 
   if (!diagnostics) {
     return (
@@ -271,7 +271,7 @@ export function DiagnosticsCenter() {
                 <span className="text-[10px] text-rose-300">{prettyPct(item.error_rate)}</span>
               </div>
               <div className="text-[10px] text-slate-300">
-                queue {item.queue_depth} | active {item.active_count}
+                {t("drawer.queue")} {item.queue_depth} | {t("diagnostics.metric.active")} {item.active_count}
               </div>
             </button>
           ))}
@@ -326,7 +326,7 @@ export function DiagnosticsCenter() {
                 <span className="text-[10px] text-cyan-300">{prettyMs(edge.avg_latency_ms)}</span>
               </div>
               <div className="text-[10px] text-slate-400">
-                err {edge.error_count} | retry {edge.retry_count} | fallback {edge.fallback_count}
+                {t("diagnostics.metric.errorShort")} {edge.error_count} | {t("diagnostics.metric.retry")} {edge.retry_count} | {t("diagnostics.metric.fallback")} {edge.fallback_count}
               </div>
             </button>
           ))}

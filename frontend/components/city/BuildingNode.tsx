@@ -20,6 +20,7 @@ interface NodeActivitySummary {
 interface BuildingNodeProps {
   node: Node;
   highlighted?: boolean;
+  pathHighlighted?: boolean;
   dimmed?: boolean;
   active?: boolean;
   activity?: NodeActivitySummary;
@@ -149,6 +150,7 @@ function BuildingBody({
 export function BuildingNode({
   node,
   highlighted,
+  pathHighlighted,
   dimmed,
   active,
   activity,
@@ -157,10 +159,15 @@ export function BuildingNode({
 }: BuildingNodeProps) {
   const { t } = useI18n();
   const [hovered, setHovered] = useState(false);
-  const [showNearLabel, setShowNearLabel] = useState(false);
+  const [labelMode, setLabelMode] = useState<"none" | "mini" | "full">("none");
   const { camera } = useThree();
   const statusRef = useRef<THREE.Mesh>(null);
+  const focusRingRef = useRef<THREE.Mesh>(null);
   const visibilityTicker = useRef(0);
+  const coreNode = useMemo(
+    () => ["planner", "llm", "guardrail", "runtime", "event_bus"].includes(node.type),
+    [node.type],
+  );
 
   const visual = useMemo(
     () => nodeStyle(node, { hovered, highlighted, dimmed, active, diagnosticMode }),
@@ -174,6 +181,12 @@ export function BuildingNode({
         : 0.72;
       statusRef.current.scale.setScalar(pulse);
     }
+    if (focusRingRef.current) {
+      const pulse = (highlighted || pathHighlighted)
+        ? 1 + Math.sin(state.clock.elapsedTime * 5.2) * 0.06
+        : 1;
+      focusRingRef.current.scale.setScalar(pulse);
+    }
 
     visibilityTicker.current += delta;
     if (visibilityTicker.current > 0.22) {
@@ -181,7 +194,13 @@ export function BuildingNode({
       const dx = camera.position.x - node.position.x;
       const dz = camera.position.z - node.position.z;
       const distance = Math.sqrt(dx * dx + dz * dz);
-      setShowNearLabel(distance < 138);
+      const nextMode: "none" | "mini" | "full" =
+        distance < 104
+          ? "full"
+          : distance < 152 || (coreNode && distance < 188)
+            ? "mini"
+            : "none";
+      setLabelMode(nextMode);
     }
   });
 
@@ -228,11 +247,26 @@ export function BuildingNode({
         />
       </mesh>
 
-      {(showNearLabel || hovered || highlighted) && (
+      {(highlighted || pathHighlighted) ? (
+        <mesh ref={focusRingRef} position={[0, 0.08, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[Math.max(node.size * 0.66, 2.2), Math.max(node.size * 0.9, 2.9), 28]} />
+          <meshStandardMaterial
+            color={highlighted ? "#7dd7ff" : "#5ec0ff"}
+            emissive={highlighted ? "#7dd7ff" : "#5ec0ff"}
+            emissiveIntensity={highlighted ? 0.74 : 0.44}
+            transparent
+            opacity={highlighted ? 0.8 : 0.45}
+          />
+        </mesh>
+      ) : null}
+
+      {(labelMode !== "none" || hovered || highlighted) && (
         <Html position={[0, iconY + 1.05, 0]} center>
           <div className="rounded border border-line bg-[#071629df] px-2 py-1 text-[10px] text-slate-200 shadow-glow">
             <div className="panel-title text-[10px] uppercase tracking-wide text-slate-200">{visual.glyph}</div>
-            <div className="mt-0.5 max-w-[140px] truncate text-[10px] text-slate-300">{node.name}</div>
+            {(labelMode === "full" || hovered || highlighted) ? (
+              <div className="mt-0.5 max-w-[140px] truncate text-[10px] text-slate-300">{node.name}</div>
+            ) : null}
           </div>
         </Html>
       )}
