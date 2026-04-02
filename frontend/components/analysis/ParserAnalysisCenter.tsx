@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import { api } from "@/lib/api";
 import { shortId } from "@/lib/utils";
+import { useI18n } from "@/hooks/useI18n";
 import { useDashboardStore } from "@/store/useDashboardStore";
 import { Edge } from "@/types/schema";
 
@@ -28,6 +29,7 @@ function severityColor(level: string): string {
 }
 
 export function ParserAnalysisCenter() {
+  const { t } = useI18n();
   const [exporting, setExporting] = useState(false);
   const [running, setRunning] = useState<"reparse" | "regression" | "report" | null>(null);
   const [message, setMessage] = useState("");
@@ -38,6 +40,8 @@ export function ParserAnalysisCenter() {
   const setTarget = useDashboardStore((state) => state.setTarget);
   const setSelectedNode = useDashboardStore((state) => state.setSelectedNode);
   const setViewMode = useDashboardStore((state) => state.setViewMode);
+  const setSearchQuery = useDashboardStore((state) => state.setSearchQuery);
+  const setDiagnosticFocus = useDashboardStore((state) => state.setDiagnosticFocus);
   const upsertControlJob = useDashboardStore((state) => state.upsertControlJob);
 
   const sourceCoverage = useMemo(() => {
@@ -63,7 +67,83 @@ export function ParserAnalysisCenter() {
     : 0;
   const scoreLabel = repoScore >= 0.85 ? "A" : repoScore >= 0.72 ? "B" : repoScore >= 0.55 ? "C" : "D";
 
-  const runControlJob = async (kind: "reparse" | "regression" | "report") => {
+  const summaryItems = useMemo(() => {
+    if (!report) {
+      return [] as Array<{ level: "high" | "medium" | "low"; text: string }>;
+    }
+
+    const items: Array<{ level: "high" | "medium" | "low"; text: string }> = [];
+    if (report.parser_confidence < 0.7) {
+      items.push({
+        level: "high",
+        text: `${t("parser.summary.confidence")} ${report.parser_confidence.toFixed(3)} < 0.70`,
+      });
+    }
+    if (report.unresolved_symbols.length > 18) {
+      items.push({
+        level: "high",
+        text: `${t("parser.summary.unresolved")} ${report.unresolved_symbols.length} > 18`,
+      });
+    }
+    if (report.inferred_edge_count > report.declared_edge_count) {
+      items.push({
+        level: "medium",
+        text: `inferred edges (${report.inferred_edge_count}) exceed declared edges (${report.declared_edge_count})`,
+      });
+    }
+    if (report.issues.length > 0 && !items.length) {
+      items.push({
+        level: "low",
+        text: `${report.issues.length} parser issue(s) detected, action recommended`,
+      });
+    }
+    if (!items.length) {
+      items.push({
+        level: "low",
+        text: "Parser quality is stable. Keep monitoring unresolved symbols and low-confidence edges.",
+      });
+    }
+    return items.slice(0, 3);
+  }, [
+    report?.declared_edge_count,
+    report?.inferred_edge_count,
+    report?.issues.length,
+    report?.parser_confidence,
+    report?.unresolved_symbols.length,
+    t,
+  ]);
+
+  const recommendedActions = useMemo(
+    () => [
+      {
+        id: "action-reparse",
+        label: t("parser.action.reparse"),
+        run: () => runControlJob("reparse"),
+      },
+      {
+        id: "action-regression",
+        label: t("parser.action.regression"),
+        run: () => runControlJob("regression"),
+      },
+      {
+        id: "action-open-errors",
+        label: t("start.action.diagnostics"),
+        run: () => {
+          setViewMode("diagnostics");
+          setDiagnosticFocus("errors");
+          setSearchQuery("status:error");
+        },
+      },
+      {
+        id: "action-open-repositories",
+        label: t("start.action.repositories"),
+        run: () => setViewMode("repositories"),
+      },
+    ],
+    [setDiagnosticFocus, setSearchQuery, setViewMode, t],
+  );
+
+  async function runControlJob(kind: "reparse" | "regression" | "report") {
     setRunning(kind);
     try {
       if (kind === "reparse") {
@@ -96,7 +176,7 @@ export function ParserAnalysisCenter() {
     } finally {
       setRunning(null);
     }
-  };
+  }
 
   const handleExport = async () => {
     try {
@@ -118,7 +198,7 @@ export function ParserAnalysisCenter() {
   if (!report) {
     return (
       <section data-testid="parser-analysis-center" className="h-full overflow-y-auto p-3 text-xs text-slate-400">
-        Parser analysis loading...
+        {t("parser.loading")}
       </section>
     );
   }
@@ -127,7 +207,9 @@ export function ParserAnalysisCenter() {
     <section data-testid="parser-analysis-center" className="h-full overflow-y-auto p-3 scrollbar-thin">
       <div className="rounded border border-line bg-[#091626] p-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="panel-title text-sm uppercase tracking-wide text-slate-100">Parser Analysis Center</div>
+          <div className="panel-title text-sm uppercase tracking-wide text-slate-100">
+            {t("parser.centerTitle")}
+          </div>
           <div className="flex flex-wrap gap-1">
             <button
               type="button"
@@ -135,7 +217,7 @@ export function ParserAnalysisCenter() {
               disabled={running === "reparse"}
               className="rounded border border-line bg-[#10243a] px-2 py-1 text-[11px] text-slate-100 hover:border-cyan-400 disabled:opacity-60"
             >
-              {running === "reparse" ? "queueing..." : "re-parse"}
+              {running === "reparse" ? t("parser.queueing") : t("parser.action.reparse")}
             </button>
             <button
               type="button"
@@ -143,7 +225,7 @@ export function ParserAnalysisCenter() {
               disabled={running === "regression"}
               className="rounded border border-line bg-[#10243a] px-2 py-1 text-[11px] text-slate-100 hover:border-sky-400 disabled:opacity-60"
             >
-              {running === "regression" ? "queueing..." : "run regression"}
+              {running === "regression" ? t("parser.queueing") : t("parser.action.regression")}
             </button>
             <button
               type="button"
@@ -151,7 +233,7 @@ export function ParserAnalysisCenter() {
               disabled={running === "report"}
               className="rounded border border-line bg-[#10243a] px-2 py-1 text-[11px] text-slate-100 hover:border-emerald-400 disabled:opacity-60"
             >
-              {running === "report" ? "queueing..." : "generate report"}
+              {running === "report" ? t("parser.queueing") : t("parser.action.report")}
             </button>
             <button
               type="button"
@@ -159,18 +241,62 @@ export function ParserAnalysisCenter() {
               disabled={exporting}
               className="rounded border border-line bg-[#123a2f] px-2 py-1 text-[11px] text-slate-100 hover:border-emerald-400 disabled:opacity-60"
             >
-              {exporting ? "exporting..." : "export markdown"}
+              {exporting ? t("reports.exporting") : t("parser.action.export")}
             </button>
           </div>
         </div>
         <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] text-slate-400 xl:grid-cols-4">
-          <div>target: {target}</div>
-          <div>confidence: {report.parser_confidence.toFixed(3)} ({report.parser_grade})</div>
-          <div>quality score: {repoScore.toFixed(3)} ({scoreLabel})</div>
-          <div>unresolved: {report.unresolved_symbols.length}</div>
+          <div>{t("parser.summary.target")}: {target}</div>
+          <div>{t("parser.summary.confidence")}: {report.parser_confidence.toFixed(3)} ({report.parser_grade})</div>
+          <div>{t("parser.summary.quality")}: {repoScore.toFixed(3)} ({scoreLabel})</div>
+          <div>{t("parser.summary.unresolved")}: {report.unresolved_symbols.length}</div>
         </div>
         {message ? <div className="mt-2 text-[11px] text-emerald-300">{message}</div> : null}
       </div>
+
+      <section className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
+        <div className="rounded border border-line bg-[#0a1626] p-2">
+          <div className="panel-title text-xs uppercase tracking-wide text-slate-300">{t("parser.executive")}</div>
+          <div className="mt-2 space-y-1 text-[11px]">
+            {summaryItems.map((item, index) => (
+              <div key={`${item.text}-${index}`} className="rounded border border-line bg-[#101f34] p-2 text-slate-300">
+                <span
+                  className={`mr-2 rounded px-1.5 py-0.5 text-[10px] uppercase ${
+                    item.level === "high"
+                      ? "bg-rose-500/20 text-rose-200"
+                      : item.level === "medium"
+                        ? "bg-amber-500/20 text-amber-200"
+                        : "bg-sky-500/20 text-sky-200"
+                  }`}
+                >
+                  {item.level === "high"
+                    ? t("parser.actionability.high")
+                    : item.level === "medium"
+                      ? t("parser.actionability.medium")
+                      : t("parser.actionability.low")}
+                </span>
+                {item.text}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded border border-line bg-[#0a1626] p-2">
+          <div className="panel-title text-xs uppercase tracking-wide text-slate-300">{t("parser.recommendedActions")}</div>
+          <div className="mt-2 flex flex-wrap gap-1">
+            {recommendedActions.map((action) => (
+              <button
+                key={action.id}
+                type="button"
+                onClick={action.run}
+                className="rounded border border-line bg-[#10243a] px-2 py-1 text-[11px] text-slate-100 hover:border-sky-400"
+              >
+                {action.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
 
       <section className="mt-3 rounded border border-line bg-[#0a1626] p-2">
         <div className="panel-title text-xs uppercase tracking-wide text-slate-300">Project Matrix</div>

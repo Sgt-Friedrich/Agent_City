@@ -15,12 +15,6 @@ function prettySize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
-function formatTime(value: string): string {
-  const date = new Date(value);
-  if (Number.isNaN(date.valueOf())) return value;
-  return date.toLocaleString();
-}
-
 async function saveReportContent(defaultFileName: string, content: string): Promise<{ ok: boolean; path?: string }> {
   const desktopResult = await saveDesktopTextReport({
     defaultFileName,
@@ -42,9 +36,14 @@ async function saveReportContent(defaultFileName: string, content: string): Prom
 }
 
 export function ReportsCenter() {
-  const { t } = useI18n();
+  const { t, formatDateTime } = useI18n();
   const target = useDashboardStore((state) => state.target);
   const desktopStatus = useDashboardStore((state) => state.desktopStatus);
+  const setViewMode = useDashboardStore((state) => state.setViewMode);
+  const setTraceFilter = useDashboardStore((state) => state.setTraceFilter);
+  const setSelectedTrace = useDashboardStore((state) => state.setSelectedTrace);
+  const setSelectedNode = useDashboardStore((state) => state.setSelectedNode);
+  const setSearchQuery = useDashboardStore((state) => state.setSearchQuery);
 
   const [reports, setReports] = useState<ReportArtifact[]>([]);
   const [docsRoot, setDocsRoot] = useState<string>("");
@@ -59,6 +58,19 @@ export function ReportsCenter() {
     () => reports.find((item) => item.id === selectedReportId),
     [reports, selectedReportId],
   );
+
+  const deepLinks = useMemo(() => {
+    const traces = Array.from(
+      new Set(reportContent.match(/trace_[a-z0-9]+/gi) ?? []),
+    ).slice(0, 8);
+    const nodes = Array.from(
+      new Set(reportContent.match(/node(?:[._][a-z0-9_]+)+/gi) ?? []),
+    ).slice(0, 8);
+    const jobs = Array.from(
+      new Set(reportContent.match(/job_[a-z0-9_]+/gi) ?? []),
+    ).slice(0, 6);
+    return { traces, nodes, jobs };
+  }, [reportContent]);
 
   useEffect(() => {
     let cancelled = false;
@@ -77,7 +89,7 @@ export function ReportsCenter() {
       })
       .catch((error) => {
         if (!cancelled) {
-          setMessage(error instanceof Error ? error.message : "failed to load reports");
+          setMessage(error instanceof Error ? error.message : t("reports.noArtifact"));
           setReports([]);
         }
       })
@@ -110,7 +122,7 @@ export function ReportsCenter() {
       .catch((error) => {
         if (!cancelled) {
           setReportContent("");
-          setMessage(error instanceof Error ? error.message : "failed to load report content");
+          setMessage(error instanceof Error ? error.message : t("reports.loadingContent"));
         }
       })
       .finally(() => {
@@ -131,10 +143,10 @@ export function ReportsCenter() {
       const markdown = await api.getAnalysisReportMarkdown(target);
       const result = await saveReportContent(`agent_city_analysis_${target}.md`, markdown);
       if (result.ok) {
-        setMessage(result.path ? `analysis report exported: ${result.path}` : "analysis report exported");
+        setMessage(result.path ? `${t("common.export")}: ${result.path}` : t("common.export"));
       }
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "failed to export analysis report");
+      setMessage(error instanceof Error ? error.message : t("common.export"));
     } finally {
       setExporting(false);
     }
@@ -144,7 +156,7 @@ export function ReportsCenter() {
     if (!selectedReport) return;
     const result = await saveReportContent(selectedReport.file_name, reportContent);
     if (result.ok) {
-      setMessage(result.path ? `saved: ${result.path}` : "document exported");
+      setMessage(result.path ? `${t("reports.saved")}: ${result.path}` : t("common.export"));
     }
   };
 
@@ -152,6 +164,26 @@ export function ReportsCenter() {
     const result = await openReportsDirectory();
     if (!result.ok) {
       setMessage(result.message ?? `desktop shell not attached; docs root: ${docsRoot}`);
+    }
+  };
+
+  const openTraceReplay = (traceId: string) => {
+    const params = new URLSearchParams({ traceId, target });
+    window.location.href = `/replay?${params.toString()}`;
+  };
+
+  const jumpByReportCategory = () => {
+    if (!selectedReport) return;
+    if (selectedReport.category === "parser") {
+      setViewMode("parser_analysis");
+      return;
+    }
+    if (selectedReport.category === "frontend" || selectedReport.category === "system") {
+      setViewMode("jobs");
+      return;
+    }
+    if (selectedReport.category === "architecture" || selectedReport.category === "operations") {
+      setViewMode("overview");
     }
   };
 
@@ -166,7 +198,7 @@ export function ReportsCenter() {
               className="rounded border border-line bg-[#10243a] px-2 py-1 text-slate-200 hover:border-sky-400"
               onClick={openDocsDirectory}
             >
-              open docs directory
+              {t("reports.openDocsDirectory")}
             </button>
             <button
               type="button"
@@ -174,7 +206,7 @@ export function ReportsCenter() {
               onClick={exportCurrentAnalysis}
               className="rounded border border-line bg-[#10243a] px-2 py-1 text-slate-200 hover:border-emerald-400 disabled:opacity-60"
             >
-              {exporting ? "exporting..." : "export live analysis"}
+              {exporting ? t("reports.exporting") : t("reports.exportAnalysis")}
             </button>
             <button
               type="button"
@@ -182,7 +214,7 @@ export function ReportsCenter() {
               disabled={!selectedReport}
               className="rounded border border-line bg-[#10243a] px-2 py-1 text-slate-200 hover:border-sky-400 disabled:opacity-50"
             >
-              export selected document
+              {t("reports.exportSelected")}
             </button>
           </div>
         </div>
@@ -198,10 +230,10 @@ export function ReportsCenter() {
 
       <div className="mt-3 grid min-h-0 flex-1 grid-cols-1 gap-3 xl:grid-cols-[340px_1fr]">
         <section className="min-h-0 overflow-y-auto rounded border border-line bg-[#0a1626] p-2 scrollbar-thin">
-          <div className="panel-title text-xs uppercase tracking-wide text-slate-300">Artifacts</div>
-          {loadingList && <div className="mt-2 text-[11px] text-slate-500">loading report catalog...</div>}
+          <div className="panel-title text-xs uppercase tracking-wide text-slate-300">{t("reports.artifacts")}</div>
+          {loadingList && <div className="mt-2 text-[11px] text-slate-500">{t("reports.loadingCatalog")}</div>}
           {!loadingList && reports.length === 0 && (
-            <div className="mt-2 text-[11px] text-slate-500">no report artifact found</div>
+            <div className="mt-2 text-[11px] text-slate-500">{t("reports.noArtifact")}</div>
           )}
           <div className="mt-2 space-y-1">
             {reports.map((artifact) => (
@@ -232,18 +264,84 @@ export function ReportsCenter() {
         <section className="min-h-0 overflow-hidden rounded border border-line bg-[#0a1626]">
           <div className="flex items-center justify-between border-b border-line px-3 py-2 text-[11px] text-slate-400">
             <div>
-              {selectedReport ? `${selectedReport.title} (${selectedReport.file_name})` : "select a report"}
+              {selectedReport ? `${selectedReport.title} (${selectedReport.file_name})` : t("reports.noSelected")}
             </div>
             {selectedReport && (
               <div>
-                updated: {formatTime(selectedReport.updated_at)} | id: {shortId(selectedReport.id)}
+                updated: {formatDateTime(selectedReport.updated_at)} | id: {shortId(selectedReport.id)}
               </div>
             )}
           </div>
 
           <div className="h-[calc(100%-37px)] overflow-y-auto p-3 scrollbar-thin">
-            {loadingContent && <div className="text-[11px] text-slate-500">loading report content...</div>}
-            {!loadingContent && !selectedReport && <div className="text-[11px] text-slate-500">no report selected</div>}
+            {loadingContent && <div className="text-[11px] text-slate-500">{t("reports.loadingContent")}</div>}
+            {!loadingContent && !selectedReport && <div className="text-[11px] text-slate-500">{t("reports.noSelected")}</div>}
+            {!loadingContent && selectedReport && (
+              <div className="mb-3 rounded border border-line bg-[#0f2136] p-2 text-[11px] text-slate-300">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={jumpByReportCategory}
+                    className="rounded border border-line bg-[#12314d] px-2 py-1 text-[11px] text-slate-100 hover:border-sky-400"
+                  >
+                    {t("reports.openRelatedWorkspace")}
+                  </button>
+                  <span className="text-slate-400">{t("reports.category")}: {selectedReport.category}</span>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {deepLinks.traces.map((traceId) => (
+                    <button
+                      key={traceId}
+                      type="button"
+                      onClick={() => {
+                        setTraceFilter(traceId);
+                        setSelectedTrace(traceId);
+                        setViewMode("replay");
+                      }}
+                      className="rounded border border-line bg-[#0b192c] px-1.5 py-0.5 text-[10px] text-slate-200 hover:border-cyan-400"
+                    >
+                      {t("reports.link.trace")}: {shortId(traceId)}
+                    </button>
+                  ))}
+                  {deepLinks.nodes.map((nodeId) => (
+                    <button
+                      key={nodeId}
+                      type="button"
+                      onClick={() => {
+                        setSelectedNode(nodeId);
+                        setViewMode("diagnostics");
+                        setSearchQuery(`node:${nodeId}`);
+                      }}
+                      className="rounded border border-line bg-[#0b192c] px-1.5 py-0.5 text-[10px] text-slate-200 hover:border-amber-400"
+                    >
+                      {t("reports.link.node")}: {nodeId.split(".").at(-1)}
+                    </button>
+                  ))}
+                  {deepLinks.jobs.map((jobId) => (
+                    <button
+                      key={jobId}
+                      type="button"
+                      onClick={() => {
+                        setViewMode("jobs");
+                        setSearchQuery(jobId);
+                      }}
+                      className="rounded border border-line bg-[#0b192c] px-1.5 py-0.5 text-[10px] text-slate-200 hover:border-emerald-400"
+                    >
+                      {t("reports.link.job")}: {shortId(jobId)}
+                    </button>
+                  ))}
+                  {deepLinks.traces.length > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => openTraceReplay(deepLinks.traces[0])}
+                      className="rounded border border-line bg-[#173a2d] px-1.5 py-0.5 text-[10px] text-emerald-100 hover:border-emerald-400"
+                    >
+                      {t("reports.openReplayTrace")}
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            )}
             {!loadingContent && selectedReport && (
               <pre className="whitespace-pre-wrap break-words font-mono text-[11px] leading-relaxed text-slate-200">
                 {reportContent}

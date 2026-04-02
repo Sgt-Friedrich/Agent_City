@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 
+import { useI18n } from "@/hooks/useI18n";
 import { useDashboardStore } from "@/store/useDashboardStore";
 
 interface Suggestion {
@@ -13,6 +14,7 @@ interface Suggestion {
 }
 
 export function NextStepPanel() {
+  const { t } = useI18n();
   const diagnostics = useDashboardStore((state) => state.diagnosticsSummary);
   const parser = useDashboardStore((state) => state.parserAnalysis);
   const traces = useDashboardStore((state) => state.traces);
@@ -30,9 +32,9 @@ export function NextStepPanel() {
     if ((diagnostics?.error_event_count ?? 0) > 0) {
       result.push({
         id: "error-chain",
-        title: "Investigate error chain",
-        detail: `${diagnostics?.error_event_count ?? 0} error events were detected in recent traces.`,
-        actionLabel: "open diagnostics",
+        title: t("nextSteps.errorChain.title"),
+        detail: `${diagnostics?.error_event_count ?? 0} ${t("nextSteps.errorChain.detail")}`,
+        actionLabel: t("nextSteps.action.openDiagnostics"),
         action: () => {
           setViewMode("diagnostics");
           setDiagnosticMode("errors");
@@ -45,9 +47,9 @@ export function NextStepPanel() {
     if ((diagnostics?.retry_event_count ?? 0) + (diagnostics?.fallback_event_count ?? 0) > 0) {
       result.push({
         id: "retry-fallback",
-        title: "Review retry/fallback behavior",
-        detail: `retry=${diagnostics?.retry_event_count ?? 0}, fallback=${diagnostics?.fallback_event_count ?? 0}`,
-        actionLabel: "focus retry/fallback",
+        title: t("nextSteps.retryFallback.title"),
+        detail: `${t("diagnostics.retryEvents")}=${diagnostics?.retry_event_count ?? 0}, ${t("diagnostics.fallbackEvents")}=${diagnostics?.fallback_event_count ?? 0}`,
+        actionLabel: t("nextSteps.action.focusRetryFallback"),
         action: () => {
           setViewMode("diagnostics");
           setDiagnosticFocus("retry_fallback");
@@ -59,9 +61,9 @@ export function NextStepPanel() {
     if ((parser?.parser_confidence ?? 1) < 0.75) {
       result.push({
         id: "parser-confidence",
-        title: "Improve parser confidence",
+        title: t("nextSteps.parser.title"),
         detail: `Current confidence is ${(parser?.parser_confidence ?? 0).toFixed(3)}.`,
-        actionLabel: "open parser analysis",
+        actionLabel: t("nextSteps.action.openParser"),
         action: () => {
           setViewMode("parser_analysis");
           setSearchQuery("");
@@ -72,9 +74,9 @@ export function NextStepPanel() {
     if (traces.length > 0) {
       result.push({
         id: "hot-trace",
-        title: "Replay latest trace",
+        title: t("nextSteps.replay.title"),
         detail: `Latest trace ${traces[0].envelope.trace_id} can be replayed for root-cause drill-down.`,
-        actionLabel: "open replay mode",
+        actionLabel: t("nextSteps.action.openReplay"),
         action: () => {
           setTraceFilter(traces[0].envelope.trace_id);
           setViewMode("replay");
@@ -88,9 +90,9 @@ export function NextStepPanel() {
     if (lowRepo) {
       result.push({
         id: "low-repo",
-        title: "Re-parse low quality repository",
+        title: t("nextSteps.repository.title"),
         detail: `${lowRepo.name} confidence=${lowRepo.parser_confidence.toFixed(3)} unresolved=${lowRepo.unresolved_count}`,
-        actionLabel: "switch repository",
+        actionLabel: t("nextSteps.action.switchRepository"),
         action: () => {
           setTarget(lowRepo.target_id);
           setViewMode("repositories");
@@ -111,15 +113,16 @@ export function NextStepPanel() {
     setTarget,
     setTraceFilter,
     setViewMode,
+    t,
     traces,
   ]);
 
   return (
     <section className="mt-3 rounded border border-line bg-[#0a1626] p-2">
-      <div className="panel-title text-xs uppercase tracking-wide text-slate-300">Recommended Next Steps</div>
+      <div className="panel-title text-xs uppercase tracking-wide text-slate-300">{t("nextSteps.title")}</div>
       <div className="mt-2 space-y-2">
         {suggestions.length === 0 && (
-          <div className="text-[11px] text-slate-500">No urgent recommendation. Continue in Overview or Live mode.</div>
+          <div className="text-[11px] text-slate-500">{t("nextSteps.empty")}</div>
         )}
         {suggestions.map((item) => (
           <div key={item.id} className="rounded border border-line bg-[#0f2034] p-2 text-[11px] text-slate-300">

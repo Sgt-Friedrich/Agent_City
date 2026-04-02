@@ -188,6 +188,7 @@ export function FilterPanel() {
             <button
               key={item.id}
               type="button"
+              data-testid={`view-mode-${item.id}`}
               onClick={() => setViewMode(item.id)}
               className={`rounded border px-2 py-1 text-left text-[11px] uppercase tracking-wide ${
                 viewMode === item.id

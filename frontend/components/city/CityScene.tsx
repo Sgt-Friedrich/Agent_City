@@ -340,11 +340,16 @@ export function CityScene({
                       : isTrunkEdge
                         ? "secondary"
                         : "suppressed"
-            : highlighted
-              ? "primary"
-              : isTrunkEdge
-                ? "secondary"
-                : "suppressed";
+                    : highlighted
+                      ? "primary"
+                      : isTrunkEdge
+                        ? "secondary"
+                        : "suppressed";
+
+          // Suppressed links are intentionally hidden to reduce edge clutter.
+          if (renderLayer === "suppressed") {
+            return null;
+          }
 
           return (
             <EdgeRoad
@@ -355,7 +360,7 @@ export function CityScene({
               highlighted={highlighted}
               renderLayer={renderLayer}
               diagnosticMode={diagnosticMode}
-              dimmed={renderLayer === "suppressed"}
+              dimmed={false}
             />
           );
         })}

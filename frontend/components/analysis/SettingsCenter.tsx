@@ -9,6 +9,14 @@ import { AppSettings } from "@/types/schema";
 
 type FormState = AppSettings;
 
+type SettingsValidationErrors = Partial<Record<"workspace_dir" | "data_dir" | "export_dir" | "cleanup_threshold_mb" | "logging", string>>;
+
+const ABSOLUTE_PATH_RE = /^(?:[a-zA-Z]:[\\/]|\/)/;
+
+function isAbsoluteLikePath(value: string): boolean {
+  return ABSOLUTE_PATH_RE.test(value.trim());
+}
+
 export function SettingsCenter() {
   const { t, locale, setLocale, localeOptions } = useI18n();
   const appSettings = useDashboardStore((state) => state.appSettings);
@@ -17,6 +25,7 @@ export function SettingsCenter() {
   const [form, setForm] = useState<FormState | undefined>(appSettings);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [validationErrors, setValidationErrors] = useState<SettingsValidationErrors>({});
 
   useEffect(() => {
     if (appSettings) {
@@ -33,6 +42,30 @@ export function SettingsCenter() {
   }
 
   const save = async () => {
+    const nextErrors: SettingsValidationErrors = {};
+    if (!isAbsoluteLikePath(form.workspace_dir)) {
+      nextErrors.workspace_dir = `${t("settings.workspaceDir")} ${t("settings.error.absolutePath")}`;
+    }
+    if (!isAbsoluteLikePath(form.data_dir)) {
+      nextErrors.data_dir = `${t("settings.dataDir")} ${t("settings.error.absolutePath")}`;
+    }
+    if (!isAbsoluteLikePath(form.export_dir)) {
+      nextErrors.export_dir = `${t("settings.exportDir")} ${t("settings.error.absolutePath")}`;
+    }
+    if (form.cleanup_threshold_mb < 50 || form.cleanup_threshold_mb > 5000) {
+      nextErrors.cleanup_threshold_mb = t("settings.error.threshold");
+    }
+    const loggingLevel = String(form.logging.level ?? "info");
+    if (!["debug", "info", "warn", "error"].includes(loggingLevel)) {
+      nextErrors.logging = t("settings.error.logging");
+    }
+
+    setValidationErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      setMessage(t("settings.validationFailed"));
+      return;
+    }
+
     setSaving(true);
     setMessage("");
     try {
@@ -105,6 +138,9 @@ export function SettingsCenter() {
             value={form.workspace_dir}
             onChange={(event) => setForm({ ...form, workspace_dir: event.target.value })}
           />
+          {validationErrors.workspace_dir ? (
+            <div className="mt-1 text-[10px] text-rose-300">{validationErrors.workspace_dir}</div>
+          ) : null}
         </label>
         <label className="rounded border border-line bg-[#0a1626] p-3 text-xs text-slate-300">
           {t("settings.dataDir")}
@@ -113,6 +149,9 @@ export function SettingsCenter() {
             value={form.data_dir}
             onChange={(event) => setForm({ ...form, data_dir: event.target.value })}
           />
+          {validationErrors.data_dir ? (
+            <div className="mt-1 text-[10px] text-rose-300">{validationErrors.data_dir}</div>
+          ) : null}
         </label>
         <label className="rounded border border-line bg-[#0a1626] p-3 text-xs text-slate-300">
           {t("settings.exportDir")}
@@ -121,6 +160,9 @@ export function SettingsCenter() {
             value={form.export_dir}
             onChange={(event) => setForm({ ...form, export_dir: event.target.value })}
           />
+          {validationErrors.export_dir ? (
+            <div className="mt-1 text-[10px] text-rose-300">{validationErrors.export_dir}</div>
+          ) : null}
         </label>
         <label className="rounded border border-line bg-[#0a1626] p-3 text-xs text-slate-300">
           {t("settings.cleanupThreshold")}
@@ -132,6 +174,9 @@ export function SettingsCenter() {
               setForm({ ...form, cleanup_threshold_mb: Number(event.target.value) || 200 })
             }
           />
+          {validationErrors.cleanup_threshold_mb ? (
+            <div className="mt-1 text-[10px] text-rose-300">{validationErrors.cleanup_threshold_mb}</div>
+          ) : null}
         </label>
       </div>
 
@@ -162,6 +207,9 @@ export function SettingsCenter() {
             </select>
           </label>
         </div>
+        {validationErrors.logging ? (
+          <div className="mt-2 text-[10px] text-rose-300">{validationErrors.logging}</div>
+        ) : null}
       </div>
 
       <div className="mt-3 flex justify-end">

@@ -101,7 +101,10 @@ export function RepositoryImportWizard({
   ] as const;
 
   return (
-    <div className="absolute inset-0 z-40 flex items-center justify-center bg-[#02060bcc] p-4 backdrop-blur-[2px]">
+    <div
+      data-testid="import-wizard"
+      className="absolute inset-0 z-40 flex items-center justify-center bg-[#02060bcc] p-4 backdrop-blur-[2px]"
+    >
       <section className="glass-panel w-full max-w-3xl rounded-md p-4 text-xs text-slate-300 shadow-glow">
         <div className="flex items-center justify-between border-b border-line pb-2">
           <div>
@@ -114,6 +117,7 @@ export function RepositoryImportWizard({
           </div>
           <button
             type="button"
+            data-testid="import-wizard-close"
             className="rounded border border-line bg-[#0d2035] px-2 py-1 text-[11px] text-slate-200 hover:border-sky-400 disabled:opacity-60"
             onClick={onClose}
             disabled={busy}

@@ -54,6 +54,22 @@ class ControlPlaneApiTest(unittest.TestCase):
         self.assertEqual(list_resp.status_code, 200)
         self.assertGreaterEqual(list_resp.json()["count"], 1)
 
+    def test_update_settings_validation_guardrails(self) -> None:
+        with TestClient(app) as client:
+            invalid_path_resp = client.put(
+                "/api/control/settings",
+                json={"workspace_dir": "relative/path"},
+            )
+            invalid_threshold_resp = client.put(
+                "/api/control/settings",
+                json={"cleanup_threshold_mb": 5},
+            )
+
+        self.assertEqual(invalid_path_resp.status_code, 422)
+        self.assertIn("absolute path is required", invalid_path_resp.json().get("detail", ""))
+        self.assertEqual(invalid_threshold_resp.status_code, 422)
+        self.assertIn("must be between 50 and 5000", invalid_threshold_resp.json().get("detail", ""))
+
 
 if __name__ == "__main__":
     unittest.main()

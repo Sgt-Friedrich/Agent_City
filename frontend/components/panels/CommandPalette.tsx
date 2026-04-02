@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { useI18n } from "@/hooks/useI18n";
 import { api } from "@/lib/api";
 import { useDashboardStore } from "@/store/useDashboardStore";
 
@@ -24,6 +25,7 @@ function isTypingTarget(target: EventTarget | null): boolean {
 }
 
 export function CommandPalette({ onOpenImportWizard }: CommandPaletteProps) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [cursor, setCursor] = useState(0);
@@ -40,28 +42,28 @@ export function CommandPalette({ onOpenImportWizard }: CommandPaletteProps) {
     return [
       {
         id: "overview",
-        title: "Open Overview",
+        title: `${t("common.open")} ${t("nav.overview")}`,
         keywords: ["overview", "city", "topology"],
         shortcut: "Alt+1",
         run: () => setViewMode("overview"),
       },
       {
         id: "live",
-        title: "Open Live",
+        title: `${t("common.open")} ${t("nav.live")}`,
         keywords: ["live", "flows"],
         shortcut: "Alt+2",
         run: () => setViewMode("live"),
       },
       {
         id: "replay",
-        title: "Open Replay",
+        title: `${t("common.open")} ${t("nav.replay")}`,
         keywords: ["replay", "trace"],
         shortcut: "Alt+3",
         run: () => setViewMode("replay"),
       },
       {
         id: "diagnostics",
-        title: "Open Diagnostics Errors",
+        title: `${t("common.open")} ${t("nav.diagnostics")} (${t("filter.mode.errors")})`,
         keywords: ["diagnostics", "error", "hotspot"],
         shortcut: "Alt+4",
         run: () => {
@@ -73,49 +75,49 @@ export function CommandPalette({ onOpenImportWizard }: CommandPaletteProps) {
       },
       {
         id: "parser",
-        title: "Open Parser Analysis",
+        title: `${t("common.open")} ${t("nav.parser")}`,
         keywords: ["parser", "analysis", "confidence"],
         shortcut: "Alt+5",
         run: () => setViewMode("parser_analysis"),
       },
       {
         id: "repositories",
-        title: "Open Repositories",
+        title: `${t("common.open")} ${t("nav.repositories")}`,
         keywords: ["repo", "repositories", "import"],
         shortcut: "Alt+6",
         run: () => setViewMode("repositories"),
       },
       {
         id: "jobs",
-        title: "Open Jobs",
+        title: `${t("common.open")} ${t("nav.jobs")}`,
         keywords: ["jobs", "task", "queue"],
         shortcut: "Alt+7",
         run: () => setViewMode("jobs"),
       },
       {
         id: "reports",
-        title: "Open Reports",
+        title: `${t("common.open")} ${t("nav.reports")}`,
         keywords: ["report", "export"],
         shortcut: "Alt+8",
         run: () => setViewMode("reports"),
       },
       {
         id: "settings",
-        title: "Open Settings",
+        title: `${t("common.open")} ${t("nav.settings")}`,
         keywords: ["settings", "language", "locale"],
         shortcut: "Alt+9",
         run: () => setViewMode("settings"),
       },
       {
         id: "import",
-        title: "Import Local Repository",
+        title: t("header.addRepository"),
         keywords: ["import", "repository", "parse"],
         shortcut: "Ctrl+Shift+I",
         run: () => onOpenImportWizard(),
       },
       {
         id: "job-regression",
-        title: "Run Parser Regression",
+        title: t("control.runParserRegression"),
         keywords: ["parser", "regression", "test"],
         shortcut: "Ctrl+Shift+P",
         run: async () => {
@@ -126,7 +128,7 @@ export function CommandPalette({ onOpenImportWizard }: CommandPaletteProps) {
       },
       {
         id: "job-frontend-check",
-        title: "Run Frontend Self-Check",
+        title: t("control.runFrontendCheck"),
         keywords: ["frontend", "self-check", "playwright"],
         shortcut: "Ctrl+Shift+F",
         run: async () => {
@@ -143,6 +145,7 @@ export function CommandPalette({ onOpenImportWizard }: CommandPaletteProps) {
     setSearchQuery,
     setViewMode,
     target,
+    t,
     upsertControlJob,
   ]);
 
@@ -219,11 +222,12 @@ export function CommandPalette({ onOpenImportWizard }: CommandPaletteProps) {
     return (
       <button
         type="button"
+        data-testid="command-palette-toggle"
         className="rounded border border-line bg-[#0f2035] px-2 py-1 text-[11px] text-slate-200 hover:border-sky-400"
         onClick={() => setOpen(true)}
         title="Open command palette (Ctrl+K)"
       >
-        command palette
+        {t("command.open")}
       </button>
     );
   }
@@ -233,9 +237,10 @@ export function CommandPalette({ onOpenImportWizard }: CommandPaletteProps) {
       <div className="fixed inset-0 z-40 bg-[#02060bb3]" onClick={() => setOpen(false)} />
       <div className="fixed left-1/2 top-[12%] z-50 w-[min(720px,92vw)] -translate-x-1/2 rounded border border-line bg-[#081423] p-2 shadow-glow">
         <input
+          data-testid="command-palette-input"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="type a command or shortcut..."
+          placeholder={t("command.placeholder")}
           autoFocus
           className="w-full rounded border border-line bg-[#0a1a2d] px-3 py-2 text-sm text-slate-100 outline-none focus:border-sky-400"
         />
@@ -264,12 +269,12 @@ export function CommandPalette({ onOpenImportWizard }: CommandPaletteProps) {
           ))}
           {filteredCommands.length === 0 && (
             <div className="rounded border border-line bg-[#0b192b] px-2 py-2 text-xs text-slate-500">
-              no command matched current query
+              {t("command.empty")}
             </div>
           )}
         </div>
         <div className="mt-2 flex items-center justify-between text-[10px] text-slate-500">
-          <span>Ctrl+K open/close, Enter run, Esc close</span>
+          <span>{t("command.hint")}</span>
           {message ? <span className="text-emerald-300">{message}</span> : null}
         </div>
       </div>

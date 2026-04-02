@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { spanKindColor } from "@/lib/colorMaps";
+import { useI18n } from "@/hooks/useI18n";
 import { useDashboardStore } from "@/store/useDashboardStore";
 import { TraceRecord } from "@/types/schema";
 
@@ -9,6 +10,7 @@ interface ReplaySpanListProps {
 }
 
 export function ReplaySpanList({ trace }: ReplaySpanListProps) {
+  const { t } = useI18n();
   const replay = useDashboardStore((state) => state.replay);
   const setReplayCursor = useDashboardStore((state) => state.setReplayCursor);
 
@@ -18,7 +20,7 @@ export function ReplaySpanList({ trace }: ReplaySpanListProps) {
 
   return (
     <aside data-testid="replay-span-list" className="h-full max-h-[34vh] overflow-y-auto border-l border-line bg-[#081320cc] p-3 scrollbar-thin lg:max-h-none">
-      <h2 className="panel-title text-sm uppercase tracking-wide text-slate-200">Replay Spans</h2>
+      <h2 className="panel-title text-sm uppercase tracking-wide text-slate-200">{t("replay.spansTitle")}</h2>
       <div className="mt-3 space-y-1">
         {trace.spans.map((span, index) => {
           const active = replay.cursor - 1 === index;

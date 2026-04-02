@@ -5,12 +5,14 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { ControlCenterBar } from "@/components/analysis/ControlCenterBar";
+import { ControlInspector } from "@/components/analysis/ControlInspector";
 import { DiagnosticsCenter } from "@/components/analysis/DiagnosticsCenter";
 import { JobsCenter } from "@/components/analysis/JobsCenter";
 import { ParserAnalysisCenter } from "@/components/analysis/ParserAnalysisCenter";
 import { RepositoriesCenter } from "@/components/analysis/RepositoriesCenter";
 import { ReportsCenter } from "@/components/analysis/ReportsCenter";
 import { SettingsCenter } from "@/components/analysis/SettingsCenter";
+import { StartHerePanel } from "@/components/analysis/StartHerePanel";
 import { CityScene } from "@/components/city/CityScene";
 import { FilterPanel } from "@/components/panels/FilterPanel";
 import { DetailDrawer } from "@/components/panels/DetailDrawer";
@@ -59,6 +61,7 @@ export function DashboardApp() {
   const setViewMode = useDashboardStore((state) => state.setViewMode);
   const traces = useDashboardStore((state) => state.traces);
   const parseJobs = useDashboardStore((state) => state.parseJobs);
+  const repositories = useDashboardStore((state) => state.repositories);
   const ingestDirectory = useDashboardStore((state) => state.ingestDirectory);
   const desktopStatus = useDashboardStore((state) => state.desktopStatus);
 
@@ -71,6 +74,10 @@ export function DashboardApp() {
   }, [nodes]);
 
   const replayTarget = useMemo(() => traces[0]?.envelope.trace_id, [traces]);
+  const importedRepositoryCount = useMemo(
+    () => repositories.filter((repo) => repo.source_type !== "mock").length,
+    [repositories],
+  );
   const activeParseJob = useMemo(
     () => parseJobs.find((job) => job.status === "running" || job.status === "queued"),
     [parseJobs],
@@ -119,6 +126,7 @@ export function DashboardApp() {
   const isSettingsMode = viewMode === "settings";
   const isArchitectureMode =
     !isParserMode && !isReportsMode && !isRepositoriesMode && !isJobsMode && !isSettingsMode;
+  const shouldShowStartHere = isArchitectureMode && !isDiagnosticsMode && importedRepositoryCount === 0;
   const shellModeText =
     desktopStatus?.shellMode === "desktop" ? t("header.desktopMode") : t("header.browserMode");
 
@@ -153,6 +161,7 @@ export function DashboardApp() {
             <CommandPalette onOpenImportWizard={() => setImportWizardOpen(true)} />
             <button
               type="button"
+              data-testid="header-add-repository"
               onClick={() => setImportWizardOpen(true)}
               className="rounded border border-line bg-[#10233a] px-2 py-1 text-xs text-slate-100 hover:bg-[#18395f] disabled:cursor-not-allowed disabled:opacity-60"
             >
@@ -172,6 +181,7 @@ export function DashboardApp() {
             </select>
             {replayTarget && (
               <Link
+                data-testid="open-replay-link"
                 href={`/replay?traceId=${encodeURIComponent(replayTarget)}&target=${encodeURIComponent(target)}`}
                 className="rounded border border-line bg-[#11304d] px-2 py-1 text-slate-100 hover:bg-[#174266]"
               >
@@ -263,6 +273,9 @@ export function DashboardApp() {
                   onSelectEvent={(event) => setSelectedSpan(event.span_id, event.trace_id)}
                   onHoverEvent={(event) => setHoveredEvent(event)}
                 />
+                {shouldShowStartHere ? (
+                  <StartHerePanel onOpenImportWizard={() => setImportWizardOpen(true)} />
+                ) : null}
                 {hoveredEvent && (
                   <div className="pointer-events-none absolute left-3 top-3 z-10 w-[320px]">
                     <FlowEventHoverCard event={hoveredEvent} nodesById={nodesById} />
@@ -277,15 +290,7 @@ export function DashboardApp() {
           ) : isArchitectureMode ? (
             <DetailDrawer hoveredEvent={hoveredEvent} />
           ) : (
-            <section className="h-full overflow-y-auto border-l border-line bg-[#081320cc] p-3 text-xs text-slate-400">
-              <div className="panel-title text-sm uppercase tracking-wide text-slate-200">
-                {t("dashboard.inspectorTitle")}
-              </div>
-              <div className="mt-2">{t("dashboard.inspectorHint")}</div>
-              <div className="mt-2">
-                {t("dashboard.currentTarget")}: {target}
-              </div>
-            </section>
+            <ControlInspector />
           )}
         </div>
 

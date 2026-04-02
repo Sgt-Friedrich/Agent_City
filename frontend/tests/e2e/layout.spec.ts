@@ -40,31 +40,32 @@ test("dashboard renders core zones and replay route is reachable", async ({ page
   await expect(page.getByTestId("detail-drawer")).toBeVisible();
   await expect(page.getByTestId("timeline-panel")).toBeVisible();
 
-  await page.getByRole("button", { name: /command palette/i }).click();
-  await expect(page.getByPlaceholder(/type a command or shortcut/i)).toBeVisible();
+  await page.getByTestId("command-palette-toggle").click();
+  await expect(page.getByTestId("command-palette-input")).toBeVisible();
   await page.keyboard.press("Escape");
 
-  await page.getByRole("button", { name: /^trace$/i }).click();
-  await expect(page.getByText(/spans/i).first()).toBeVisible();
-  await page.getByRole("button", { name: /^time$/i }).click();
+  await page.getByTestId("timeline-group-trace").click();
+  await expect(page.getByTestId("timeline-trace-groups")).toBeVisible();
+  await page.getByTestId("timeline-group-time").click();
+  await expect(page.getByTestId("timeline-time-groups")).toBeVisible();
 
-  await page.getByRole("button", { name: /add local repository/i }).click();
-  await expect(page.getByText(/Import Local Agent Repository/i)).toBeVisible();
-  await page.getByRole("button", { name: /^close$/i }).click();
+  await page.getByTestId("header-add-repository").click();
+  await expect(page.getByTestId("import-wizard")).toBeVisible();
+  await page.getByTestId("import-wizard-close").click();
 
-  await page.getByTestId("filter-panel").getByRole("button", { name: /^diagnostics$/i }).click();
+  await page.getByTestId("view-mode-diagnostics").click();
   await expect(page.getByTestId("diagnostics-center")).toBeVisible();
 
-  await page.getByTestId("filter-panel").getByRole("button", { name: /^parser analysis$/i }).click();
+  await page.getByTestId("view-mode-parser_analysis").click();
   await expect(page.getByTestId("parser-analysis-center")).toBeVisible();
 
-  await page.getByTestId("filter-panel").getByRole("button", { name: /^reports$/i }).click();
+  await page.getByTestId("view-mode-reports").click();
   await expect(page.getByTestId("reports-center")).toBeVisible();
 
-  await page.getByTestId("filter-panel").getByRole("button", { name: /^overview$/i }).click();
+  await page.getByTestId("view-mode-overview").click();
   await expect(page.getByTestId("city-scene")).toBeVisible();
 
-  const replayLink = page.getByRole("link", { name: /open replay/i });
+  const replayLink = page.getByTestId("open-replay-link");
   await expect(replayLink).toBeVisible();
   await replayLink.click();
 

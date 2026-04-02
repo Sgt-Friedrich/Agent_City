@@ -14,12 +14,16 @@ export const useLocaleStore = create<LocaleState>()(
   persist(
     (set) => ({
       locale: "en",
-      setLocale: (locale) => set({ locale }),
+      setLocale: (locale) => set({ locale: locale === "zh" ? "zh" : "en" }),
     }),
     {
       name: "agent_city_locale",
       partialize: (state) => ({ locale: state.locale }),
+      merge: (persisted, current) => {
+        const candidate = (persisted as Partial<LocaleState> | undefined)?.locale;
+        const locale: LocaleCode = candidate === "zh" ? "zh" : "en";
+        return { ...current, locale };
+      },
     },
   ),
 );
-

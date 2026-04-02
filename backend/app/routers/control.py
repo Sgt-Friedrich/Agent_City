@@ -65,7 +65,10 @@ def update_settings(
     payload: UpdateSettingsRequest,
     service: ControlPlaneService = Depends(get_control_plane_service),
 ) -> dict:
-    settings = service.update_settings(payload)
+    try:
+        settings = service.update_settings(payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     return {"settings": settings.model_dump(mode="json")}
 
 
@@ -73,4 +76,3 @@ def update_settings(
 def runtime_status(service: ControlPlaneService = Depends(get_control_plane_service)) -> dict:
     status = service.get_runtime_status()
     return {"runtime": status.model_dump(mode="json")}
-

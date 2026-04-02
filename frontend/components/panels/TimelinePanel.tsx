@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 
 import { spanKindColor } from "@/lib/colorMaps";
+import { useI18n } from "@/hooks/useI18n";
 import { shortId } from "@/lib/utils";
 import { useDashboardStore } from "@/store/useDashboardStore";
 import { FlowEvent, TimelineGroupBy } from "@/types/schema";
@@ -54,9 +55,11 @@ function EventRow({
 function GroupButtons({
   groupBy,
   onChange,
+  labels,
 }: {
   groupBy: TimelineGroupBy;
   onChange: (groupBy: TimelineGroupBy) => void;
+  labels: Record<TimelineGroupBy, string>;
 }) {
   const options: TimelineGroupBy[] = ["time", "trace", "node"];
   return (
@@ -65,6 +68,7 @@ function GroupButtons({
         <button
           key={item}
           type="button"
+          data-testid={`timeline-group-${item}`}
           className={`rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${
             groupBy === item
               ? "border-cyan-400 bg-[#13314d] text-slate-100"
@@ -72,7 +76,7 @@ function GroupButtons({
           }`}
           onClick={() => onChange(item)}
         >
-          {item}
+          {labels[item]}
         </button>
       ))}
     </div>
@@ -80,6 +84,7 @@ function GroupButtons({
 }
 
 export function TimelinePanel({ maxItems = 60 }: TimelinePanelProps) {
+  const { t } = useI18n();
   const events = useDashboardStore((state) => state.liveEvents);
   const selectedSpanId = useDashboardStore((state) => state.selectedSpanId);
   const setSelectedSpan = useDashboardStore((state) => state.setSelectedSpan);
@@ -110,18 +115,24 @@ export function TimelinePanel({ maxItems = 60 }: TimelinePanelProps) {
       .slice(0, 10);
   }, [items]);
 
+  const groupLabels: Record<TimelineGroupBy, string> = {
+    time: t("timeline.group.time"),
+    trace: t("timeline.group.trace"),
+    node: t("timeline.group.node"),
+  };
+
   return (
     <section data-testid="timeline-panel" className="h-full overflow-y-auto border-t border-line bg-[#070f1bcc] p-2 scrollbar-thin">
       <div className="flex flex-wrap items-center justify-between gap-2 px-1">
-        <div className="panel-title text-xs uppercase tracking-wide text-slate-300">Live Timeline</div>
+        <div className="panel-title text-xs uppercase tracking-wide text-slate-300">{t("timeline.title")}</div>
         <div className="flex items-center gap-2 text-[10px] uppercase tracking-wide text-slate-500">
-          <span>{items.length} events | mode: {diagnosticMode}</span>
-          <GroupButtons groupBy={groupBy} onChange={setGroupBy} />
+          <span>{items.length} {t("timeline.events")} | mode: {diagnosticMode}</span>
+          <GroupButtons groupBy={groupBy} onChange={setGroupBy} labels={groupLabels} />
         </div>
       </div>
 
       {groupBy === "time" && (
-        <div className="mt-2 space-y-1">
+        <div data-testid="timeline-time-groups" className="mt-2 space-y-1">
           {items.map((event) => (
             <EventRow
               key={event.span_id}
@@ -134,12 +145,12 @@ export function TimelinePanel({ maxItems = 60 }: TimelinePanelProps) {
       )}
 
       {groupBy === "trace" && (
-        <div className="mt-2 space-y-2">
+        <div data-testid="timeline-trace-groups" className="mt-2 space-y-2">
           {groupedByTrace.map(([traceId, traceEvents]) => (
             <div key={traceId} className="rounded border border-line bg-[#0a1626] p-2">
               <div className="mb-1 flex items-center justify-between text-[10px] text-slate-400">
                 <span className="uppercase tracking-wide">trace {shortId(traceId)}</span>
-                <span>{traceEvents.length} spans</span>
+                <span>{traceEvents.length} {t("timeline.spans")}</span>
               </div>
               <div className="space-y-1">
                 {traceEvents.slice(0, 6).map((event) => (
@@ -157,12 +168,12 @@ export function TimelinePanel({ maxItems = 60 }: TimelinePanelProps) {
       )}
 
       {groupBy === "node" && (
-        <div className="mt-2 space-y-2">
+        <div data-testid="timeline-node-groups" className="mt-2 space-y-2">
           {groupedByNode.map(([nodeId, nodeEvents]) => (
             <div key={nodeId} className="rounded border border-line bg-[#0a1626] p-2">
               <div className="mb-1 flex items-center justify-between text-[10px] text-slate-400">
                 <span className="uppercase tracking-wide">{nodeId.split(".").at(-1)}</span>
-                <span>{nodeEvents.length} events</span>
+                <span>{nodeEvents.length} {t("timeline.events")}</span>
               </div>
               <div className="space-y-1">
                 {nodeEvents.slice(0, 5).map((event) => (
@@ -181,4 +192,3 @@ export function TimelinePanel({ maxItems = 60 }: TimelinePanelProps) {
     </section>
   );
 }
-
