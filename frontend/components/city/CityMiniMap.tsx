@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 
+import { useI18n } from "@/hooks/useI18n";
 import { districtStyle } from "@/lib/visualTheme";
 import { useDashboardStore } from "@/store/useDashboardStore";
 import { District, FlowEvent, Node, TopologyGraph } from "@/types/schema";
@@ -34,6 +35,7 @@ function normalizeZ(value: number): number {
 }
 
 export function CityMiniMap({ topology, nodes, events, replayTraceId }: CityMiniMapProps) {
+  const { t } = useI18n();
   const [overlay, setOverlay] = useState<"activity" | "errors" | "parser">("activity");
   const districtFilters = useDashboardStore((state) => state.filters.districtIds);
   const setDiagnosticFocus = useDashboardStore((state) => state.setDiagnosticFocus);
@@ -112,7 +114,7 @@ export function CityMiniMap({ topology, nodes, events, replayTraceId }: CityMini
   return (
     <div className="absolute bottom-3 left-3 rounded border border-line bg-[#081323d8] p-2 shadow-glow">
       <div className="flex items-center justify-between gap-2">
-        <div className="panel-title text-[10px] uppercase tracking-wide text-slate-300">City Overview</div>
+        <div className="panel-title text-[10px] uppercase tracking-wide text-slate-300">{t("city.overviewTitle")}</div>
         <div className="flex gap-1">
           {(["activity", "errors", "parser"] as const).map((mode) => (
             <button
@@ -125,7 +127,7 @@ export function CityMiniMap({ topology, nodes, events, replayTraceId }: CityMini
               }`}
               onClick={() => setOverlay(mode)}
             >
-              {mode}
+              {mode === "activity" ? t("city.overlay.activity") : mode === "errors" ? t("city.overlay.errors") : t("city.overlay.parser")}
             </button>
           ))}
           <button
@@ -133,7 +135,7 @@ export function CityMiniMap({ topology, nodes, events, replayTraceId }: CityMini
             className="rounded border border-line bg-[#0b1728] px-1 py-0.5 text-[9px] uppercase text-slate-500 hover:text-slate-300"
             onClick={() => setDistrictFilter([])}
           >
-            reset
+            {t("common.reset")}
           </button>
         </div>
       </div>

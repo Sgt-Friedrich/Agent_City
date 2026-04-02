@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { useI18n } from "@/hooks/useI18n";
 import { DashboardMode, DiagnosticMode, flowLegend } from "@/lib/visualTheme";
@@ -31,6 +31,9 @@ function toggle<T>(current: T[], value: T): T[] {
 
 export function FilterPanel() {
   const { t } = useI18n();
+  const [builderField, setBuilderField] = useState("status");
+  const [builderOp, setBuilderOp] = useState(":");
+  const [builderValue, setBuilderValue] = useState("error");
   const topology = useDashboardStore((state) => state.topology);
   const traces = useDashboardStore((state) => state.traces);
   const filters = useDashboardStore((state) => state.filters);
@@ -91,6 +94,13 @@ export function FilterPanel() {
   const hasErrorChains = (diagnostics?.error_event_count ?? 0) > 0;
   const hasRetryFallback =
     (diagnostics?.retry_event_count ?? 0) > 0 || (diagnostics?.fallback_event_count ?? 0) > 0;
+
+  const applyBuilder = () => {
+    const value = builderValue.trim();
+    if (!value) return;
+    const chunk = builderOp === ":" ? `${builderField}:${value}` : `${builderField}${builderOp}${value}`;
+    setSearchQuery((searchQuery ? `${searchQuery} ` : "") + chunk);
+  };
 
   return (
     <aside data-testid="filter-panel" className="h-full max-h-[34vh] overflow-y-auto border-r border-line bg-[#081320cc] p-3 scrollbar-thin lg:max-h-none">
@@ -270,6 +280,48 @@ export function FilterPanel() {
               {example}
             </button>
           ))}
+        </div>
+        <div className="mt-2 rounded border border-line bg-[#0b1828] p-2">
+          <div className="text-[10px] uppercase tracking-wide text-slate-500">{t("filter.builderTitle")}</div>
+          <div className="mt-1 grid grid-cols-[1fr_auto_1fr_auto] gap-1">
+            <select
+              value={builderField}
+              onChange={(event) => setBuilderField(event.target.value)}
+              className="rounded border border-line bg-[#081425] px-1 py-1 text-[11px] text-slate-200"
+            >
+              <option value="status">status</option>
+              <option value="type">type</option>
+              <option value="district">district</option>
+              <option value="protocol">protocol</option>
+              <option value="latency">latency</option>
+              <option value="qps">qps</option>
+              <option value="trace">trace</option>
+            </select>
+            <select
+              value={builderOp}
+              onChange={(event) => setBuilderOp(event.target.value)}
+              className="rounded border border-line bg-[#081425] px-1 py-1 text-[11px] text-slate-200"
+            >
+              <option value=":">:</option>
+              <option value=">">{">"}</option>
+              <option value="<">{"<"}</option>
+              <option value=">=">{">="}</option>
+              <option value="<=">{"<="}</option>
+            </select>
+            <input
+              value={builderValue}
+              onChange={(event) => setBuilderValue(event.target.value)}
+              className="rounded border border-line bg-[#081425] px-1 py-1 text-[11px] text-slate-200"
+              placeholder={t("filter.builderValue")}
+            />
+            <button
+              type="button"
+              className="rounded border border-line bg-[#12314d] px-2 py-1 text-[11px] text-slate-100 hover:border-sky-400"
+              onClick={applyBuilder}
+            >
+              {t("filter.builderApply")}
+            </button>
+          </div>
         </div>
       </section>
 

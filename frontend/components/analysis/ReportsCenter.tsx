@@ -15,6 +15,21 @@ function prettySize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
+function normalizeArtifact(artifact: ReportArtifact): ReportArtifact {
+  return {
+    ...artifact,
+    related_trace_ids: Array.isArray((artifact as Partial<ReportArtifact>).related_trace_ids)
+      ? artifact.related_trace_ids
+      : [],
+    related_node_ids: Array.isArray((artifact as Partial<ReportArtifact>).related_node_ids)
+      ? artifact.related_node_ids
+      : [],
+    related_job_ids: Array.isArray((artifact as Partial<ReportArtifact>).related_job_ids)
+      ? artifact.related_job_ids
+      : [],
+  };
+}
+
 async function saveReportContent(defaultFileName: string, content: string): Promise<{ ok: boolean; path?: string }> {
   const desktopResult = await saveDesktopTextReport({
     defaultFileName,
@@ -60,17 +75,26 @@ export function ReportsCenter() {
   );
 
   const deepLinks = useMemo(() => {
-    const traces = Array.from(
+    const contentTraces = Array.from(
       new Set(reportContent.match(/trace_[a-z0-9]+/gi) ?? []),
     ).slice(0, 8);
-    const nodes = Array.from(
+    const contentNodes = Array.from(
       new Set(reportContent.match(/node(?:[._][a-z0-9_]+)+/gi) ?? []),
     ).slice(0, 8);
-    const jobs = Array.from(
+    const contentJobs = Array.from(
       new Set(reportContent.match(/job_[a-z0-9_]+/gi) ?? []),
     ).slice(0, 6);
+    const traces = Array.from(
+      new Set([...(selectedReport?.related_trace_ids ?? []), ...contentTraces]),
+    ).slice(0, 8);
+    const nodes = Array.from(
+      new Set([...(selectedReport?.related_node_ids ?? []), ...contentNodes]),
+    ).slice(0, 8);
+    const jobs = Array.from(
+      new Set([...(selectedReport?.related_job_ids ?? []), ...contentJobs]),
+    ).slice(0, 8);
     return { traces, nodes, jobs };
-  }, [reportContent]);
+  }, [reportContent, selectedReport?.related_job_ids, selectedReport?.related_node_ids, selectedReport?.related_trace_ids]);
 
   useEffect(() => {
     let cancelled = false;
@@ -81,7 +105,7 @@ export function ReportsCenter() {
       .getReports()
       .then((payload) => {
         if (cancelled) return;
-        setReports(payload.items);
+        setReports(payload.items.map((artifact) => normalizeArtifact(artifact)));
         setDocsRoot(payload.docs_root);
         if (!selectedReportId && payload.items.length > 0) {
           setSelectedReportId(payload.items[0].id);
@@ -255,6 +279,9 @@ export function ReportsCenter() {
                 </div>
                 <div className="mt-1 text-[10px] text-slate-500">
                   {artifact.file_name} | {prettySize(artifact.size_bytes)}
+                </div>
+                <div className="mt-1 text-[10px] text-slate-500">
+                  links: T{artifact.related_trace_ids?.length ?? 0} / N{artifact.related_node_ids?.length ?? 0} / J{artifact.related_job_ids?.length ?? 0}
                 </div>
               </button>
             ))}

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -119,6 +120,13 @@ class ReportService:
     def docs_root(self) -> Path:
         return self._docs_root
 
+    @staticmethod
+    def _extract_context(content: str) -> tuple[list[str], list[str], list[str]]:
+        traces = sorted(set(re.findall(r"trace_[a-zA-Z0-9]+", content)))
+        nodes = sorted(set(re.findall(r"node(?:[._][a-zA-Z0-9_]+)+", content)))
+        jobs = sorted(set(re.findall(r"job_[a-zA-Z0-9_]+", content)))
+        return traces[:24], nodes[:24], jobs[:24]
+
     def list_reports(self, category: str | None = None) -> list[ReportArtifact]:
         artifacts: list[ReportArtifact] = []
         for spec in self._catalog:
@@ -128,6 +136,11 @@ class ReportService:
             if not path.exists() or not path.is_file():
                 continue
             stat = path.stat()
+            try:
+                content = path.read_text(encoding="utf-8")
+            except Exception:
+                content = ""
+            related_trace_ids, related_node_ids, related_job_ids = self._extract_context(content)
             artifacts.append(
                 ReportArtifact(
                     id=spec.id,
@@ -137,6 +150,9 @@ class ReportService:
                     absolute_path=str(path.resolve()),
                     size_bytes=stat.st_size,
                     updated_at=datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc),
+                    related_trace_ids=related_trace_ids,
+                    related_node_ids=related_node_ids,
+                    related_job_ids=related_job_ids,
                 )
             )
         return sorted(artifacts, key=lambda artifact: (artifact.category, artifact.title))

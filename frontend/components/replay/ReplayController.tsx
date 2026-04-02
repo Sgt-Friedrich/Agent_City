@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 
+import { MessageKey } from "@/i18n/messages";
 import { useI18n } from "@/hooks/useI18n";
 import { shortId } from "@/lib/utils";
 import { useDashboardStore } from "@/store/useDashboardStore";
@@ -11,19 +12,10 @@ interface ReplayControllerProps {
   trace?: TraceRecord;
 }
 
-const spanSubtitle: Record<SpanKind, string> = {
-  AGENT: "planner is decomposing task",
-  CHAIN: "orchestrator is chaining execution",
-  LLM: "llm is generating",
-  TOOL: "tool execution in progress",
-  RETRIEVER: "retriever is searching",
-  RERANKER: "reranker is ranking",
-  EMBEDDING: "embedding context vectors",
-  GUARDRAIL: "guardrail is checking output",
-  EVALUATOR: "evaluator is scoring response",
-  MEMORY: "memory is reading/writing state",
-  MCP: "mcp bridge is resolving tools",
-};
+function spanSubtitle(t: (key: MessageKey) => string, spanKind: SpanKind): string {
+  const key = `replay.subtitle.${spanKind}` as MessageKey;
+  return t(key);
+}
 
 const replaySpeeds = [0.5, 1, 1.5, 2, 4];
 
@@ -137,7 +129,7 @@ export function ReplayController({ trace }: ReplayControllerProps) {
             {t("replay.statusLatency")}: {current.status} / {current.latency_ms} ms
           </div>
           <div className="rounded border border-line bg-[#10233a] px-2 py-1 text-[11px] text-cyan-200 md:col-span-3">
-            {spanSubtitle[current.span_kind]}
+            {spanSubtitle(t, current.span_kind)}
           </div>
         </div>
       )}

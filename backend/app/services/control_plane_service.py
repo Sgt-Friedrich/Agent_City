@@ -10,6 +10,7 @@ from typing import Any
 
 from app.models.schemas import (
     AppRuntimeStatus,
+    JobPhaseEntry,
     JobRecord,
     JobRunRequest,
     JobStatus,
@@ -121,16 +122,26 @@ class ControlPlaneService:
 
     def run_job(self, request: JobRunRequest) -> JobRecord:
         job_id = f"job_{request.type.value}_{uuid.uuid4().hex[:10]}"
+        queued_at = datetime.now(timezone.utc)
         job = JobRecord(
             id=job_id,
             type=request.type,
             target=request.target,
             status=JobStatus.QUEUED,
             progress=0,
+            stage="queued",
             started_at=None,
             ended_at=None,
             log_summary="queued",
             detail_output="",
+            phase_log=[
+                JobPhaseEntry(
+                    phase="queued",
+                    status=JobStatus.QUEUED,
+                    timestamp=queued_at,
+                    message="job accepted by control plane",
+                )
+            ],
             metadata=request.payload,
         )
         with self._lock:
@@ -149,8 +160,17 @@ class ControlPlaneService:
                 return job.model_copy(deep=True)
             self._cancel_requested.add(job_id)
             job.status = JobStatus.CANCELLED
+            job.stage = "cancelled"
             job.ended_at = datetime.now(timezone.utc)
             job.log_summary = "cancel requested"
+            job.phase_log.append(
+                JobPhaseEntry(
+                    phase="cancelled",
+                    status=JobStatus.CANCELLED,
+                    timestamp=job.ended_at,
+                    message="cancel requested by user",
+                )
+            )
             self._jobs[job_id] = job
             return job.model_copy(deep=True)
 
@@ -197,9 +217,11 @@ class ControlPlaneService:
             job_id,
             status=JobStatus.RUNNING,
             progress=5,
+            stage="starting",
             started_at=datetime.now(timezone.utc),
             log_summary="running",
         )
+        self._append_phase(job_id, phase="starting", status=JobStatus.RUNNING, message="job execution started")
 
         try:
             if self._is_cancelled(job_id):
@@ -241,16 +263,33 @@ class ControlPlaneService:
                     job_id,
                     status=JobStatus.SUCCESS,
                     progress=100,
+                    stage="completed",
                     ended_at=datetime.now(timezone.utc),
+                    log_summary="completed",
+                )
+                self._append_phase(
+                    job_id,
+                    phase="completed",
+                    status=JobStatus.SUCCESS,
+                    message="job completed successfully",
                 )
         except Exception as exc:
+            error_code = self._derive_error_code(exc)
             self._update_job(
                 job_id,
                 status=JobStatus.FAILED,
                 progress=100,
+                stage="failed",
                 ended_at=datetime.now(timezone.utc),
                 log_summary=str(exc),
                 detail_output=str(exc),
+                error_code=error_code,
+            )
+            self._append_phase(
+                job_id,
+                phase="failed",
+                status=JobStatus.FAILED,
+                message=f"{error_code}: {exc}",
             )
 
     def _run_parse_repository(self, job_id: str, request: JobRunRequest) -> None:
@@ -265,6 +304,7 @@ class ControlPlaneService:
             self._update_job(
                 job_id,
                 progress=percent,
+                stage=step,
                 log_summary=f"{step}: {message or ''}".strip(": "),
             )
 
@@ -281,9 +321,16 @@ class ControlPlaneService:
         self._update_job(
             job_id,
             progress=96,
+            stage="target_registered",
             target=target["id"],
             log_summary=f"parsed target {target['id']}",
             detail_output=f"repository parsed: {target}",
+        )
+        self._append_phase(
+            job_id,
+            phase="target_registered",
+            status=JobStatus.RUNNING,
+            message=f"target ready: {target['id']}",
         )
 
     def _run_reparse_repository(self, job_id: str, request: JobRunRequest) -> None:
@@ -301,6 +348,7 @@ class ControlPlaneService:
                 job_id,
                 progress=percent,
                 target=target_id,
+                stage=step,
                 log_summary=f"{step}: {message or ''}".strip(": "),
             )
 
@@ -317,12 +365,30 @@ class ControlPlaneService:
             job_id,
             target=target_id,
             progress=96,
+            stage="target_reparsed",
             log_summary=f"re-parsed target {target_id}",
             detail_output=f"reparse result: {result}",
         )
+        self._append_phase(
+            job_id,
+            phase="target_reparsed",
+            status=JobStatus.RUNNING,
+            message=f"target reparsed: {target_id}",
+        )
 
     def _run_shell_job(self, job_id: str, command: list[str], success_message: str) -> None:
-        self._update_job(job_id, progress=12, log_summary=f"running command: {' '.join(command)}")
+        self._update_job(
+            job_id,
+            progress=12,
+            stage="command_running",
+            log_summary=f"running command: {' '.join(command)}",
+        )
+        self._append_phase(
+            job_id,
+            phase="command_running",
+            status=JobStatus.RUNNING,
+            message=" ".join(command),
+        )
         completed = subprocess.run(
             command,
             cwd=self._project_root,
@@ -342,13 +408,32 @@ class ControlPlaneService:
         self._update_job(
             job_id,
             progress=94,
+            stage="command_completed",
             detail_output=output[-15000:],
             log_summary=success_message,
+        )
+        self._append_phase(
+            job_id,
+            phase="command_completed",
+            status=JobStatus.RUNNING,
+            message=success_message,
         )
 
     def _run_generate_report(self, job_id: str, request: JobRunRequest) -> None:
         target = request.target or "mock"
-        self._update_job(job_id, progress=25, target=target, log_summary="exporting analysis report")
+        self._update_job(
+            job_id,
+            progress=25,
+            stage="report_generating",
+            target=target,
+            log_summary="exporting analysis report",
+        )
+        self._append_phase(
+            job_id,
+            phase="report_generating",
+            status=JobStatus.RUNNING,
+            message=f"target={target}",
+        )
         report = self._platform.export_analysis_report(target=target)
         export_dir = Path(self._settings.get().export_dir or (self._project_root / "docs"))
         export_dir.mkdir(parents=True, exist_ok=True)
@@ -357,10 +442,18 @@ class ControlPlaneService:
         self._update_job(
             job_id,
             progress=96,
+            stage="report_ready",
             target=target,
             artifact_path=str(path),
             log_summary="analysis report generated",
             detail_output=str(path),
+            related_report_ids=[path.stem],
+        )
+        self._append_phase(
+            job_id,
+            phase="report_ready",
+            status=JobStatus.RUNNING,
+            message=str(path),
         )
 
     def _run_cleanup(self, job_id: str, request: JobRunRequest) -> None:
@@ -390,9 +483,16 @@ class ControlPlaneService:
                 job_id,
                 target=target,
                 progress=int(18 + ((index + 1) / count) * 72),
+                stage="simulation",
                 log_summary=f"generated simulation trace {index + 1}/{count}",
             )
         self._update_job(job_id, target=target, detail_output=f"generated {count} traces")
+        self._append_phase(
+            job_id,
+            phase="simulation_done",
+            status=JobStatus.RUNNING,
+            message=f"generated traces: {count}",
+        )
 
     def _update_job(
         self,
@@ -400,12 +500,16 @@ class ControlPlaneService:
         *,
         status: JobStatus | None = None,
         progress: int | None = None,
+        stage: str | None = None,
         target: str | None = None,
         started_at: datetime | None = None,
         ended_at: datetime | None = None,
         log_summary: str | None = None,
         detail_output: str | None = None,
         artifact_path: str | None = None,
+        error_code: str | None = None,
+        retry_count: int | None = None,
+        related_report_ids: list[str] | None = None,
     ) -> None:
         with self._lock:
             job = self._jobs.get(job_id)
@@ -415,6 +519,8 @@ class ControlPlaneService:
                 job.status = status
             if progress is not None:
                 job.progress = max(0, min(100, progress))
+            if stage is not None:
+                job.stage = stage[:80]
             if target is not None:
                 job.target = target
             if started_at is not None:
@@ -427,7 +533,43 @@ class ControlPlaneService:
                 job.detail_output = detail_output[-20000:]
             if artifact_path is not None:
                 job.artifact_path = artifact_path
+            if error_code is not None:
+                job.error_code = error_code[:120]
+            if retry_count is not None:
+                job.retry_count = max(0, retry_count)
+            if related_report_ids is not None:
+                job.related_report_ids = [item for item in related_report_ids if item][:20]
             self._jobs[job_id] = job
+
+    def _append_phase(self, job_id: str, *, phase: str, status: JobStatus, message: str) -> None:
+        with self._lock:
+            job = self._jobs.get(job_id)
+            if not job:
+                return
+            phase_item = JobPhaseEntry(
+                phase=phase[:80],
+                status=status,
+                timestamp=datetime.now(timezone.utc),
+                message=message[:400],
+            )
+            history = [*job.phase_log, phase_item]
+            job.phase_log = history[-40:]
+            self._jobs[job_id] = job
+
+    @staticmethod
+    def _derive_error_code(exc: Exception) -> str:
+        message = str(exc).lower()
+        if "timeout" in message:
+            return "TIMEOUT"
+        if "not found" in message:
+            return "NOT_FOUND"
+        if "permission" in message or "denied" in message:
+            return "PERMISSION_DENIED"
+        if "validation" in message or "required" in message:
+            return "VALIDATION_ERROR"
+        if "command failed" in message:
+            return "COMMAND_FAILED"
+        return "UNKNOWN_ERROR"
 
     def _is_cancelled(self, job_id: str) -> bool:
         with self._lock:
@@ -473,4 +615,3 @@ class ControlPlaneService:
         if "tool" in role_blob or "mcp" in role_blob:
             return "tool_heavy_agent"
         return "general_agent"
-

@@ -365,6 +365,9 @@ export interface ReportArtifact {
   absolute_path: string;
   size_bytes: number;
   updated_at: string;
+  related_trace_ids: string[];
+  related_node_ids: string[];
+  related_job_ids: string[];
 }
 
 export interface ReportContentResponse {
@@ -441,17 +444,29 @@ export type ControlJobType =
 
 export type ControlJobStatus = "queued" | "running" | "success" | "failed" | "cancelled";
 
+export interface JobPhaseEntry {
+  phase: string;
+  status: ControlJobStatus;
+  timestamp: string;
+  message: string;
+}
+
 export interface JobRecord {
   id: string;
   type: ControlJobType;
   target?: string | null;
   status: ControlJobStatus;
   progress: number;
+  stage: string;
   started_at?: string | null;
   ended_at?: string | null;
   log_summary: string;
   detail_output: string;
   artifact_path?: string | null;
+  error_code?: string | null;
+  retry_count: number;
+  phase_log: JobPhaseEntry[];
+  related_report_ids: string[];
   metadata: Record<string, unknown>;
 }
 

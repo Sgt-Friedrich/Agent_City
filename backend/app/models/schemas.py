@@ -414,6 +414,9 @@ class ReportArtifact(BaseModel):
     absolute_path: str
     size_bytes: int
     updated_at: datetime
+    related_trace_ids: list[str] = Field(default_factory=list)
+    related_node_ids: list[str] = Field(default_factory=list)
+    related_job_ids: list[str] = Field(default_factory=list)
 
 
 class ReportContent(BaseModel):
@@ -466,17 +469,29 @@ class JobStatus(str, Enum):
     CANCELLED = "cancelled"
 
 
+class JobPhaseEntry(BaseModel):
+    phase: str
+    status: JobStatus
+    timestamp: datetime
+    message: str = ""
+
+
 class JobRecord(BaseModel):
     id: str
     type: JobType
     target: str | None = None
     status: JobStatus
     progress: int = Field(default=0, ge=0, le=100)
+    stage: str = "queued"
     started_at: datetime | None = None
     ended_at: datetime | None = None
     log_summary: str = ""
     detail_output: str = ""
     artifact_path: str | None = None
+    error_code: str | None = None
+    retry_count: int = 0
+    phase_log: list[JobPhaseEntry] = Field(default_factory=list)
+    related_report_ids: list[str] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 

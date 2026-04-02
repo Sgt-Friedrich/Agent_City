@@ -49,9 +49,12 @@ export function JobsCenter() {
   const { t, formatDateTime } = useI18n();
   const target = useDashboardStore((state) => state.target);
   const jobs = useDashboardStore((state) => state.jobs);
+  const setViewMode = useDashboardStore((state) => state.setViewMode);
+  const setSearchQuery = useDashboardStore((state) => state.setSearchQuery);
   const upsertControlJob = useDashboardStore((state) => state.upsertControlJob);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
+  const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
 
   const active = useMemo(
     () => jobs.find((job) => job.status === "running" || job.status === "queued"),
@@ -153,10 +156,22 @@ export function JobsCenter() {
                 {t("jobs.progress")}: {job.progress}%
               </div>
               <div>
+                stage: {job.stage}
+              </div>
+              <div>
+                error: {job.error_code ?? t("common.none")}
+              </div>
+              <div>
                 {t("jobs.start")}: {formatDateTime(job.started_at)}
               </div>
               <div>
                 {t("jobs.end")}: {formatDateTime(job.ended_at)}
+              </div>
+              <div>
+                retries: {job.retry_count}
+              </div>
+              <div>
+                report links: {job.related_report_ids.length}
               </div>
             </div>
             <div className="mt-2 rounded border border-line bg-[#0f1f32] px-2 py-1 text-[11px] text-slate-300">
@@ -186,7 +201,45 @@ export function JobsCenter() {
                   {t("jobs.actions.openArtifact")}
                 </button>
               )}
+              {job.related_report_ids.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setViewMode("reports");
+                    setSearchQuery(job.related_report_ids[0]);
+                  }}
+                  className="rounded border border-line bg-[#10253d] px-2 py-1 text-[11px] text-slate-200 hover:border-emerald-400"
+                >
+                  {t("jobs.actions.openRelatedReport")}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setExpandedJobId((prev) => (prev === job.id ? null : job.id))}
+                className="rounded border border-line bg-[#10253d] px-2 py-1 text-[11px] text-slate-200 hover:border-cyan-400"
+              >
+                {expandedJobId === job.id ? t("jobs.actions.hidePhases") : t("jobs.actions.showPhases")}
+              </button>
             </div>
+            {expandedJobId === job.id && (
+              <div className="mt-2 rounded border border-line bg-[#091522] p-2">
+                <div className="text-[11px] uppercase tracking-wide text-slate-400">{t("jobs.phaseLog")}</div>
+                <div className="mt-1 space-y-1">
+                  {job.phase_log.length === 0 && (
+                    <div className="text-[11px] text-slate-500">{t("common.none")}</div>
+                  )}
+                  {job.phase_log.map((phase, idx) => (
+                    <div key={`${phase.phase}-${idx}`} className="rounded border border-line bg-[#0f1f32] px-2 py-1 text-[11px] text-slate-300">
+                      <div className="flex items-center justify-between">
+                        <span>{phase.phase}</span>
+                        <span className="text-slate-500">{formatDateTime(phase.timestamp)}</span>
+                      </div>
+                      <div className="text-[10px] text-slate-500">{phase.status} | {phase.message}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </article>
         ))}
       </div>

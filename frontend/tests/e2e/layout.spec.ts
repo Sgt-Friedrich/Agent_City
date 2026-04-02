@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, Locator, test } from "@playwright/test";
 
 const ignoredConsolePatterns = [
   /favicon\.ico/i,
@@ -8,6 +8,18 @@ const ignoredConsolePatterns = [
 
 function isIgnoredConsoleMessage(message: string): boolean {
   return ignoredConsolePatterns.some((pattern) => pattern.test(message));
+}
+
+async function safeClick(locator: Locator) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      await locator.click({ timeout: 10_000 });
+      return;
+    } catch (error) {
+      if (attempt === 2) throw error;
+      await locator.waitFor({ state: "visible", timeout: 10_000 });
+    }
+  }
 }
 
 test("dashboard renders core zones and replay route is reachable", async ({ page }) => {
@@ -53,16 +65,16 @@ test("dashboard renders core zones and replay route is reachable", async ({ page
   await expect(page.getByTestId("import-wizard")).toBeVisible();
   await page.getByTestId("import-wizard-close").click();
 
-  await page.getByTestId("view-mode-diagnostics").click();
+  await safeClick(page.getByTestId("view-mode-diagnostics"));
   await expect(page.getByTestId("diagnostics-center")).toBeVisible();
 
-  await page.getByTestId("view-mode-parser_analysis").click();
+  await safeClick(page.getByTestId("view-mode-parser_analysis"));
   await expect(page.getByTestId("parser-analysis-center")).toBeVisible();
 
-  await page.getByTestId("view-mode-reports").click();
+  await safeClick(page.getByTestId("view-mode-reports"));
   await expect(page.getByTestId("reports-center")).toBeVisible();
 
-  await page.getByTestId("view-mode-overview").click();
+  await safeClick(page.getByTestId("view-mode-overview"));
   await expect(page.getByTestId("city-scene")).toBeVisible();
 
   const replayLink = page.getByTestId("open-replay-link");
