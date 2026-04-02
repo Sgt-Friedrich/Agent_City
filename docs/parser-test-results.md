@@ -189,17 +189,3 @@ Skipped/failed clones: **2**
 
 - `pydantic/pydantic-ai`: clone failed: fatal: destination path 'D:\others\OD\OneDrive - University of Glasgow\妗岄潰\claude code\agent-city-mvp\refs\pydantic__pydantic-ai' already exists and is not an empty directory.
 - `swe-agent/swe-agent`: clone failed: fatal: destination path 'D:\others\OD\OneDrive - University of Glasgow\妗岄潰\claude code\agent-city-mvp\refs\swe-agent__swe-agent' already exists and is not an empty directory.
-## Cleanup Execution
-
-- Cleanup command (dry-run):
-  - `python scripts/cleanup_refs.py --root . --targets refs --threshold-mb 200 --keep-list-file docs/parser-tested-keep.txt --delete-unlisted --dry-run`
-- Cleanup command (execute):
-  - `python scripts/cleanup_refs.py --root . --targets refs --threshold-mb 200 --keep-list-file docs/parser-tested-keep.txt --delete-unlisted`
-- Deleted because `>200MB`:
-  - `refs/crewAIInc__crewAI` (331.20MB)
-- Deleted because unlisted/failed:
-  - `refs/pydantic__pydantic-ai` (91.32MB)
-  - `refs/swe-agent__swe-agent` (29.59MB)
-- Remaining refs count: 12
-- Remaining refs total size: 528.14MB
-- Largest remaining single ref dir: `refs/mastra-ai__mastra` (172.49MB)

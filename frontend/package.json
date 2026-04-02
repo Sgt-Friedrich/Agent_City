@@ -9,6 +9,7 @@
     "start": "next start -p 3000",
     "lint": "next lint",
     "e2e": "playwright test",
+    "e2e:app": "npm run build && playwright test -c playwright.app.config.ts",
     "e2e:headed": "playwright test --headed",
     "e2e:install": "playwright install --with-deps chromium"
   },

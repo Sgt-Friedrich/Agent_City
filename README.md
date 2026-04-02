@@ -193,9 +193,9 @@ python -m unittest discover -s tests/parser -p "test_*.py" -v
 python scripts/run_parser_retest.py
 ```
 
-### Frontend e2e
+### App UI automation (static bundle)
 ```bash
-npm --prefix frontend run e2e
+npm --prefix frontend run e2e:app
 ```
 
 ### Desktop smoke

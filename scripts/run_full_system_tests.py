@@ -71,9 +71,11 @@ def main() -> None:
             "Parser unit tests",
             ["python", "-m", "unittest", "discover", "-s", "tests/parser", "-p", "test_*.py", "-v"],
         ),
+        ("Parser multi-language regression", ["python", "scripts/run_parser_regression.py"]),
         ("Parser representative retest", ["python", "scripts/run_parser_retest.py"]),
-        ("Frontend build", ["npm", "--prefix", "frontend", "run", "build:clean"]),
-        ("App UI automation tests", ["npm", "--prefix", "frontend", "run", "e2e"]),
+        ("Frontend static build", ["npm", "--prefix", "frontend", "run", "build:clean"]),
+        ("App UI automation tests (static bundle)", ["npm", "--prefix", "frontend", "run", "e2e:app"]),
+        ("Desktop app smoke", ["npm", "run", "app:smoke"]),
         ("Desktop shell smoke", ["npm", "--prefix", "desktop", "run", "test:smoke"]),
         (
             "Reference cleanup dry-run",

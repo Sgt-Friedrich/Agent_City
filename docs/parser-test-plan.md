@@ -24,17 +24,3 @@
 
 - Languages: Python, TypeScript, Go, Rust, Java/JVM, .NET/mixed
 - Sources: config-driven / registry-driven / code-driven
-## Selection Rationale
-
-- `langchain-ai/langgraph`, `microsoft/autogen`: multi-agent orchestration baseline and handoff patterns.
-- `openai/openai-agents-python`, `crewAIInc/crewAI`: framework + registry-driven agent/tool definitions.
-- `browser-use/browser-use`, `OpenHands/OpenHands`, `swe-agent/swe-agent`: browser/coding-agent behavior diversity.
-- `mastra-ai/mastra`, `elizaOS/eliza`, `langgraphjs`: TypeScript framework and plugin-heavy ecosystem coverage.
-- `cloudwego/eino`: Go enterprise workflow/agent framework.
-- `liquidos-ai/autoagents`: Rust agent runtime coverage.
-- `langchain4j/langchain4j`, `microsoft/semantic-kernel`: JVM + .NET/mixed enterprise ecosystems.
-
-## Language And Domain Coverage Target
-
-- Language target: Python / TypeScript / Go / Rust / Java-JVM / .NET-mixed
-- Domain target: general framework, coding agent, browser automation, enterprise/workflow, tool-heavy integration, multi-agent orchestration

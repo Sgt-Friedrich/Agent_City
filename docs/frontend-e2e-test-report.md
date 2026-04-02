@@ -12,7 +12,7 @@ This run validates the desktop workbench UI surface for:
 
 ## Environment
 
-- Workbench UI: Next.js dev server
+- Workbench UI: Next.js static bundle (`frontend/out`) served locally
 - Local service: FastAPI (uvicorn)
 - Automation engine: Playwright Chromium
 - Date: 2026-04-02
@@ -20,8 +20,7 @@ This run validates the desktop workbench UI surface for:
 ## Commands
 
 ```bash
-npm --prefix frontend run e2e
-npm --prefix frontend run build:clean
+npm --prefix frontend run e2e:app
 ```
 
 ## Test Files
@@ -58,5 +57,5 @@ npm --prefix frontend run build:clean
 
 ## Notes
 
-- Next.js dev warning about `allowedDevOrigins` is non-blocking.
-- Build stability uses `build:clean` to avoid stale `.next` cache artifacts.
+- This test path validates App-style static rendering instead of web dev-server rendering.
+- Backend is still verified through local FastAPI health and runtime API calls.
