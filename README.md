@@ -213,15 +213,54 @@ Latest full-system report path:
 
 ---
 
-## 10. Screenshots / 展示截图
+## 10. Latest Update (2026-04-02) / 最新更新（2026-04-02）
 
-![Agent_City Dashboard Desktop](docs/screenshots/dashboard-desktop.png)
-![Agent_City Dashboard Mobile](docs/screenshots/dashboard-mobile.png)
-![Agent_City Replay](docs/screenshots/replay-desktop.png)
+- Control Plane upgraded with Repositories/Jobs/Settings centers.
+- Parser Analysis upgraded to a full quality center (matrix + quick actions).
+- Diagnostics enhanced with dedicated focus layers (`errors/slow/congestion/retry_fallback`).
+- Search DSL upgraded (`key:value`, `!=`, `has:*`, numeric filters like `latency>700`).
+- Command Palette + keyboard shortcuts added (`Ctrl/Cmd+K`, `Alt+1..9`).
+- Mini-map upgraded as a semantic navigator with overlay-driven jumps.
 
 ---
 
-## 11. Cleanup Mechanism / 参考仓库清理机制
+## 11. Screenshots / 展示截图
+
+### Overview (Desktop)
+![Agent_City Overview Desktop](docs/screenshots/dashboard-overview-desktop.png)
+
+### Diagnostics
+![Agent_City Diagnostics Desktop](docs/screenshots/dashboard-diagnostics-desktop.png)
+
+### Parser Analysis Center
+![Agent_City Parser Analysis Desktop](docs/screenshots/dashboard-parser-analysis-desktop.png)
+
+### Repositories Center
+![Agent_City Repositories Desktop](docs/screenshots/dashboard-repositories-desktop.png)
+
+### Jobs Center
+![Agent_City Jobs Desktop](docs/screenshots/dashboard-jobs-desktop.png)
+
+### Settings Center
+![Agent_City Settings Desktop](docs/screenshots/dashboard-settings-desktop.png)
+
+### Command Palette
+![Agent_City Command Palette Desktop](docs/screenshots/dashboard-command-palette-desktop.png)
+
+### Replay
+![Agent_City Replay Desktop](docs/screenshots/dashboard-replay-desktop.png)
+
+### Overview (Mobile)
+![Agent_City Overview Mobile](docs/screenshots/dashboard-overview-mobile.png)
+
+To refresh screenshots locally:
+```bash
+npm --prefix frontend run screenshots:app
+```
+
+---
+
+## 12. Cleanup Mechanism / 参考仓库清理机制
 
 ```bash
 python scripts/cleanup_refs.py --root . --targets refs --threshold-mb 200 --keep-list-file docs/parser-tested-keep.txt --delete-unlisted --dry-run
@@ -234,7 +273,7 @@ Rules:
 
 ---
 
-## 12. Self-Debug Toolchain / 自调试工具链
+## 13. Self-Debug Toolchain / 自调试工具链
 
 - `AGENTS.md`
 - `.agents/skills/frontend-repro`
@@ -247,7 +286,7 @@ Used for App UI issue reproduction, evidence capture, minimal fix, and regressio
 
 ---
 
-## 13. Known Boundaries / 已知边界
+## 14. Known Boundaries / 已知边界
 
 - Parser is heuristic-first with graceful degradation for unknown frameworks.
 - Large topologies may still benefit from future clustering/aggregation strategies.
@@ -255,7 +294,7 @@ Used for App UI issue reproduction, evidence capture, minimal fix, and regressio
 
 ---
 
-## 14. Next Extension Direction / 后续扩展方向
+## 15. Next Extension Direction / 后续扩展方向
 
 - OpenTelemetry / Jaeger / Langfuse / Phoenix adapters
 - richer command palette + desktop shortcut map
