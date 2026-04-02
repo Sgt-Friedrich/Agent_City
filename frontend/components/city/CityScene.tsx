@@ -51,6 +51,101 @@ interface CameraDirectorProps {
   onNavigationSettled: () => void;
 }
 
+const NODE_CLUSTER_RADIUS = 9.5;
+const NODE_LAYOUT_GOLDEN_ANGLE = 2.399963229728653;
+const NODE_ACTIVITY_WINDOW_MS = 150_000;
+
+function nodePriority(node: Node): number {
+  const coreTypes: Node["type"][] = ["planner", "llm", "guardrail", "runtime", "event_bus"];
+  const coreBoost = coreTypes.includes(node.type) ? 20 : 0;
+  const metricBoost = node.metrics ? (node.metrics.qps ?? 0) * 2 + (node.metrics.active_count ?? 0) : 0;
+  return coreBoost + node.height * 0.8 + node.size * 0.7 + metricBoost;
+}
+
+function clampToDistrict(node: Node, districtsById: Record<string, TopologyGraph["districts"][number]>): Node {
+  const district = districtsById[node.district_id];
+  if (!district) return node;
+  const margin = Math.max(1.8, node.size * 0.55);
+  const minX = district.position.x - district.bounds.width / 2 + margin;
+  const maxX = district.position.x + district.bounds.width / 2 - margin;
+  const minZ = district.position.z - district.bounds.depth / 2 + margin;
+  const maxZ = district.position.z + district.bounds.depth / 2 - margin;
+  return {
+    ...node,
+    position: {
+      ...node.position,
+      x: Math.max(minX, Math.min(maxX, node.position.x)),
+      z: Math.max(minZ, Math.min(maxZ, node.position.z)),
+    },
+  };
+}
+
+function applyNodeDeclutter(nodes: Node[], topology?: TopologyGraph): Node[] {
+  if (!nodes.length) return nodes;
+  const districtsById: Record<string, TopologyGraph["districts"][number]> = {};
+  for (const district of topology?.districts ?? []) {
+    districtsById[district.id] = district;
+  }
+
+  const cloned = nodes.map((node) => ({
+    ...node,
+    position: { ...node.position },
+  }));
+
+  const byDistrict = new Map<string, Node[]>();
+  for (const node of cloned) {
+    const list = byDistrict.get(node.district_id) ?? [];
+    list.push(node);
+    byDistrict.set(node.district_id, list);
+  }
+
+  for (const districtNodes of byDistrict.values()) {
+    const visited = new Set<string>();
+    const original = districtNodes.map((node) => ({ id: node.id, x: node.position.x, z: node.position.z }));
+
+    for (const seed of original) {
+      if (visited.has(seed.id)) continue;
+
+      const clusterIds: string[] = [];
+      for (const candidate of original) {
+        const dx = candidate.x - seed.x;
+        const dz = candidate.z - seed.z;
+        if (Math.hypot(dx, dz) <= NODE_CLUSTER_RADIUS) {
+          clusterIds.push(candidate.id);
+        }
+      }
+
+      clusterIds.forEach((id) => visited.add(id));
+      if (clusterIds.length <= 1) continue;
+
+      const clusterNodes = districtNodes
+        .filter((node) => clusterIds.includes(node.id))
+        .sort((a, b) => nodePriority(b) - nodePriority(a));
+
+      const center = clusterNodes.reduce(
+        (acc, node) => ({ x: acc.x + node.position.x, z: acc.z + node.position.z }),
+        { x: 0, z: 0 },
+      );
+      center.x /= clusterNodes.length;
+      center.z /= clusterNodes.length;
+
+      clusterNodes.forEach((node, index) => {
+        if (index === 0) {
+          node.position.x = center.x;
+          node.position.z = center.z;
+          return;
+        }
+        const radius = 2.8 + Math.sqrt(index) * 3.0;
+        const angle = index * NODE_LAYOUT_GOLDEN_ANGLE;
+        node.position.x = center.x + Math.cos(angle) * radius;
+        node.position.z = center.z + Math.sin(angle) * radius;
+      });
+    }
+  }
+
+  return cloned.map((node) => clampToDistrict(node, districtsById));
+}
+
 function CameraDirector({
   controlsRef,
   navigationTarget,
@@ -140,16 +235,25 @@ export function CityScene({
     }
   }, [replay?.enabled, viewMode]);
 
+  const layoutNodes = useMemo(() => applyNodeDeclutter(nodes, topology), [nodes, topology]);
+
   const nodesById = useMemo<Record<string, Node>>(() => {
-    return nodes.reduce<Record<string, Node>>((acc, node) => {
+    return layoutNodes.reduce<Record<string, Node>>((acc, node) => {
       acc[node.id] = node;
       return acc;
     }, {});
-  }, [nodes]);
+  }, [layoutNodes]);
 
   const activeEvents = useMemo(() => {
     if (!replay?.enabled || !replay.traceId) {
-      return events;
+      const now = Date.now();
+      return events
+        .filter((event) => {
+          const ts = Date.parse(event.timestamp);
+          if (Number.isNaN(ts)) return false;
+          return now - ts <= NODE_ACTIVITY_WINDOW_MS;
+        })
+        .slice(0, 240);
     }
     return events.filter((event) => event.trace_id === replay.traceId).slice(0, Math.max(replay.cursor, 1));
   }, [events, replay]);
@@ -168,8 +272,9 @@ export function CityScene({
 
   const focusedEvents = useMemo(() => {
     if (!focusedTraceId) return [];
-    return activeEvents.filter((event) => event.trace_id === focusedTraceId);
-  }, [activeEvents, focusedTraceId]);
+    const sourceEvents = replay?.enabled ? activeEvents : events;
+    return sourceEvents.filter((event) => event.trace_id === focusedTraceId);
+  }, [activeEvents, events, focusedTraceId, replay?.enabled]);
 
   const focusedEdgeSet = useMemo(() => {
     const set = new Set<string>();
@@ -193,20 +298,22 @@ export function CityScene({
 
   const edgeTraffic = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const event of events) {
+    const sourceEvents = focusedEvents.length > 0 ? focusedEvents : activeEvents;
+    for (const event of sourceEvents) {
       if (!event.to_node) continue;
       const key = `${event.from_node}::${event.to_node}`;
       counts.set(key, (counts.get(key) ?? 0) + 1);
     }
     return counts;
-  }, [events]);
+  }, [activeEvents, focusedEvents]);
 
   const edgeEventStats = useMemo(() => {
     const map = new Map<
       string,
       { error: number; retry: number; fallback: number; maxLatency: number; maxQueue: number }
     >();
-    for (const event of events) {
+    const sourceEvents = focusedEvents.length > 0 ? focusedEvents : activeEvents;
+    for (const event of sourceEvents) {
       if (!event.to_node) continue;
       const key = `${event.from_node}::${event.to_node}`;
       const prev = map.get(key) ?? { error: 0, retry: 0, fallback: 0, maxLatency: 0, maxQueue: 0 };
@@ -220,7 +327,7 @@ export function CityScene({
       });
     }
     return map;
-  }, [events]);
+  }, [activeEvents, focusedEvents]);
 
   const trunkEdgeSet = useMemo(() => {
     const entries = Array.from(edgeTraffic.entries()).sort((a, b) => b[1] - a[1]);
@@ -258,7 +365,7 @@ export function CityScene({
       { inbound: Map<string, number>; outbound: Map<string, number>; latest?: string }
     > = {};
 
-    for (const node of nodes) {
+    for (const node of layoutNodes) {
       map[node.id] = {
         inbound: new Map<string, number>(),
         outbound: new Map<string, number>(),
@@ -285,7 +392,7 @@ export function CityScene({
     }
 
     return map;
-  }, [events, nodes]);
+  }, [events, layoutNodes]);
 
   const sortedEdges = useMemo(() => {
     return edges.slice().sort((a, b) => {
@@ -495,7 +602,7 @@ export function CityScene({
           );
         })}
 
-        {nodes.map((node) => {
+        {layoutNodes.map((node) => {
           const activity = nodeActivity[node.id];
           const inboundTop = Array.from(activity?.inbound.entries() ?? [])
             .sort((a, b) => b[1] - a[1])
@@ -602,7 +709,7 @@ export function CityScene({
 
       <CityMiniMap
         topology={topology}
-        nodes={nodes}
+        nodes={layoutNodes}
         events={activeEvents}
         replayTraceId={replay?.enabled ? replay.traceId : undefined}
         cameraView={cameraView}

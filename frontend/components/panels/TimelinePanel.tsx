@@ -87,7 +87,7 @@ function GroupButtons({
   );
 }
 
-export function TimelinePanel({ maxItems = 60 }: TimelinePanelProps) {
+export function TimelinePanel({ maxItems = 100 }: TimelinePanelProps) {
   const { t } = useI18n();
   const events = useDashboardStore((state) => state.liveEvents);
   const selectedSpanId = useDashboardStore((state) => state.selectedSpanId);

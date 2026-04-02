@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { useI18n } from "@/hooks/useI18n";
 import { DashboardMode, DiagnosticMode, flowLegend } from "@/lib/visualTheme";
@@ -38,12 +38,17 @@ function toggleDslToken(current: string, token: string): string {
   return next.join(" ");
 }
 
-export function FilterPanel() {
+interface FilterPanelProps {
+  layout?: "sidebar" | "drawer";
+}
+
+export function FilterPanel({ layout = "sidebar" }: FilterPanelProps) {
   const { t } = useI18n();
   const [builderField, setBuilderField] = useState("status");
   const [builderOp, setBuilderOp] = useState(":");
   const [builderValue, setBuilderValue] = useState("error");
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [activeQuickEntry, setActiveQuickEntry] = useState<null | "active_trace" | "error_chains" | "fallback_retry" | "low_confidence" | "recent_import">(null);
   const topology = useDashboardStore((state) => state.topology);
   const traces = useDashboardStore((state) => state.traces);
   const filters = useDashboardStore((state) => state.filters);
@@ -51,6 +56,7 @@ export function FilterPanel() {
   const diagnosticMode = useDashboardStore((state) => state.diagnosticMode);
   const diagnosticFocus = useDashboardStore((state) => state.diagnosticFocus);
   const searchQuery = useDashboardStore((state) => state.searchQuery);
+  const selectedTraceId = useDashboardStore((state) => state.selectedTraceId);
   const parseJobs = useDashboardStore((state) => state.parseJobs);
   const diagnostics = useDashboardStore((state) => state.diagnosticsSummary);
   const parserAnalysis = useDashboardStore((state) => state.parserAnalysis);
@@ -67,6 +73,14 @@ export function FilterPanel() {
   const setSelectedTrace = useDashboardStore((state) => state.setSelectedTrace);
   const setTarget = useDashboardStore((state) => state.setTarget);
   const resetFilters = useDashboardStore((state) => state.resetFilters);
+  const quickEntrySnapshotRef = useRef<{
+    viewMode: DashboardMode;
+    diagnosticMode: DiagnosticMode;
+    diagnosticFocus: "all" | "errors" | "slow" | "congestion" | "retry_fallback";
+    searchQuery: string;
+    filters: typeof filters;
+    selectedTraceId?: string;
+  } | null>(null);
 
   const nodeTypes = useMemo<NodeType[]>(() => {
     if (!topology) return [];
@@ -94,7 +108,6 @@ export function FilterPanel() {
     { id: "repositories", label: t("nav.repositories") },
     { id: "jobs", label: t("nav.jobs") },
     { id: "reports", label: t("nav.reports") },
-    { id: "settings", label: t("nav.settings") },
   ];
 
   const latestCompletedImport = useMemo(
@@ -118,30 +131,122 @@ export function FilterPanel() {
     setSearchQuery((searchQuery ? `${searchQuery} ` : "") + chunk);
   };
 
+  const rememberQuickEntrySnapshot = () => {
+    if (quickEntrySnapshotRef.current) return;
+    quickEntrySnapshotRef.current = {
+      viewMode,
+      diagnosticMode,
+      diagnosticFocus,
+      searchQuery,
+      filters: {
+        districtIds: [...filters.districtIds],
+        nodeTypes: [...filters.nodeTypes],
+        statuses: [...filters.statuses],
+        spanKinds: [...filters.spanKinds],
+        traceId: filters.traceId,
+      },
+      selectedTraceId,
+    };
+  };
+
+  const restoreQuickEntrySnapshot = () => {
+    const snapshot = quickEntrySnapshotRef.current;
+    if (!snapshot) {
+      resetFilters();
+      setSearchQuery("");
+      setSelectedTrace(undefined);
+      setDiagnosticFocus("all");
+      setDiagnosticMode("realtime");
+      setActiveQuickEntry(null);
+      return;
+    }
+    setViewMode(snapshot.viewMode);
+    setDiagnosticMode(snapshot.diagnosticMode);
+    setDiagnosticFocus(snapshot.diagnosticFocus);
+    setSearchQuery(snapshot.searchQuery);
+    setDistrictFilter(snapshot.filters.districtIds);
+    setNodeTypeFilter(snapshot.filters.nodeTypes);
+    setSpanKindFilter(snapshot.filters.spanKinds);
+    setStatusFilter(snapshot.filters.statuses);
+    setTraceFilter(snapshot.filters.traceId);
+    setSelectedTrace(snapshot.selectedTraceId);
+    quickEntrySnapshotRef.current = null;
+    setActiveQuickEntry(null);
+  };
+
+  const applyQuickEntry = (
+    entry: "active_trace" | "error_chains" | "fallback_retry" | "low_confidence" | "recent_import",
+    action: () => void,
+  ) => {
+    if (activeQuickEntry === entry) {
+      restoreQuickEntrySnapshot();
+      return;
+    }
+    rememberQuickEntrySnapshot();
+    action();
+    setActiveQuickEntry(entry);
+  };
+
+  const fullReset = () => {
+    quickEntrySnapshotRef.current = null;
+    setActiveQuickEntry(null);
+    resetFilters();
+    setSearchQuery("");
+    setSelectedTrace(undefined);
+    setDiagnosticFocus("all");
+    setDiagnosticMode("realtime");
+  };
+
+  const panelClassName =
+    layout === "drawer"
+      ? "h-full overflow-y-auto rounded border border-line bg-[#081320d8] p-3 scrollbar-thin"
+      : "h-full max-h-[34vh] overflow-y-auto border-r border-line bg-[#081320cc] p-3 scrollbar-thin lg:max-h-none";
+
   return (
-    <aside data-testid="filter-panel" className="h-full max-h-[34vh] overflow-y-auto border-r border-line bg-[#081320cc] p-3 scrollbar-thin lg:max-h-none">
+    <aside data-testid="filter-panel" className={panelClassName}>
       <div className="flex items-center justify-between">
         <h2 className="panel-title text-sm uppercase tracking-wide text-slate-200">{t("control.title")}</h2>
         <button
           type="button"
           className="text-xs text-slate-400 hover:text-slate-200"
-          onClick={() => resetFilters()}
+          onClick={fullReset}
         >
           {t("common.reset")}
         </button>
       </div>
 
       <section className="mt-4 space-y-2 rounded border border-line bg-[#0a1829] p-2">
-        <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.quickEntry")}</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.quickEntry")}</h3>
+          <button
+            type="button"
+            className={`rounded border px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${
+              activeQuickEntry
+                ? "border-amber-400 bg-[#2b2315] text-amber-100 hover:border-amber-300"
+                : "border-line bg-[#0b1a2e] text-slate-500"
+            }`}
+            disabled={!activeQuickEntry}
+            onClick={() => restoreQuickEntrySnapshot()}
+          >
+            {activeQuickEntry ? t("filter.quick.exit") : t("filter.quick.inactive")}
+          </button>
+        </div>
         <div className="grid grid-cols-1 gap-1">
           <button
             type="button"
-            className="rounded border border-line bg-[#0b1a2e] px-2 py-1 text-left text-[11px] text-slate-300 hover:border-cyan-400"
+            className={`rounded border px-2 py-1 text-left text-[11px] ${
+              activeQuickEntry === "active_trace"
+                ? "border-cyan-400 bg-[#17304a] text-cyan-100"
+                : "border-line bg-[#0b1a2e] text-slate-300 hover:border-cyan-400"
+            }`}
             onClick={() => {
               if (!hotTrace) return;
-              setSelectedTrace(hotTrace.envelope.trace_id);
-              setTraceFilter(hotTrace.envelope.trace_id);
-              setViewMode("live");
+              applyQuickEntry("active_trace", () => {
+                setSelectedTrace(hotTrace.envelope.trace_id);
+                setTraceFilter(hotTrace.envelope.trace_id);
+                setSearchQuery("");
+                setViewMode("live");
+              });
             }}
           >
             {t("filter.quick.activeTrace")}{" "}
@@ -151,14 +256,19 @@ export function FilterPanel() {
             type="button"
             className={`rounded border px-2 py-1 text-left text-[11px] ${
               hasErrorChains
-                ? "border-rose-500/50 bg-[#2b161a] text-rose-100 hover:border-rose-400"
+                ? activeQuickEntry === "error_chains"
+                  ? "border-rose-400 bg-[#3b1b22] text-rose-100"
+                  : "border-rose-500/50 bg-[#2b161a] text-rose-100 hover:border-rose-400"
                 : "border-line bg-[#0b1a2e] text-slate-500"
             }`}
             onClick={() => {
-              setViewMode("diagnostics");
-              setDiagnosticMode("errors");
-              setDiagnosticFocus("errors");
-              setStatusFilter(["error"]);
+              applyQuickEntry("error_chains", () => {
+                setViewMode("diagnostics");
+                setDiagnosticMode("errors");
+                setDiagnosticFocus("errors");
+                setStatusFilter(["error"]);
+                setSearchQuery("status:error");
+              });
             }}
           >
             {t("filter.quick.errorChains")}{" "}
@@ -168,14 +278,18 @@ export function FilterPanel() {
             type="button"
             className={`rounded border px-2 py-1 text-left text-[11px] ${
               hasRetryFallback
-                ? "border-amber-500/50 bg-[#2b2315] text-amber-100 hover:border-amber-400"
+                ? activeQuickEntry === "fallback_retry"
+                  ? "border-amber-400 bg-[#3a2b12] text-amber-100"
+                  : "border-amber-500/50 bg-[#2b2315] text-amber-100 hover:border-amber-400"
                 : "border-line bg-[#0b1a2e] text-slate-500"
             }`}
             onClick={() => {
-              setViewMode("diagnostics");
-              setDiagnosticMode("errors");
-              setDiagnosticFocus("retry_fallback");
-              setSearchQuery("has:retry,fallback");
+              applyQuickEntry("fallback_retry", () => {
+                setViewMode("diagnostics");
+                setDiagnosticMode("errors");
+                setDiagnosticFocus("retry_fallback");
+                setSearchQuery("has:retry has:fallback");
+              });
             }}
           >
             {t("filter.quick.fallbackRetry")}{" "}
@@ -185,20 +299,37 @@ export function FilterPanel() {
             type="button"
             className={`rounded border px-2 py-1 text-left text-[11px] ${
               (parserAnalysis?.parser_confidence ?? 1) < 0.75
-                ? "border-amber-500/50 bg-[#2b2315] text-amber-100 hover:border-amber-400"
-                : "border-line bg-[#0b1a2e] text-slate-300 hover:border-sky-400"
+                ? activeQuickEntry === "low_confidence"
+                  ? "border-amber-400 bg-[#3a2b12] text-amber-100"
+                  : "border-amber-500/50 bg-[#2b2315] text-amber-100 hover:border-amber-400"
+                : activeQuickEntry === "low_confidence"
+                  ? "border-sky-400 bg-[#17304a] text-sky-100"
+                  : "border-line bg-[#0b1a2e] text-slate-300 hover:border-sky-400"
             }`}
-            onClick={() => setViewMode("parser_analysis")}
+            onClick={() =>
+              applyQuickEntry("low_confidence", () => {
+                setViewMode("parser_analysis");
+                setSearchQuery((parserAnalysis?.parser_confidence ?? 1) < 0.75 ? "confidence:low unresolved:high" : "confidence:stable");
+              })
+            }
           >
             {t("filter.quick.lowConfidence")} ({(parserAnalysis?.parser_confidence ?? 0).toFixed(3)})
           </button>
           <button
             type="button"
-            className="rounded border border-line bg-[#0b1a2e] px-2 py-1 text-left text-[11px] text-slate-300 hover:border-emerald-400"
+            className={`rounded border px-2 py-1 text-left text-[11px] ${
+              activeQuickEntry === "recent_import"
+                ? "border-emerald-400 bg-[#103325] text-emerald-100"
+                : "border-line bg-[#0b1a2e] text-slate-300 hover:border-emerald-400"
+            }`}
             onClick={() => {
-              if (!latestCompletedImport?.target_id) return;
-              setTarget(latestCompletedImport.target_id);
-              setViewMode("overview");
+              const targetId = latestCompletedImport?.target_id;
+              if (!targetId) return;
+              applyQuickEntry("recent_import", () => {
+                setTarget(targetId);
+                setSearchQuery("");
+                setViewMode("overview");
+              });
             }}
           >
             {t("filter.quick.recentImport")}{" "}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { Line } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
@@ -35,6 +35,8 @@ interface FlowTrackProps {
   onHoverEvent: (event?: FlowEvent) => void;
   onClickEvent: (event: FlowEvent) => void;
 }
+
+const LIVE_EVENT_TTL_MS = 18_000;
 
 function quadraticAt(
   t: number,
@@ -214,17 +216,37 @@ export function LiveFlows({
   onHoverEvent,
   onClickEvent,
 }: LiveFlowsProps) {
+  const [clockTick, setClockTick] = useState(0);
+
+  useEffect(() => {
+    if (replay?.enabled) return;
+    const timer = window.setInterval(() => {
+      setClockTick((prev) => (prev + 1) % 100_000);
+    }, 1000);
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [replay?.enabled]);
+
   const displayEvents = useMemo(() => {
+    const now = Date.now();
     const candidate = replay?.enabled
       ? events
           .filter((event) => !replay.traceId || event.trace_id === replay.traceId)
           .slice(0, Math.max(replay.cursor, 1))
-      : events.slice(0, 140);
+      : events
+          .slice(0, 200)
+          .filter((event) => {
+            const ts = Date.parse(event.timestamp);
+            if (Number.isNaN(ts)) return false;
+            return now - ts <= LIVE_EVENT_TTL_MS;
+          })
+          .slice(0, 120);
 
     return candidate.filter(
       (event) => event.to_node && nodesById[event.from_node] && nodesById[event.to_node],
     );
-  }, [events, nodesById, replay]);
+  }, [clockTick, events, nodesById, replay]);
 
   return (
     <group>

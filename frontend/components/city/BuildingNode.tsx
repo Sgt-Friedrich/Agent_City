@@ -261,7 +261,7 @@ export function BuildingNode({
       ) : null}
 
       {(labelMode !== "none" || hovered || highlighted) && (
-        <Html position={[0, iconY + 1.05, 0]} center>
+        <Html position={[0, iconY + 1.05, 0]} center zIndexRange={[8, 0]} wrapperClass="city-html-overlay">
           <div className="rounded border border-line bg-[#071629df] px-2 py-1 text-[10px] text-slate-200 shadow-glow">
             <div className="panel-title text-[10px] uppercase tracking-wide text-slate-200">{visual.glyph}</div>
             {(labelMode === "full" || hovered || highlighted) ? (
@@ -272,7 +272,7 @@ export function BuildingNode({
       )}
 
       {cardVisible && (
-        <Html position={[0, node.height + 2.4, 0]} center>
+        <Html position={[0, node.height + 2.4, 0]} center zIndexRange={[10, 0]} wrapperClass="city-html-overlay">
           <div className="w-56 rounded border border-line bg-[#051222ee] p-2 text-xs text-slate-200 shadow-glow">
             <div className="panel-title text-[11px] uppercase tracking-wide text-slate-200">{node.name}</div>
             <div className="mt-1 text-[10px] text-slate-400">

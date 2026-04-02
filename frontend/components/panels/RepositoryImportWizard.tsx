@@ -40,6 +40,19 @@ export function RepositoryImportWizard({
     }
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (submitting || importing) return;
+      onClose();
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [importing, onClose, open, submitting]);
+
   if (!open) return null;
 
   const busy = submitting || importing;
@@ -104,8 +117,14 @@ export function RepositoryImportWizard({
     <div
       data-testid="import-wizard"
       className="absolute inset-0 z-40 flex items-center justify-center bg-[#02060bcc] p-4 backdrop-blur-[2px]"
+      onClick={() => {
+        if (!busy) onClose();
+      }}
     >
-      <section className="glass-panel w-full max-w-3xl rounded-md p-4 text-xs text-slate-300 shadow-glow">
+      <section
+        className="glass-panel w-full max-w-3xl rounded-md p-4 text-xs text-slate-300 shadow-glow"
+        onClick={(event) => event.stopPropagation()}
+      >
         <div className="flex items-center justify-between border-b border-line pb-2">
           <div>
             <div className="panel-title text-sm uppercase tracking-wide text-slate-100">

@@ -22,7 +22,11 @@ function isAbsoluteLikePath(value: string): boolean {
   return ABSOLUTE_PATH_RE.test(value.trim());
 }
 
-export function SettingsCenter() {
+interface SettingsCenterProps {
+  onClose?: () => void;
+}
+
+export function SettingsCenter({ onClose }: SettingsCenterProps) {
   const { t, locale, setLocale, localeOptions } = useI18n();
   const appSettings = useDashboardStore((state) => state.appSettings);
   const runtime = useDashboardStore((state) => state.runtimeStatus);
@@ -108,8 +112,21 @@ export function SettingsCenter() {
   return (
     <section className="h-full overflow-y-auto p-3 scrollbar-thin" data-testid="settings-center">
       <div className="rounded border border-line bg-[#091626] p-2">
-        <div className="panel-title text-sm uppercase tracking-wide text-slate-100">{t("settings.title")}</div>
-        <div className="mt-1 text-[11px] text-slate-400">{t("settings.languageHint")}</div>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <div className="panel-title text-sm uppercase tracking-wide text-slate-100">{t("settings.title")}</div>
+            <div className="mt-1 text-[11px] text-slate-400">{t("settings.languageHint")}</div>
+          </div>
+          {onClose ? (
+            <button
+              type="button"
+              className="rounded border border-line bg-[#102239] px-2 py-1 text-[11px] text-slate-200 hover:border-sky-400"
+              onClick={onClose}
+            >
+              {t("common.close")}
+            </button>
+          ) : null}
+        </div>
         {message ? <div className="mt-1 text-[11px] text-emerald-300">{message}</div> : null}
       </div>
 

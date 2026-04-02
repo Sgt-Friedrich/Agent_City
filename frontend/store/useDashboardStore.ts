@@ -251,7 +251,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   setDesktopStatus: (desktopStatus) => set({ desktopStatus }),
 
   pushLiveEvent: (event) => {
-    const next = [event, ...get().liveEvents].slice(0, 500);
+    const next = [event, ...get().liveEvents].slice(0, 100);
     set({ liveEvents: next, selectedSpanId: event.span_id, selectedTraceId: event.trace_id });
   },
 

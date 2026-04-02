@@ -97,3 +97,7 @@ a {
   scrollbar-width: thin;
   scrollbar-color: #314e6d transparent;
 }
+
+.city-html-overlay {
+  z-index: 8 !important;
+}

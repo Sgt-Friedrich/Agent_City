@@ -151,14 +151,14 @@ export function DistrictGround({
         />
       ))}
 
-      <Html position={[0, 0.08, -district.bounds.depth / 2 + 2.4]} center>
+      <Html position={[0, 0.08, -district.bounds.depth / 2 + 2.4]} center zIndexRange={[6, 0]} wrapperClass="city-html-overlay">
         <div className="rounded-full border border-line bg-[#071525cc] px-3 py-1 text-[11px] font-medium tracking-wide text-slate-300">
           {compactLabel ? district.name.replace(" District", "") : district.name}
         </div>
       </Html>
 
       {hovered && (
-        <Html position={[0, 0.08, district.bounds.depth / 2 - 3.2]} center>
+        <Html position={[0, 0.08, district.bounds.depth / 2 - 3.2]} center zIndexRange={[7, 0]} wrapperClass="city-html-overlay">
           <div className="w-52 rounded border border-line bg-[#061425dd] p-2 text-[10px] text-slate-300 shadow-glow">
             <div className="panel-title text-[11px] uppercase tracking-wide text-slate-200">{district.name}</div>
             <div className="mt-1 text-slate-400">{district.summary}</div>
