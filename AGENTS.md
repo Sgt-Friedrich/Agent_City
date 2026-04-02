@@ -10,7 +10,7 @@ Agent_City is a desktop workbench for Agent architecture parsing, runtime trace 
 - Automation tests: Playwright
 
 ## Primary Commands
-- Desktop app install: `npm --prefix desktop install`
+- One-click app start: `npm run app:start`
 - Desktop app dev: `npm --prefix desktop run dev`
 - Desktop shell smoke: `npm --prefix desktop run test:smoke`
 - Frontend workbench dev: `npm --prefix frontend run dev`

@@ -177,7 +177,7 @@ export function DashboardApp() {
             </select>
             {replayTarget && (
               <Link
-                href={`/replay/${replayTarget}?target=${encodeURIComponent(target)}`}
+                href={`/replay?traceId=${encodeURIComponent(replayTarget)}&target=${encodeURIComponent(target)}`}
                 className="rounded border border-line bg-[#11304d] px-2 py-1 text-slate-100 hover:bg-[#174266]"
               >
                 open replay window

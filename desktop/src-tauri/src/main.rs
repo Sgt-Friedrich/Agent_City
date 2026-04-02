@@ -13,15 +13,12 @@ use serde::{Deserialize, Serialize};
 use tauri::api::dialog::blocking::FileDialogBuilder;
 use tauri::api::shell;
 use tauri::{Manager, RunEvent, WindowBuilder, WindowUrl};
-use url::Url;
 
 #[derive(Clone)]
 struct AppConfig {
-    root_dir: PathBuf,
-    frontend_dir: PathBuf,
+    frontend_bundle_dir: PathBuf,
     backend_dir: PathBuf,
     docs_dir: PathBuf,
-    frontend_port: u16,
     backend_port: u16,
     frontend_url: String,
     backend_url: String,
@@ -33,23 +30,21 @@ impl AppConfig {
     fn from_env() -> Self {
         let root_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .parent()
+            .and_then(Path::parent)
             .map(Path::to_path_buf)
-            .unwrap_or_else(|| PathBuf::from(".."));
+            .unwrap_or_else(|| PathBuf::from("../.."));
         let frontend_dir = root_dir.join("frontend");
+        let frontend_bundle_dir = frontend_dir.join("out");
         let backend_dir = root_dir.join("backend");
         let docs_dir = root_dir.join("docs");
 
-        let frontend_port = env::var("AGENT_CITY_FRONTEND_PORT")
-            .ok()
-            .and_then(|v| v.parse::<u16>().ok())
-            .unwrap_or(3000);
         let backend_port = env::var("AGENT_CITY_BACKEND_PORT")
             .ok()
             .and_then(|v| v.parse::<u16>().ok())
             .unwrap_or(8000);
 
-        let frontend_url = env::var("AGENT_CITY_FRONTEND_URL")
-            .unwrap_or_else(|_| format!("http://127.0.0.1:{frontend_port}"));
+        let frontend_url =
+            env::var("AGENT_CITY_FRONTEND_URL").unwrap_or_else(|_| "app://agent_city".to_string());
         let backend_url = env::var("AGENT_CITY_BACKEND_URL")
             .unwrap_or_else(|_| format!("http://127.0.0.1:{backend_port}"));
 
@@ -61,11 +56,9 @@ impl AppConfig {
             .unwrap_or(false);
 
         Self {
-            root_dir,
-            frontend_dir,
+            frontend_bundle_dir,
             backend_dir,
             docs_dir,
-            frontend_port,
             backend_port,
             frontend_url,
             backend_url,
@@ -74,18 +67,10 @@ impl AppConfig {
         }
     }
 
-    fn frontend_entry_url(&self) -> String {
-        let base = self.frontend_url.trim_end_matches('/');
-        format!("{base}/?target=mock&desktop=1")
-    }
-
     fn backend_health_url(&self) -> String {
         format!("{}/healthz", self.backend_url.trim_end_matches('/'))
     }
 
-    fn frontend_health_url(&self) -> String {
-        self.frontend_url.clone()
-    }
 }
 
 #[derive(Clone, Serialize)]
@@ -240,55 +225,27 @@ impl DesktopRuntime {
         ))
     }
 
-    fn ensure_frontend(&mut self, no_spawn: bool) -> Result<(), String> {
-        let health_url = self.config.frontend_health_url();
-
-        if !child_alive(self.frontend_child.as_mut()) {
-            self.frontend_child = None;
+    fn ensure_frontend(&mut self, _no_spawn: bool) -> Result<(), String> {
+        if let Some(mut child) = self.frontend_child.take() {
+            terminate_child(&mut child);
         }
 
-        if health_check(&health_url) {
+        let entry_file = self.config.frontend_bundle_dir.join("index.html");
+        if entry_file.exists() {
             self.status.frontend.ready = true;
-            if let Some(child) = self.frontend_child.as_ref() {
-                self.status.frontend.managed = true;
-                self.status.frontend.pid = Some(child.id());
-                self.status.frontend.message = "ready".to_string();
-            } else {
-                self.status.frontend.managed = false;
-                self.status.frontend.pid = None;
-                self.status.frontend.message = "external_service_detected".to_string();
-            }
-            return Ok(());
-        }
-
-        if no_spawn {
-            self.status.frontend.ready = false;
             self.status.frontend.managed = false;
             self.status.frontend.pid = None;
-            self.status.frontend.message = "not_available_and_spawn_disabled".to_string();
-            return Ok(());
-        }
-
-        if self.frontend_child.is_none() {
-            let child = self.spawn_frontend_process()?;
-            self.status.frontend.managed = true;
-            self.status.frontend.pid = Some(child.id());
-            self.status.frontend.message = "starting".to_string();
-            self.frontend_child = Some(child);
-        }
-
-        if wait_for_healthy(&health_url, Duration::from_secs(42)) {
-            self.status.frontend.ready = true;
-            self.status.frontend.managed = self.frontend_child.is_some();
-            self.status.frontend.pid = self.frontend_child.as_ref().map(Child::id);
-            self.status.frontend.message = "ready".to_string();
+            self.status.frontend.message = "static_bundle_ready".to_string();
             return Ok(());
         }
 
         self.status.frontend.ready = false;
-        self.status.frontend.message = "starting_timeout".to_string();
+        self.status.frontend.managed = false;
+        self.status.frontend.pid = None;
+        self.status.frontend.message = "static_bundle_missing".to_string();
         Err(format!(
-            "frontend service did not become healthy: {health_url}"
+            "frontend static bundle missing: {} (run `npm --prefix frontend run build`)",
+            entry_file.display()
         ))
     }
 
@@ -325,41 +282,6 @@ impl DesktopRuntime {
         command
             .spawn()
             .map_err(|error| format!("failed to spawn backend process: {error}"))
-    }
-
-    fn spawn_frontend_process(&self) -> Result<Child, String> {
-        let script = if self.config.dev_mode { "dev" } else { "start" };
-
-        if !self.config.dev_mode {
-            let build_manifest = self.config.frontend_dir.join(".next").join("BUILD_ID");
-            if !build_manifest.exists() {
-                return Err(
-                    "Frontend production build missing. Run `npm --prefix frontend run build` first."
-                        .to_string(),
-                );
-            }
-        }
-
-        let npm_cmd = if cfg!(windows) { "npm.cmd" } else { "npm" };
-
-        let mut command = Command::new(npm_cmd);
-        command
-            .arg("--prefix")
-            .arg(self.config.frontend_dir.display().to_string())
-            .arg("run")
-            .arg(script)
-            .current_dir(&self.config.root_dir)
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .env("NEXT_PUBLIC_API_BASE_URL", self.config.backend_url.clone())
-            .env(
-                "NEXT_PUBLIC_WS_LIVE_URL",
-                self.config.backend_url.replace("http", "ws") + "/ws/live",
-            );
-
-        command
-            .spawn()
-            .map_err(|error| format!("failed to spawn frontend process: {error}"))
     }
 
     fn stop_services(&mut self) {
@@ -471,11 +393,10 @@ fn terminate_child(child: &mut Child) {
 }
 
 fn health_check(url: &str) -> bool {
-    let request = ureq::get(url)
-        .timeout_connect(Duration::from_millis(1200))
-        .timeout_read(Duration::from_millis(1200));
-
-    request.call().is_ok()
+    let agent = ureq::AgentBuilder::new()
+        .timeout(Duration::from_millis(1200))
+        .build();
+    agent.get(url).call().is_ok()
 }
 
 fn wait_for_healthy(url: &str, timeout: Duration) -> bool {
@@ -493,10 +414,8 @@ fn now_iso() -> String {
     Utc::now().to_rfc3339()
 }
 
-fn create_main_window(app: &tauri::AppHandle, entry_url: &str, open_devtools: bool) -> Result<(), String> {
-    let parsed = Url::parse(entry_url).map_err(|error| format!("invalid frontend entry url: {error}"))?;
-
-    let window = WindowBuilder::new(app, "main", WindowUrl::External(parsed))
+fn create_main_window(app: &tauri::AppHandle, open_devtools: bool) -> Result<(), String> {
+    let window = WindowBuilder::new(app, "main", WindowUrl::App("index.html".into()))
         .title("Agent_City Workbench")
         .inner_size(1760.0, 1024.0)
         .min_inner_size(1320.0, 820.0)
@@ -605,7 +524,7 @@ fn main() {
     let config = AppConfig::from_env();
     let runtime = Mutex::new(DesktopRuntime::new(config));
 
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .manage(runtime)
         .invoke_handler(tauri::generate_handler![
             get_app_status,
@@ -614,7 +533,7 @@ fn main() {
             save_text_report
         ])
         .setup(|app| {
-            let (entry_url, dev_mode, smoke_mode, status) = {
+            let (dev_mode, smoke_mode, status) = {
                 let state = app.state::<Mutex<DesktopRuntime>>();
                 let mut runtime = state
                     .lock()
@@ -622,7 +541,6 @@ fn main() {
 
                 runtime.ensure_services();
                 (
-                    runtime.config.frontend_entry_url(),
                     runtime.config.dev_mode,
                     runtime.config.smoke_mode,
                     runtime.status.clone(),
@@ -632,23 +550,24 @@ fn main() {
             if smoke_mode {
                 let snapshot = serde_json::to_string(&status).unwrap_or_else(|_| "{}".to_string());
                 println!("[desktop-smoke] {snapshot}");
-                app.exit(if status.backend.ready && status.frontend.ready {
+                std::process::exit(if status.backend.ready && status.frontend.ready {
                     0
                 } else {
                     1
                 });
-                return Ok(());
             }
 
-            create_main_window(app.app_handle(), &entry_url, dev_mode)?;
+            create_main_window(&app.app_handle(), dev_mode)?;
             Ok(())
         })
-        .run(|app_handle, event| {
-            if matches!(event, RunEvent::ExitRequested { .. } | RunEvent::Exit) {
-                let state = app_handle.state::<Mutex<DesktopRuntime>>();
-                if let Ok(mut runtime) = state.lock() {
-                    runtime.stop_services();
-                }
+        .build(tauri::generate_context!())
+        .expect("failed to build Agent_City desktop app");
+
+    app.run(|app_handle, event| {
+        if matches!(event, RunEvent::ExitRequested { .. } | RunEvent::Exit) {
+            if let Ok(mut runtime) = app_handle.state::<Mutex<DesktopRuntime>>().lock() {
+                runtime.stop_services();
             }
-        });
+        }
+    });
 }

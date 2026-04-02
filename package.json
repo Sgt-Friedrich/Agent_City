@@ -1,14 +1,15 @@
-﻿{
+{
   "name": "agent_city_workspace",
   "private": true,
   "version": "0.2.0",
   "scripts": {
-    "app:dev": "npm --prefix desktop run dev",
-    "app:smoke": "npm --prefix desktop run smoke",
+    "app:dev": "node scripts/start-app.js dev",
+    "app:smoke": "node scripts/start-app.js smoke",
     "frontend:dev": "npm --prefix frontend run dev",
     "frontend:build": "npm --prefix frontend run build",
     "frontend:e2e": "npm --prefix frontend run e2e",
     "parser:test": "python -m unittest discover -s tests/parser -p \"test_*.py\" -v",
-    "system:test": "python scripts/run_full_system_tests.py"
+    "system:test": "python scripts/run_full_system_tests.py",
+    "app:start": "node scripts/start-app.js"
   }
 }

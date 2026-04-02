@@ -1,10 +1,5 @@
-﻿#!/usr/bin/env pwsh
+#!/usr/bin/env pwsh
 $ErrorActionPreference = "Stop"
 
-Write-Host "[Agent_City] starting desktop app workbench..."
-
-if (-not (Test-Path "desktop\\node_modules")) {
-  npm --prefix desktop install
-}
-
-npm --prefix desktop run dev
+Write-Host "[Agent_City] one-click desktop startup..."
+node scripts/start-app.js dev
