@@ -277,6 +277,27 @@ class RegisterTargetRequest(BaseModel):
     force: bool = False
 
 
+class PreviewTargetRequest(BaseModel):
+    repo_path: str
+    target_id: str | None = None
+    label: str | None = None
+
+
+class PreviewTargetResponse(BaseModel):
+    repo_path: str
+    source_type: str
+    suggested_target_id: str
+    suggested_label: str
+    language_hints: list[str] = Field(default_factory=list)
+    framework_hints: list[str] = Field(default_factory=list)
+    parser_confidence: float
+    parser_grade: str
+    node_count: int
+    edge_count: int
+    unresolved_count: int
+    warnings: list[str] = Field(default_factory=list)
+
+
 class ParseJobStatus(str, Enum):
     QUEUED = "queued"
     RUNNING = "running"
@@ -398,3 +419,108 @@ class ReportArtifact(BaseModel):
 class ReportContent(BaseModel):
     artifact: ReportArtifact
     content: str
+
+
+class RepositoryStatus(str, Enum):
+    IDLE = "idle"
+    PARSING = "parsing"
+    READY = "ready"
+    FAILED = "failed"
+
+
+class RepositoryRecord(BaseModel):
+    id: str
+    name: str
+    path: str
+    target_id: str
+    source_type: str
+    languages: list[str] = Field(default_factory=list)
+    domain: str
+    parser_confidence: float
+    parser_grade: str
+    unresolved_count: int
+    inferred_edge_count: int
+    node_count: int
+    edge_count: int
+    status: RepositoryStatus
+    last_parsed_at: datetime | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class JobType(str, Enum):
+    PARSE_REPOSITORY = "parse_repository"
+    REPARSE_REPOSITORY = "reparse_repository"
+    PARSER_REGRESSION = "parser_regression"
+    FRONTEND_SELF_CHECK = "frontend_self_check"
+    FULL_SYSTEM_TEST = "full_system_test"
+    GENERATE_REPORT = "generate_report"
+    CLEANUP_REFS = "cleanup_refs"
+    LIVE_SIMULATION = "live_simulation"
+
+
+class JobStatus(str, Enum):
+    QUEUED = "queued"
+    RUNNING = "running"
+    SUCCESS = "success"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class JobRecord(BaseModel):
+    id: str
+    type: JobType
+    target: str | None = None
+    status: JobStatus
+    progress: int = Field(default=0, ge=0, le=100)
+    started_at: datetime | None = None
+    ended_at: datetime | None = None
+    log_summary: str = ""
+    detail_output: str = ""
+    artifact_path: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class JobRunRequest(BaseModel):
+    type: JobType
+    target: str | None = None
+    payload: dict[str, Any] = Field(default_factory=dict)
+
+
+class AppLanguage(str, Enum):
+    EN = "en"
+    ZH = "zh"
+
+
+class AppSettings(BaseModel):
+    language: AppLanguage = AppLanguage.EN
+    workspace_dir: str = ""
+    data_dir: str = ""
+    export_dir: str = ""
+    cleanup_threshold_mb: float = 200.0
+    parser_options: dict[str, Any] = Field(default_factory=lambda: {"strict_mode": False})
+    telemetry: dict[str, Any] = Field(default_factory=lambda: {"enabled": False, "level": "basic"})
+    logging: dict[str, Any] = Field(default_factory=lambda: {"level": "info"})
+    integrations: dict[str, Any] = Field(default_factory=dict)
+
+
+class UpdateSettingsRequest(BaseModel):
+    language: AppLanguage | None = None
+    workspace_dir: str | None = None
+    data_dir: str | None = None
+    export_dir: str | None = None
+    cleanup_threshold_mb: float | None = None
+    parser_options: dict[str, Any] | None = None
+    telemetry: dict[str, Any] | None = None
+    logging: dict[str, Any] | None = None
+    integrations: dict[str, Any] | None = None
+
+
+class AppRuntimeStatus(BaseModel):
+    generated_at: datetime
+    backend_ready: bool
+    target_count: int
+    repository_count: int
+    active_job_count: int
+    parse_job_count: int
+    last_job_id: str | None = None
+    notes: list[str] = Field(default_factory=list)

@@ -1,7 +1,8 @@
-﻿"use client";
+"use client";
 
 import { useMemo } from "react";
 
+import { useI18n } from "@/hooks/useI18n";
 import { DashboardMode, DiagnosticMode, flowLegend } from "@/lib/visualTheme";
 import { useDashboardStore } from "@/store/useDashboardStore";
 import { NodeType, SpanKind } from "@/types/schema";
@@ -29,12 +30,16 @@ function toggle<T>(current: T[], value: T): T[] {
 }
 
 export function FilterPanel() {
+  const { t } = useI18n();
   const topology = useDashboardStore((state) => state.topology);
   const traces = useDashboardStore((state) => state.traces);
   const filters = useDashboardStore((state) => state.filters);
   const viewMode = useDashboardStore((state) => state.viewMode);
   const diagnosticMode = useDashboardStore((state) => state.diagnosticMode);
   const searchQuery = useDashboardStore((state) => state.searchQuery);
+  const parseJobs = useDashboardStore((state) => state.parseJobs);
+  const diagnostics = useDashboardStore((state) => state.diagnosticsSummary);
+  const parserAnalysis = useDashboardStore((state) => state.parserAnalysis);
   const setDistrictFilter = useDashboardStore((state) => state.setDistrictFilter);
   const setNodeTypeFilter = useDashboardStore((state) => state.setNodeTypeFilter);
   const setSpanKindFilter = useDashboardStore((state) => state.setSpanKindFilter);
@@ -43,6 +48,8 @@ export function FilterPanel() {
   const setSearchQuery = useDashboardStore((state) => state.setSearchQuery);
   const setViewMode = useDashboardStore((state) => state.setViewMode);
   const setDiagnosticMode = useDashboardStore((state) => state.setDiagnosticMode);
+  const setSelectedTrace = useDashboardStore((state) => state.setSelectedTrace);
+  const setTarget = useDashboardStore((state) => state.setTarget);
   const resetFilters = useDashboardStore((state) => state.resetFilters);
 
   const nodeTypes = useMemo<NodeType[]>(() => {
@@ -51,33 +58,120 @@ export function FilterPanel() {
   }, [topology]);
 
   const diagnosticModes: Array<{ id: DiagnosticMode; label: string }> = [
-    { id: "realtime", label: "real-time" },
-    { id: "heatmap", label: "heatmap" },
-    { id: "errors", label: "errors" },
+    { id: "realtime", label: t("filter.mode.realtime") },
+    { id: "heatmap", label: t("filter.mode.heatmap") },
+    { id: "errors", label: t("filter.mode.errors") },
   ];
   const workbenchViews: Array<{ id: DashboardMode; label: string }> = [
-    { id: "overview", label: "overview" },
-    { id: "live", label: "live" },
-    { id: "diagnostics", label: "diagnostics" },
-    { id: "parser_analysis", label: "parser analysis" },
-    { id: "reports", label: "reports" },
+    { id: "overview", label: t("nav.overview") },
+    { id: "live", label: t("nav.live") },
+    { id: "replay", label: t("nav.replay") },
+    { id: "diagnostics", label: t("nav.diagnostics") },
+    { id: "parser_analysis", label: t("nav.parser") },
+    { id: "repositories", label: t("nav.repositories") },
+    { id: "jobs", label: t("nav.jobs") },
+    { id: "reports", label: t("nav.reports") },
+    { id: "settings", label: t("nav.settings") },
   ];
+
+  const latestCompletedImport = useMemo(
+    () => parseJobs.find((job) => job.status === "completed" && job.target_id),
+    [parseJobs],
+  );
+  const hotTrace = traces[0];
+  const hasErrorChains = (diagnostics?.error_event_count ?? 0) > 0;
+  const hasRetryFallback =
+    (diagnostics?.retry_event_count ?? 0) > 0 || (diagnostics?.fallback_event_count ?? 0) > 0;
 
   return (
     <aside data-testid="filter-panel" className="h-full max-h-[34vh] overflow-y-auto border-r border-line bg-[#081320cc] p-3 scrollbar-thin lg:max-h-none">
       <div className="flex items-center justify-between">
-        <h2 className="panel-title text-sm uppercase tracking-wide text-slate-200">Filters</h2>
+        <h2 className="panel-title text-sm uppercase tracking-wide text-slate-200">{t("control.title")}</h2>
         <button
           type="button"
           className="text-xs text-slate-400 hover:text-slate-200"
           onClick={() => resetFilters()}
         >
-          reset
+          {t("common.reset")}
         </button>
       </div>
 
       <section className="mt-4 space-y-2 rounded border border-line bg-[#0a1829] p-2">
-        <h3 className="text-xs uppercase tracking-wide text-slate-400">Workbench Views</h3>
+        <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.quickEntry")}</h3>
+        <div className="grid grid-cols-1 gap-1">
+          <button
+            type="button"
+            className="rounded border border-line bg-[#0b1a2e] px-2 py-1 text-left text-[11px] text-slate-300 hover:border-cyan-400"
+            onClick={() => {
+              if (!hotTrace) return;
+              setSelectedTrace(hotTrace.envelope.trace_id);
+              setTraceFilter(hotTrace.envelope.trace_id);
+              setViewMode("live");
+            }}
+          >
+            {t("filter.quick.activeTrace")}{" "}
+            {hotTrace ? `(${hotTrace.envelope.trace_id.slice(-6)})` : `(${t("common.none")})`}
+          </button>
+          <button
+            type="button"
+            className={`rounded border px-2 py-1 text-left text-[11px] ${
+              hasErrorChains
+                ? "border-rose-500/50 bg-[#2b161a] text-rose-100 hover:border-rose-400"
+                : "border-line bg-[#0b1a2e] text-slate-500"
+            }`}
+            onClick={() => {
+              setViewMode("diagnostics");
+              setDiagnosticMode("errors");
+              setStatusFilter(["error"]);
+            }}
+          >
+            {t("filter.quick.errorChains")}{" "}
+            {hasErrorChains ? `(${diagnostics?.error_event_count})` : `(${t("common.none")})`}
+          </button>
+          <button
+            type="button"
+            className={`rounded border px-2 py-1 text-left text-[11px] ${
+              hasRetryFallback
+                ? "border-amber-500/50 bg-[#2b2315] text-amber-100 hover:border-amber-400"
+                : "border-line bg-[#0b1a2e] text-slate-500"
+            }`}
+            onClick={() => {
+              setViewMode("diagnostics");
+              setDiagnosticMode("errors");
+              setSearchQuery("status:error retry fallback");
+            }}
+          >
+            {t("filter.quick.fallbackRetry")}{" "}
+            {hasRetryFallback ? `(${t("filter.quick.active")})` : `(${t("common.none")})`}
+          </button>
+          <button
+            type="button"
+            className={`rounded border px-2 py-1 text-left text-[11px] ${
+              (parserAnalysis?.parser_confidence ?? 1) < 0.75
+                ? "border-amber-500/50 bg-[#2b2315] text-amber-100 hover:border-amber-400"
+                : "border-line bg-[#0b1a2e] text-slate-300 hover:border-sky-400"
+            }`}
+            onClick={() => setViewMode("parser_analysis")}
+          >
+            {t("filter.quick.lowConfidence")} ({(parserAnalysis?.parser_confidence ?? 0).toFixed(3)})
+          </button>
+          <button
+            type="button"
+            className="rounded border border-line bg-[#0b1a2e] px-2 py-1 text-left text-[11px] text-slate-300 hover:border-emerald-400"
+            onClick={() => {
+              if (!latestCompletedImport?.target_id) return;
+              setTarget(latestCompletedImport.target_id);
+              setViewMode("overview");
+            }}
+          >
+            {t("filter.quick.recentImport")}{" "}
+            {latestCompletedImport?.repo_name ? `(${latestCompletedImport.repo_name})` : `(${t("common.none")})`}
+          </button>
+        </div>
+      </section>
+
+      <section className="mt-4 space-y-2 rounded border border-line bg-[#0a1829] p-2">
+        <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.workbenchViews")}</h3>
         <div className="grid grid-cols-1 gap-1">
           {workbenchViews.map((item) => (
             <button
@@ -97,7 +191,7 @@ export function FilterPanel() {
       </section>
 
       <section className="mt-4 space-y-2 rounded border border-line bg-[#0a1829] p-2">
-        <h3 className="text-xs uppercase tracking-wide text-slate-400">Diagnostic Mode</h3>
+        <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.diagnosticMode")}</h3>
         <div className="grid grid-cols-3 gap-1">
           {diagnosticModes.map((mode) => (
             <button
@@ -117,18 +211,18 @@ export function FilterPanel() {
       </section>
 
       <section className="mt-4 space-y-2 rounded border border-line bg-[#0a1829] p-2">
-        <h3 className="text-xs uppercase tracking-wide text-slate-400">Search</h3>
+        <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.search")}</h3>
         <input
           type="text"
           value={searchQuery}
           onChange={(event) => setSearchQuery(event.target.value)}
-          placeholder="node / trace / protocol..."
+          placeholder={t("filter.searchPlaceholder")}
           className="w-full rounded border border-line bg-[#091425] px-2 py-1 text-xs text-slate-200 outline-none ring-0 placeholder:text-slate-500 focus:border-sky-400"
         />
       </section>
 
       <section className="mt-4 space-y-2">
-        <h3 className="text-xs uppercase tracking-wide text-slate-400">District</h3>
+        <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.district")}</h3>
         {topology?.districts.map((district) => {
           const checked = filters.districtIds.includes(district.id);
           return (
@@ -145,7 +239,7 @@ export function FilterPanel() {
       </section>
 
       <section className="mt-4 space-y-2">
-        <h3 className="text-xs uppercase tracking-wide text-slate-400">Node Type</h3>
+        <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.nodeType")}</h3>
         {nodeTypes.map((type) => {
           const checked = filters.nodeTypes.includes(type);
           return (
@@ -162,7 +256,7 @@ export function FilterPanel() {
       </section>
 
       <section className="mt-4 space-y-2">
-        <h3 className="text-xs uppercase tracking-wide text-slate-400">Status</h3>
+        <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.status")}</h3>
         {statusOptions.map((status) => (
           <label key={status} className="flex cursor-pointer items-center gap-2 text-xs text-slate-300">
             <input
@@ -176,7 +270,7 @@ export function FilterPanel() {
       </section>
 
       <section className="mt-4 space-y-2">
-        <h3 className="text-xs uppercase tracking-wide text-slate-400">Span Kind</h3>
+        <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.spanKind")}</h3>
         {spanKindOptions.map((spanKind) => (
           <label key={spanKind} className="flex cursor-pointer items-center gap-2 text-xs text-slate-300">
             <input
@@ -190,13 +284,13 @@ export function FilterPanel() {
       </section>
 
       <section className="mt-4 space-y-2">
-        <h3 className="text-xs uppercase tracking-wide text-slate-400">Trace</h3>
+        <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.trace")}</h3>
         <select
           className="w-full border border-line bg-[#0a1828] p-1 text-xs text-slate-200"
           value={filters.traceId ?? ""}
           onChange={(event) => setTraceFilter(event.target.value || undefined)}
         >
-          <option value="">All Traces</option>
+          <option value="">{t("filter.allTraces")}</option>
           {traces.map((trace) => (
             <option key={trace.envelope.trace_id} value={trace.envelope.trace_id}>
               {trace.envelope.trace_id}
@@ -206,7 +300,7 @@ export function FilterPanel() {
       </section>
 
       <section className="mt-4 space-y-2 rounded border border-line bg-[#0a1829] p-2">
-        <h3 className="text-xs uppercase tracking-wide text-slate-400">Flow Legend</h3>
+        <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.flowLegend")}</h3>
         <div className="grid grid-cols-1 gap-1">
           {flowLegend.map((item) => (
             <div key={item.label} className="flex items-center justify-between text-[11px] text-slate-300">

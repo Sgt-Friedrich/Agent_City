@@ -4,19 +4,26 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
+import { ControlCenterBar } from "@/components/analysis/ControlCenterBar";
 import { DiagnosticsCenter } from "@/components/analysis/DiagnosticsCenter";
+import { JobsCenter } from "@/components/analysis/JobsCenter";
 import { ParserAnalysisCenter } from "@/components/analysis/ParserAnalysisCenter";
+import { RepositoriesCenter } from "@/components/analysis/RepositoriesCenter";
 import { ReportsCenter } from "@/components/analysis/ReportsCenter";
+import { SettingsCenter } from "@/components/analysis/SettingsCenter";
 import { CityScene } from "@/components/city/CityScene";
 import { FilterPanel } from "@/components/panels/FilterPanel";
 import { DetailDrawer } from "@/components/panels/DetailDrawer";
 import { FlowEventHoverCard } from "@/components/panels/FlowEventHoverCard";
 import { MetricsHeader } from "@/components/panels/MetricsHeader";
+import { RepositoryImportWizard } from "@/components/panels/RepositoryImportWizard";
 import { TimelinePanel } from "@/components/panels/TimelinePanel";
 import { useAnalysisData } from "@/hooks/useAnalysisData";
 import { useBootstrapData } from "@/hooks/useBootstrapData";
+import { useControlPlaneData } from "@/hooks/useControlPlaneData";
 import { useDesktopAppStatus } from "@/hooks/useDesktopAppStatus";
 import { useFilteredTopology } from "@/hooks/useFilteredTopology";
+import { useI18n } from "@/hooks/useI18n";
 import { useLiveFlowSocket } from "@/hooks/useLiveFlowSocket";
 import { useParseJobs } from "@/hooks/useParseJobs";
 import { api } from "@/lib/api";
@@ -24,15 +31,17 @@ import { useDashboardStore } from "@/store/useDashboardStore";
 import { FlowEvent } from "@/types/schema";
 
 export function DashboardApp() {
+  const { t } = useI18n();
   const searchParams = useSearchParams();
   const { loading, error } = useBootstrapData();
   useLiveFlowSocket();
   useParseJobs();
   useAnalysisData();
+  useControlPlaneData();
   useDesktopAppStatus();
 
   const [hoveredEvent, setHoveredEvent] = useState<FlowEvent>();
-  const [registering, setRegistering] = useState(false);
+  const [importWizardOpen, setImportWizardOpen] = useState(false);
 
   const metrics = useDashboardStore((state) => state.metrics);
   const viewMode = useDashboardStore((state) => state.viewMode);
@@ -43,6 +52,7 @@ export function DashboardApp() {
   const setTargets = useDashboardStore((state) => state.setTargets);
   const selectedNodeId = useDashboardStore((state) => state.selectedNodeId);
   const selectedSpanId = useDashboardStore((state) => state.selectedSpanId);
+  const selectedTraceId = useDashboardStore((state) => state.selectedTraceId);
   const setSelectedNode = useDashboardStore((state) => state.setSelectedNode);
   const setSelectedSpan = useDashboardStore((state) => state.setSelectedSpan);
   const setViewMode = useDashboardStore((state) => state.setViewMode);
@@ -77,39 +87,17 @@ export function DashboardApp() {
     }
   }, [searchTarget, setTarget, target]);
 
-  const handleRegisterTarget = async () => {
-    if (registering) return;
-
-    const repoPath = window.prompt("输入本地仓库绝对路径 (absolute repo path)");
-    if (!repoPath) return;
-    const label = window.prompt("可选：目标显示名称 (label)") || undefined;
-    const targetId = window.prompt("可选：target id (英文/数字/下划线)") || undefined;
-
-    setRegistering(true);
-    try {
-      const response = await api.registerTarget({
-        repo_path: repoPath.trim(),
-        label,
-        target_id: targetId,
-      });
-
-      const targetItems = await api.getTargets();
-      setTargets(targetItems.items);
-      setTarget(response.target.id);
-      setViewMode("overview");
-    } catch (registerError) {
-      const message =
-        registerError instanceof Error ? registerError.message : "register target failed";
-      window.alert(message);
-    } finally {
-      setRegistering(false);
-    }
+  const handleImported = async (targetId: string) => {
+    const targetItems = await api.getTargets();
+    setTargets(targetItems.items);
+    setTarget(targetId);
+    setViewMode("overview");
   };
 
   if (loading && !topology) {
     return (
       <main className="flex h-screen items-center justify-center text-sm text-slate-300">
-        Loading App workbench state...
+        {t("app.loading")}
       </main>
     );
   }
@@ -117,15 +105,21 @@ export function DashboardApp() {
   if (error && !topology) {
     return (
       <main className="flex h-screen items-center justify-center text-sm text-rose-300">
-        Failed to load local service: {error}
+        {t("app.loadFailed")}: {error}
       </main>
     );
   }
 
   const isParserMode = viewMode === "parser_analysis";
   const isDiagnosticsMode = viewMode === "diagnostics";
+  const isRepositoriesMode = viewMode === "repositories";
+  const isJobsMode = viewMode === "jobs";
   const isReportsMode = viewMode === "reports";
-  const shellModeText = desktopStatus?.shellMode === "desktop" ? "desktop app" : "browser preview";
+  const isSettingsMode = viewMode === "settings";
+  const isArchitectureMode =
+    !isParserMode && !isReportsMode && !isRepositoriesMode && !isJobsMode && !isSettingsMode;
+  const shellModeText =
+    desktopStatus?.shellMode === "desktop" ? t("header.desktopMode") : t("header.browserMode");
 
   return (
     <main data-testid="dashboard-root" className="h-screen w-screen overflow-hidden bg-transparent text-slate-100">
@@ -134,22 +128,22 @@ export function DashboardApp() {
 
         <header className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-[#071120cc] px-4 py-2 text-xs text-slate-300">
           <div>
-            <div className="panel-title text-sm uppercase tracking-wide">Agent_City Desktop Workbench</div>
+            <div className="panel-title text-sm uppercase tracking-wide">{t("app.title")}</div>
             <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
-              <span className="rounded border border-line bg-[#10243a] px-1.5 py-0.5">shell: {shellModeText}</span>
+              <span className="rounded border border-line bg-[#10243a] px-1.5 py-0.5">{t("header.shell")}: {shellModeText}</span>
               <span
                 className={`rounded border px-1.5 py-0.5 ${
                   desktopStatus?.backend.ready ? "border-emerald-500/40 text-emerald-300" : "border-rose-500/40 text-rose-300"
                 }`}
               >
-                backend: {desktopStatus?.backend.message ?? "unknown"}
+                {t("header.backend")}: {desktopStatus?.backend.message ?? t("common.unknown")}
               </span>
               <span
                 className={`rounded border px-1.5 py-0.5 ${
                   desktopStatus?.frontend.ready ? "border-emerald-500/40 text-emerald-300" : "border-rose-500/40 text-rose-300"
                 }`}
               >
-                frontend: {desktopStatus?.frontend.message ?? "unknown"}
+                {t("header.frontend")}: {desktopStatus?.frontend.message ?? t("common.unknown")}
               </span>
             </div>
           </div>
@@ -157,11 +151,10 @@ export function DashboardApp() {
           <div className="flex flex-wrap items-center justify-end gap-2">
             <button
               type="button"
-              onClick={handleRegisterTarget}
-              disabled={registering}
+              onClick={() => setImportWizardOpen(true)}
               className="rounded border border-line bg-[#10233a] px-2 py-1 text-xs text-slate-100 hover:bg-[#18395f] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {registering ? "registering..." : "add local repository"}
+              {t("header.addRepository")}
             </button>
             <select
               className="rounded border border-line bg-[#0b1a2b] px-2 py-1 text-xs text-slate-100"
@@ -180,28 +173,30 @@ export function DashboardApp() {
                 href={`/replay?traceId=${encodeURIComponent(replayTarget)}&target=${encodeURIComponent(target)}`}
                 className="rounded border border-line bg-[#11304d] px-2 py-1 text-slate-100 hover:bg-[#174266]"
               >
-                open replay window
+                {t("header.openReplay")}
               </Link>
             )}
           </div>
         </header>
 
+        <ControlCenterBar onOpenImportWizard={() => setImportWizardOpen(true)} />
+
         <div data-testid="parse-progress-banner" className="border-b border-line bg-[#06111dcc] px-4 py-2 text-[11px] text-slate-300">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              auto parse folder:
+              {t("parse.bannerTitle")}:
               <span className="ml-1 rounded bg-[#0f2238] px-1.5 py-0.5 font-mono text-[10px] text-sky-200">
-                {ingestDirectory ?? "loading..."}
+                {ingestDirectory ?? t("app.loading")}
               </span>
             </div>
-            <div className="text-slate-400">复制 agent 目录到此路径后会自动解析并切换目标</div>
+            <div className="text-slate-400">{t("parse.bannerHint")}</div>
           </div>
 
           {displayParseJob && (
             <div className="mt-2">
               <div className="mb-1 flex items-center justify-between text-[11px]">
                 <span className="text-slate-200">
-                  parsing: {displayParseJob.repo_name} ({displayParseJob.step})
+                  {t("parse.running")}: {displayParseJob.repo_name} ({displayParseJob.step})
                 </span>
                 <span className="font-mono text-sky-300">{displayParseJob.progress}%</span>
               </div>
@@ -217,19 +212,21 @@ export function DashboardApp() {
                   style={{ width: `${Math.max(6, displayParseJob.progress)}%` }}
                 />
               </div>
-              <div className="mt-1 text-[10px] text-slate-400">{displayParseJob.message ?? "running..."}</div>
+              <div className="mt-1 text-[10px] text-slate-400">
+                {displayParseJob.message ?? t("common.running")}
+              </div>
             </div>
           )}
 
           {!activeParseJob && recentParseJob?.status === "completed" && (
             <div className="mt-1 text-[10px] text-emerald-300">
-              latest parse finished: {recentParseJob.repo_name} {"->"} {recentParseJob.target_id}
+              {t("parse.latestSuccess")}: {recentParseJob.repo_name} {"->"} {recentParseJob.target_id}
             </div>
           )}
 
           {!activeParseJob && recentParseJob?.status === "failed" && (
             <div className="mt-1 text-[10px] text-rose-300">
-              parse failed: {recentParseJob.repo_name} ({recentParseJob.error ?? recentParseJob.message})
+              {t("parse.latestFailed")}: {recentParseJob.repo_name} ({recentParseJob.error ?? recentParseJob.message})
             </div>
           )}
         </div>
@@ -240,8 +237,14 @@ export function DashboardApp() {
           <section data-testid="city-panel" className="relative min-h-[42vh] border-r border-line lg:min-h-0">
             {isParserMode ? (
               <ParserAnalysisCenter />
+            ) : isRepositoriesMode ? (
+              <RepositoriesCenter />
+            ) : isJobsMode ? (
+              <JobsCenter />
             ) : isReportsMode ? (
               <ReportsCenter />
+            ) : isSettingsMode ? (
+              <SettingsCenter />
             ) : (
               <>
                 <CityScene
@@ -249,9 +252,11 @@ export function DashboardApp() {
                   nodes={nodes}
                   edges={edges}
                   events={events}
+                  viewMode={viewMode}
                   diagnosticMode={isDiagnosticsMode ? diagnosticMode : "realtime"}
                   selectedNodeId={selectedNodeId}
                   selectedSpanId={selectedSpanId}
+                  selectedTraceId={selectedTraceId}
                   onSelectNode={(nodeId) => setSelectedNode(nodeId)}
                   onSelectEvent={(event) => setSelectedSpan(event.span_id, event.trace_id)}
                   onHoverEvent={(event) => setHoveredEvent(event)}
@@ -265,17 +270,41 @@ export function DashboardApp() {
             )}
           </section>
 
-          {isDiagnosticsMode || isParserMode ? (
+          {isArchitectureMode && (isDiagnosticsMode || isParserMode) ? (
             <DiagnosticsCenter />
-          ) : (
+          ) : isArchitectureMode ? (
             <DetailDrawer hoveredEvent={hoveredEvent} />
+          ) : (
+            <section className="h-full overflow-y-auto border-l border-line bg-[#081320cc] p-3 text-xs text-slate-400">
+              <div className="panel-title text-sm uppercase tracking-wide text-slate-200">
+                {t("dashboard.inspectorTitle")}
+              </div>
+              <div className="mt-2">{t("dashboard.inspectorHint")}</div>
+              <div className="mt-2">
+                {t("dashboard.currentTarget")}: {target}
+              </div>
+            </section>
           )}
         </div>
 
-        <div data-testid="timeline-container" className="h-[220px] lg:h-[210px]">
-          <TimelinePanel />
-        </div>
+        {isArchitectureMode ? (
+          <div data-testid="timeline-container" className="h-[220px] lg:h-[210px]">
+            <TimelinePanel />
+          </div>
+        ) : (
+          <div className="h-[140px] border-t border-line bg-[#070f1bcc] p-2 text-xs text-slate-400">
+            <div className="panel-title text-xs uppercase tracking-wide text-slate-300">
+              {t("dashboard.taskStreamTitle")}
+            </div>
+            <div className="mt-2">{t("dashboard.taskStreamHint")}</div>
+          </div>
+        )}
       </div>
+      <RepositoryImportWizard
+        open={importWizardOpen}
+        onClose={() => setImportWizardOpen(false)}
+        onImported={handleImported}
+      />
     </main>
   );
 }

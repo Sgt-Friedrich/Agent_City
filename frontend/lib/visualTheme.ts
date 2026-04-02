@@ -14,7 +14,10 @@ export type DashboardMode =
   | "replay"
   | "diagnostics"
   | "parser_analysis"
-  | "reports";
+  | "repositories"
+  | "jobs"
+  | "reports"
+  | "settings";
 
 export const themeTokens = {
   surface: "#050a12",
@@ -183,7 +186,7 @@ export function districtStyle(
   borderOpacity: number;
 } {
   const palette = districtPalette[districtType] ?? districtPalette.runtime;
-  const fillOpacityBase = opts?.diagnosticMode === "errors" ? 0.17 : 0.24;
+  const fillOpacityBase = opts?.diagnosticMode === "errors" ? 0.2 : 0.3;
   const dimScale = opts?.dimmed ? 0.35 : 1;
   const hoverBoost = opts?.hovered ? 0.08 : 0;
   const activeBoost = opts?.active ? 0.05 : 0;
@@ -193,7 +196,7 @@ export function districtStyle(
     border: palette.border,
     glow: palette.glow,
     fillOpacity: clamp((fillOpacityBase + hoverBoost + activeBoost) * dimScale, 0.06, 0.46),
-    borderOpacity: clamp((opts?.dimmed ? 0.22 : 0.54) + (opts?.hovered ? 0.3 : 0), 0.15, 0.96),
+    borderOpacity: clamp((opts?.dimmed ? 0.22 : 0.68) + (opts?.hovered ? 0.24 : 0), 0.15, 0.96),
   };
 }
 
@@ -247,7 +250,12 @@ export function nodeStyle(
 
 export function edgeStyle(
   edge: Edge,
-  opts?: { highlighted?: boolean; dimmed?: boolean; diagnosticMode?: DiagnosticMode },
+  opts?: {
+    highlighted?: boolean;
+    dimmed?: boolean;
+    diagnosticMode?: DiagnosticMode;
+    renderLayer?: "primary" | "secondary" | "suppressed";
+  },
 ): {
   color: string;
   glowColor: string;
@@ -259,6 +267,7 @@ export function edgeStyle(
   const mode = opts?.diagnosticMode ?? "realtime";
   const isErrorEdge = edge.kind === "retry" || edge.kind === "fallback" || edge.status === "error";
   const isDeclared = edge.status === "declared";
+  const renderLayer = opts?.renderLayer ?? "secondary";
   const color = isErrorEdge
     ? themeTokens.flow.error
     : edge.kind === "dataflow"
@@ -268,21 +277,34 @@ export function edgeStyle(
         : "#66a8d8";
 
   const inErrorModeDimmed = mode === "errors" && !isErrorEdge;
-  const dimmed = opts?.dimmed || inErrorModeDimmed;
+  const dimmed = opts?.dimmed || inErrorModeDimmed || renderLayer === "suppressed";
+
+  const baseOpacity =
+    renderLayer === "primary" ? 0.52 : renderLayer === "secondary" ? 0.22 : 0.1;
+  const baseGlowOpacity =
+    renderLayer === "primary" ? 0.34 : renderLayer === "secondary" ? 0.17 : 0.08;
+  const baseWidth =
+    renderLayer === "primary"
+      ? edge.kind === "invocation"
+        ? 2.1
+        : 1.85
+      : edge.kind === "invocation"
+        ? 1.4
+        : 1.05;
 
   return {
     color,
     glowColor: opts?.highlighted ? mixHex(color, "#ffffff", 0.22) : color,
-    opacity: dimmed ? 0.08 : opts?.highlighted ? 0.8 : 0.35,
-    glowOpacity: dimmed ? 0.06 : opts?.highlighted ? 0.7 : 0.24,
-    width: opts?.highlighted ? 2.3 : edge.kind === "invocation" ? 1.5 : 1.1,
+    opacity: dimmed ? 0.1 : opts?.highlighted ? 0.88 : baseOpacity,
+    glowOpacity: dimmed ? 0.08 : opts?.highlighted ? 0.74 : baseGlowOpacity,
+    width: opts?.highlighted ? 2.5 : baseWidth,
     dashed: edge.kind === "dependency" || edge.kind === "fallback" || edge.kind === "retry",
   };
 }
 
 export function flowStyle(
   event: FlowEvent,
-  opts?: { replay?: boolean; active?: boolean; diagnosticMode?: DiagnosticMode },
+  opts?: { replay?: boolean; active?: boolean; dimmed?: boolean; diagnosticMode?: DiagnosticMode },
 ): {
   color: string;
   particleCount: number;
@@ -312,6 +334,7 @@ export function flowStyle(
     : opts?.active
       ? animationPresets.flowTrailActiveOpacity
       : animationPresets.flowTrailBaseOpacity;
+  const dimScale = opts?.dimmed ? 0.28 : 1;
   const particleSize = clamp(
     animationPresets.flowParticleBaseSize + (opts?.active ? 0.08 : 0) + (errorLike ? 0.04 : 0),
     0.24,
@@ -320,11 +343,11 @@ export function flowStyle(
 
   return {
     color,
-    particleCount,
+    particleCount: opts?.dimmed ? 1 : particleCount,
     particleSize,
     speed,
     lineWidth,
-    trailOpacity,
+    trailOpacity: trailOpacity * dimScale,
     dashed: retryLike || fallbackLike || event.protocol === "mcp",
     blink: errorLike || event.status === "partial",
   };

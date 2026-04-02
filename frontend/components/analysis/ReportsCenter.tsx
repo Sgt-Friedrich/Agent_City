@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { useI18n } from "@/hooks/useI18n";
 import { api } from "@/lib/api";
 import { openReportsDirectory, saveDesktopTextReport } from "@/lib/desktopBridge";
 import { shortId } from "@/lib/utils";
@@ -41,6 +42,7 @@ async function saveReportContent(defaultFileName: string, content: string): Prom
 }
 
 export function ReportsCenter() {
+  const { t } = useI18n();
   const target = useDashboardStore((state) => state.target);
   const desktopStatus = useDashboardStore((state) => state.desktopStatus);
 
@@ -157,7 +159,7 @@ export function ReportsCenter() {
     <section data-testid="reports-center" className="flex h-full min-h-0 flex-col overflow-hidden p-3">
       <div className="rounded border border-line bg-[#091626] p-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="panel-title text-sm uppercase tracking-wide text-slate-100">Reports Center</div>
+          <div className="panel-title text-sm uppercase tracking-wide text-slate-100">{t("reports.title")}</div>
           <div className="flex flex-wrap items-center gap-2 text-[11px]">
             <button
               type="button"

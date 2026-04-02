@@ -36,12 +36,18 @@ function mockTrend(seed: string): number[] {
 export function DetailDrawer({ hoveredEvent }: DetailDrawerProps) {
   const [showNodeDeep, setShowNodeDeep] = useState(false);
   const [showFlowDeep, setShowFlowDeep] = useState(false);
+  const [payloadRaw, setPayloadRaw] = useState(false);
 
   const topology = useDashboardStore((state) => state.topology);
+  const target = useDashboardStore((state) => state.target);
   const selectedNodeId = useDashboardStore((state) => state.selectedNodeId);
   const selectedSpanId = useDashboardStore((state) => state.selectedSpanId);
   const liveEvents = useDashboardStore((state) => state.liveEvents);
   const traces = useDashboardStore((state) => state.traces);
+  const setTraceFilter = useDashboardStore((state) => state.setTraceFilter);
+  const setSelectedTrace = useDashboardStore((state) => state.setSelectedTrace);
+  const setSelectedSpan = useDashboardStore((state) => state.setSelectedSpan);
+  const setViewMode = useDashboardStore((state) => state.setViewMode);
 
   const nodeById = useMemo(() => {
     const map: Record<string, Node> = {};
@@ -60,6 +66,50 @@ export function DetailDrawer({ hoveredEvent }: DetailDrawerProps) {
     () => hoveredEvent ?? liveEvents.find((event) => event.span_id === selectedSpanId),
     [hoveredEvent, liveEvents, selectedSpanId],
   );
+
+  const eventContext = useMemo(() => {
+    if (!selectedEvent) return undefined;
+    const trace = traces.find((item) => item.envelope.trace_id === selectedEvent.trace_id);
+    const spanIndex = trace?.spans.findIndex((span) => span.span_id === selectedEvent.span_id) ?? -1;
+    const total = trace?.spans.length ?? 0;
+    const parent = selectedEvent.parent_span_id
+      ? trace?.spans.find((span) => span.span_id === selectedEvent.parent_span_id)
+      : undefined;
+    const fromName = nodeById[selectedEvent.from_node]?.name ?? selectedEvent.from_node;
+    const toName = selectedEvent.to_node
+      ? (nodeById[selectedEvent.to_node]?.name ?? selectedEvent.to_node)
+      : "internal";
+    return {
+      fromName,
+      toName,
+      parentSummary: parent?.summary,
+      parentSpanId: parent?.span_id,
+      positionLabel: total > 0 && spanIndex >= 0 ? `${spanIndex + 1} / ${total}` : "n/a",
+      flags: [
+        selectedEvent.retry_count > 0 ? `retry x${selectedEvent.retry_count}` : undefined,
+        selectedEvent.fallback_from ? `fallback from ${shortId(selectedEvent.fallback_from)}` : undefined,
+        selectedEvent.status === "error" ? "error event" : undefined,
+      ].filter(Boolean) as string[],
+    };
+  }, [nodeById, selectedEvent, traces]);
+
+  const focusPath = () => {
+    if (!selectedEvent) return;
+    setTraceFilter(selectedEvent.trace_id);
+    setSelectedTrace(selectedEvent.trace_id);
+    setSelectedSpan(selectedEvent.span_id, selectedEvent.trace_id);
+    setViewMode("live");
+  };
+
+  const openReplayAtSpan = () => {
+    if (!selectedEvent) return;
+    const params = new URLSearchParams({
+      traceId: selectedEvent.trace_id,
+      target,
+      spanId: selectedEvent.span_id,
+    });
+    window.location.href = `/replay?${params.toString()}`;
+  };
 
   const nodeContext = useMemo(() => {
     if (!selectedNode || !topology) return undefined;
@@ -196,25 +246,101 @@ export function DetailDrawer({ hoveredEvent }: DetailDrawerProps) {
               {showFlowDeep ? "summary" : "detail"}
             </button>
           </div>
-          <div className="panel-title text-sm text-slate-100">{selectedEvent.summary}</div>
-          <div>from -&gt; to: {nodeById[selectedEvent.from_node]?.name ?? selectedEvent.from_node} -&gt; {selectedEvent.to_node ? (nodeById[selectedEvent.to_node]?.name ?? selectedEvent.to_node) : "internal"}</div>
-          <div>direction / protocol: {selectedEvent.direction} / {selectedEvent.protocol}</div>
-          <div>span kind / status: {selectedEvent.span_kind} / {selectedEvent.status}</div>
-          <div>latency: {selectedEvent.latency_ms} ms</div>
-          <div className="rounded border border-line bg-[#0b1828] p-2 text-[11px] text-slate-400">
-            {selectedEvent.payload_preview}
-          </div>
-          <div className="text-[11px] text-slate-500">
-            trace_id: {shortId(selectedEvent.trace_id)} | span_id: {shortId(selectedEvent.span_id)}
-          </div>
-          {showFlowDeep && (
-            <div className="rounded border border-line bg-[#0a1626] p-2 text-[11px] text-slate-400">
-              <div>payload_detail: {JSON.stringify(selectedEvent.payload_detail)}</div>
-              <div>attributes: {JSON.stringify(selectedEvent.attributes)}</div>
-              <div>retry_count: {selectedEvent.retry_count}</div>
-              <div>fallback_from: {selectedEvent.fallback_from ?? "n/a"}</div>
+
+          <div className="rounded border border-line bg-[#0a1626] p-2">
+            <div className="panel-title text-[11px] uppercase tracking-wide text-slate-200">Summary</div>
+            <div className="mt-1 text-[12px] text-slate-100">{selectedEvent.summary}</div>
+            <div className="mt-1 text-[11px] text-slate-400">
+              {eventContext?.fromName} -&gt; {eventContext?.toName}
             </div>
-          )}
+            <div className="mt-1 grid grid-cols-2 gap-1 text-[11px] text-slate-400">
+              <div>direction: {selectedEvent.direction}</div>
+              <div>protocol: {selectedEvent.protocol}</div>
+              <div>kind: {selectedEvent.span_kind}</div>
+              <div>status: {selectedEvent.status}</div>
+              <div>latency: {selectedEvent.latency_ms} ms</div>
+              <div>step: {eventContext?.positionLabel}</div>
+            </div>
+          </div>
+
+          <div className="rounded border border-line bg-[#0a1626] p-2">
+            <div className="panel-title text-[11px] uppercase tracking-wide text-slate-200">Context</div>
+            <div className="mt-1 text-[11px] text-slate-400">
+              parent: {eventContext?.parentSummary ?? "root span"}
+            </div>
+            <div className="text-[10px] text-slate-500">
+              parent_id: {eventContext?.parentSpanId ? shortId(eventContext.parentSpanId) : "n/a"}
+            </div>
+            <div className="mt-1 text-[10px] text-slate-400">
+              trace_id: {shortId(selectedEvent.trace_id)} | span_id: {shortId(selectedEvent.span_id)}
+            </div>
+            {eventContext?.flags.length ? (
+              <div className="mt-1 flex flex-wrap gap-1">
+                {eventContext.flags.map((flag) => (
+                  <span key={flag} className="rounded border border-amber-500/40 bg-[#2b2113] px-1.5 py-0.5 text-[10px] text-amber-200">
+                    {flag}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+            <div className="mt-2 flex gap-2">
+              <button
+                type="button"
+                className="rounded border border-line bg-[#10243a] px-2 py-1 text-[11px] text-slate-100 hover:border-sky-400"
+                onClick={focusPath}
+              >
+                focus path
+              </button>
+              <button
+                type="button"
+                className="rounded border border-line bg-[#10243a] px-2 py-1 text-[11px] text-slate-100 hover:border-cyan-400"
+                onClick={openReplayAtSpan}
+              >
+                open replay at span
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded border border-line bg-[#0a1626] p-2">
+            <div className="flex items-center justify-between">
+              <div className="panel-title text-[11px] uppercase tracking-wide text-slate-200">Payload</div>
+              <button
+                type="button"
+                className="text-[10px] text-slate-400 hover:text-slate-200"
+                onClick={() => setPayloadRaw((prev) => !prev)}
+              >
+                {payloadRaw ? "pretty json" : "raw json"}
+              </button>
+            </div>
+            <div className="mt-1 rounded border border-line bg-[#0b1828] p-2 text-[11px] text-slate-400">
+              {selectedEvent.payload_preview}
+            </div>
+            {showFlowDeep && (
+              <pre className="mt-2 max-h-36 overflow-auto rounded border border-line bg-[#060f1b] p-2 text-[10px] text-slate-400">
+                {payloadRaw
+                  ? JSON.stringify(
+                      {
+                        payload_detail: selectedEvent.payload_detail,
+                        attributes: selectedEvent.attributes,
+                        retry_count: selectedEvent.retry_count,
+                        fallback_from: selectedEvent.fallback_from ?? null,
+                      },
+                      null,
+                      0,
+                    )
+                  : JSON.stringify(
+                      {
+                        payload_detail: selectedEvent.payload_detail,
+                        attributes: selectedEvent.attributes,
+                        retry_count: selectedEvent.retry_count,
+                        fallback_from: selectedEvent.fallback_from ?? null,
+                      },
+                      null,
+                      2,
+                    )}
+              </pre>
+            )}
+          </div>
         </section>
       )}
     </aside>

@@ -40,16 +40,24 @@ test("dashboard renders core zones and replay route is reachable", async ({ page
   await expect(page.getByTestId("detail-drawer")).toBeVisible();
   await expect(page.getByTestId("timeline-panel")).toBeVisible();
 
-  await page.getByRole("button", { name: /diagnostics/i }).click();
+  await page.getByRole("button", { name: /^trace$/i }).click();
+  await expect(page.getByText(/spans/i).first()).toBeVisible();
+  await page.getByRole("button", { name: /^time$/i }).click();
+
+  await page.getByRole("button", { name: /add local repository/i }).click();
+  await expect(page.getByText(/Import Local Agent Repository/i)).toBeVisible();
+  await page.getByRole("button", { name: /^close$/i }).click();
+
+  await page.getByTestId("filter-panel").getByRole("button", { name: /^diagnostics$/i }).click();
   await expect(page.getByTestId("diagnostics-center")).toBeVisible();
 
-  await page.getByRole("button", { name: /parser/i }).click();
+  await page.getByTestId("filter-panel").getByRole("button", { name: /^parser analysis$/i }).click();
   await expect(page.getByTestId("parser-analysis-center")).toBeVisible();
 
-  await page.getByRole("button", { name: /reports/i }).click();
+  await page.getByTestId("filter-panel").getByRole("button", { name: /^reports$/i }).click();
   await expect(page.getByTestId("reports-center")).toBeVisible();
 
-  await page.getByRole("button", { name: /overview/i }).click();
+  await page.getByTestId("filter-panel").getByRole("button", { name: /^overview$/i }).click();
   await expect(page.getByTestId("city-scene")).toBeVisible();
 
   const replayLink = page.getByRole("link", { name: /open replay/i });

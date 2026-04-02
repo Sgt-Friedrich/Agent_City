@@ -1,0 +1,95 @@
+{
+  "repo": "pydantic/pydantic-ai",
+  "slug": "pydantic__pydantic-ai",
+  "language_declared": "Python",
+  "domain": "typed agent framework",
+  "parse_success": false,
+  "language_detected": [
+    "Unknown"
+  ],
+  "parser_confidence": 0.24,
+  "grade": "D",
+  "coverage": {
+    "roles_found": [
+      "runtime_node"
+    ],
+    "source_types": {
+      "config": false,
+      "registry": false,
+      "code": false
+    },
+    "declared_edge_count": 0,
+    "observed_edge_count": 0,
+    "inferred_edge_count": 0,
+    "fallback_edge_count": 0,
+    "retry_loop_count": 0
+  },
+  "topology": {
+    "districts": [
+      {
+        "id": "district.runtime",
+        "name": "Runtime District",
+        "type": "runtime",
+        "summary": "parser regression district",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "z": 56
+        },
+        "bounds": {
+          "width": 52,
+          "depth": 30
+        },
+        "metadata": {
+          "source": "parser_regression"
+        }
+      }
+    ],
+    "nodes": [
+      {
+        "id": "node.runtime_node",
+        "name": "Runtime Node",
+        "type": "runtime_node",
+        "district_id": "district.runtime",
+        "position": {
+          "x": 0.0,
+          "y": 0,
+          "z": 56.0
+        },
+        "size": 2.33,
+        "height": 6.09,
+        "status": "healthy",
+        "labels": [
+          "runtime_node",
+          "runtime"
+        ],
+        "metadata": {
+          "hit_score": 1
+        },
+        "metrics": null,
+        "source_provenance": [
+          {
+            "source_type": "parser_regression",
+            "location": "runtime_node",
+            "confidence": 0.72
+          }
+        ]
+      }
+    ],
+    "edges": []
+  },
+  "runtime": {
+    "observed_edges": [],
+    "inferred_edges": [],
+    "fallback_edges": [],
+    "retry_loops": []
+  },
+  "unresolved_symbols": [
+    "config-driven topology evidence limited",
+    "llm/model gateway signal weak",
+    "planner/orchestrator signal weak",
+    "registry/factory evidence limited",
+    "tool execution signal weak"
+  ],
+  "highlights": "no parser evidence snippets"
+}

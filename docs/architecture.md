@@ -1,155 +1,137 @@
 # Agent_City Architecture
 
-## 1. Architecture Overview
+## 1. System Layers
 
-Agent_City is a **desktop application workbench** composed of four layers:
+Agent_City is organized as four cooperating layers:
 
-1. Desktop shell layer (Tauri)
-2. UI workbench layer (Next.js/React)
-3. Local service layer (FastAPI)
-4. Parsing/runtime core layer (discovery/normalization/binding)
+1. Desktop Shell Layer (Tauri)
+2. Workbench UI Layer (Next.js/React/R3F)
+3. Local Service Layer (FastAPI + WebSocket)
+4. Parsing and Runtime Core Layer
 
-## 2. Layer Diagram
+## 2. High-Level Diagram
 
 ```mermaid
 flowchart LR
   subgraph Desktop["Desktop Shell (Tauri)"]
-    RustMain["src-tauri/src/main.rs"]
-    IPC["Tauri invoke commands"]
-    ProcMgr["local service manager"]
+    Win["Main Window"]
+    IPC["Tauri Commands"]
+    Proc["Backend lifecycle helpers"]
   end
 
-  subgraph UI["Workbench UI (Next.js)"]
-    ShellUI["Main Window Layout"]
-    City["City Visualization"]
-    Replay["Replay Center"]
-    Diag["Diagnostics Center"]
-    Parser["Parser Analysis Center"]
-    Reports["Reports Center"]
-    Store["Zustand app state"]
-    Bridge["desktopBridge adapter"]
+  subgraph UI["Workbench UI (static bundle)"]
+    Dashboard["DashboardApp"]
+    City["City Scene"]
+    Replay["Replay View"]
+    Analysis["Parser/Diagnostics/Reports Centers"]
+    ControlUI["Repositories/Jobs/Settings Centers"]
+    I18N["Locale Store + Dictionaries"]
+    State["Zustand State"]
   end
 
-  subgraph API["Local Service (FastAPI)"]
-    Routers["REST + WebSocket routers"]
+  subgraph Service["Local FastAPI Service"]
+    Routers["Routers"]
     Platform["PlatformService"]
-    ReportSvc["ReportService"]
+    Control["ControlPlaneService"]
+    Settings["SettingsService"]
+    Reports["ReportService"]
   end
 
-  subgraph Core["Parsing + Runtime Core"]
-    Discovery["Topology Discovery"]
-    Normalizer["Topology Normalizer"]
-    Runtime["Runtime Trace Resolver"]
-    Binding["Topology Binding"]
-    Parsers["Multi-language parsers"]
+  subgraph Core["Parser + Runtime Core"]
+    Discovery["topology_discovery"]
+    Normalizer["topology_normalizer"]
+    Runtime["runtime_trace_resolver"]
+    Binding["topology_binding"]
+    Parsers["language parsers (py/ts/go/rust/java/csharp/config)"]
   end
 
-  RustMain --> ProcMgr
-  RustMain --> IPC
-  IPC --> Bridge
-  Bridge --> ShellUI
-  ShellUI --> Store
-  Store --> City
-  Store --> Replay
-  Store --> Diag
-  Store --> Parser
-  Store --> Reports
-
-  Store --> Routers
+  Win --> IPC
+  IPC --> Dashboard
+  Dashboard --> State
+  Dashboard --> I18N
+  State --> City
+  State --> Replay
+  State --> Analysis
+  State --> ControlUI
+  State --> Routers
   Routers --> Platform
-  Routers --> ReportSvc
-  Platform --> Discovery
+  Routers --> Control
+  Routers --> Reports
+  Control --> Settings
+  Platform --> Discovery --> Parsers
   Platform --> Normalizer
   Platform --> Runtime
   Platform --> Binding
-  Discovery --> Parsers
 ```
 
-## 3. Desktop Shell Responsibilities
+## 3. Control Plane Architecture
 
-- Start and supervise local backend/frontend services when needed.
-- Reuse existing local services if already running.
-- Expose desktop-safe capabilities through Tauri commands:
-  - report save
-  - open local path
-  - app status query
-- Keep renderer logic isolated from shell internals.
+Control Plane is implemented in backend and consumed by dedicated UI centers.
 
-Code paths:
-- `desktop/src-tauri/src/main.rs`
-- `frontend/lib/desktopBridge.ts`
+### Backend
+- `backend/app/services/control_plane_service.py`
+- `backend/app/services/settings_service.py`
+- `backend/app/routers/control.py`
 
-## 4. Local Service Responsibilities
+### Data Models
+- `RepositoryRecord`
+- `JobRecord`
+- `AppSettings`
+- `AppRuntimeStatus`
 
-### 4.1 Platform APIs
-- Topology and target management
-- Trace stream and replay data
-- Metrics and diagnostics summary
-- Parser analysis report generation
+### API Contract
+- repository management
+- job queue/execution/cancel
+- settings read/write
+- runtime status snapshot
 
-### 4.2 Reports APIs
-- report catalog
-- report content retrieval
-
-Code paths:
-- `backend/app/main.py`
-- `backend/app/routers/*.py`
-- `backend/app/services/platform_service.py`
-- `backend/app/services/report_service.py`
-
-## 5. Parsing and Runtime Core
+## 4. Parsing + Runtime Core
 
 ### Static parsing
-- `topology_discovery.py`
-- `topology_normalizer.py`
-- `parsers/*.py` (Python/TS/Go/Rust/Java/C#/Config)
-- `confidence_scoring.py`
+- topology discovery from code/config/readme/examples
+- normalization into District/Node/Edge
+- confidence scoring and unresolved symbols
 
-### Runtime parsing and binding
-- `runtime_trace_resolver.py`
-- `topology_binding.py`
+### Runtime parsing
+- trace envelope + span events
+- retry/fallback/error semantics
+- observed/inferred edge extraction
 
-### Semantics
-- declared edge / observed edge / inferred edge / retry / fallback
-- unresolved symbols + confidence + graceful degradation
+### Binding
+- declared edge
+- observed edge
+- inferred edge
+- fallback/retry loop handling
 
-## 6. Workbench UI Composition
+## 5. UI State and i18n
 
-Main window composition:
+### State
+- central store: `frontend/store/useDashboardStore.ts`
+- locale store: `frontend/store/useLocaleStore.ts`
+- control-plane polling: `frontend/hooks/useControlPlaneData.ts`
 
-1. Top KPI/status strip
-2. Left navigation + filters
-3. Center workspace (city/parser/reports)
-4. Right inspector (detail/diagnostics)
-5. Bottom timeline
+### i18n
+- dictionaries: `frontend/i18n/messages.ts`
+- locale helper: `frontend/hooks/useI18n.ts`
+- persisted language + immediate switch in Settings
 
-Primary modules:
-- `frontend/components/DashboardApp.tsx`
-- `frontend/components/city/*`
-- `frontend/components/analysis/*`
-- `frontend/components/panels/*`
+## 6. App Lifecycle
 
-## 7. Data Contracts
+1. `npm run app:start` bootstraps dependencies and static assets.
+2. Tauri main window loads static bundle.
+3. UI fetches topology/metrics/traces/control-plane snapshots.
+4. `/ws/live` streams flow events.
+5. User actions in Control Center create and track jobs.
 
-Canonical contract definitions:
-- Backend: `backend/app/models/schemas.py`
-- Frontend: `frontend/types/schema.ts`
+## 7. Validation Pipeline
 
-Key entities:
-- `District`, `Node`, `Edge`
-- `TraceEnvelope`, `SpanEvent`, `FlowEvent`
-- `DiagnosticsSummary`, `ParserAnalysisReport`
-- `ReportArtifact`, `ReportContent`
-- `DesktopAppStatus`
+- parser/control API tests: `npm run parser:test`
+- app UI regression: `npm --prefix frontend run e2e:app`
+- desktop shell smoke: `npm run app:smoke`
+- full closure test: `npm run system:test`
 
-## 8. Test and Closure Loop
+## 8. Extension Points
 
-- Parser regression tests: `tests/parser/*`
-- App UI automation tests: `frontend/tests/e2e/*`
-- Full-system test runner: `scripts/run_full_system_tests.py`
-- Reference cleanup: `scripts/cleanup_refs.py`
-
-Outputs:
-- parser reports
-- frontend fix reports
-- full system test report
+- telemetry adapters (OTel/Jaeger/Langfuse/Phoenix)
+- richer parser strategies for unknown frameworks
+- desktop packaging/signing pipeline

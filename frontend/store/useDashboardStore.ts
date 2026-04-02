@@ -3,6 +3,8 @@
 import { create } from "zustand";
 
 import {
+  AppRuntimeStatus,
+  AppSettings,
   BoundTraceResponse,
   DiagnosticsSummary,
   Edge,
@@ -12,8 +14,11 @@ import {
   NodeType,
   ParseJob,
   ParserAnalysisReport,
+  RepositoryRecord,
+  JobRecord,
   SpanKind,
   TargetOption,
+  TimelineGroupBy,
   TopologyGraph,
   TraceRecord,
   DesktopAppStatus,
@@ -34,6 +39,10 @@ interface DashboardState {
   target: string;
   targets: TargetOption[];
   parseJobs: ParseJob[];
+  repositories: RepositoryRecord[];
+  jobs: JobRecord[];
+  runtimeStatus?: AppRuntimeStatus;
+  appSettings?: AppSettings;
   ingestDirectory?: string;
   searchQuery: string;
   topology?: TopologyGraph;
@@ -44,6 +53,7 @@ interface DashboardState {
   parserAnalysis?: ParserAnalysisReport;
   desktopStatus?: DesktopAppStatus;
   liveEvents: FlowEvent[];
+  timelineGroupBy: TimelineGroupBy;
   selectedNodeId?: string;
   selectedSpanId?: string;
   selectedTraceId?: string;
@@ -54,6 +64,11 @@ interface DashboardState {
   setTarget: (target: string) => void;
   setTargets: (targets: TargetOption[]) => void;
   setParseJobs: (jobs: ParseJob[]) => void;
+  setRepositories: (items: RepositoryRecord[]) => void;
+  setControlJobs: (items: JobRecord[]) => void;
+  upsertControlJob: (item: JobRecord) => void;
+  setRuntimeStatus: (status: AppRuntimeStatus | undefined) => void;
+  setAppSettings: (settings: AppSettings | undefined) => void;
   setIngestDirectory: (path?: string) => void;
   setSearchQuery: (query: string) => void;
   setTopology: (topology: TopologyGraph) => void;
@@ -69,6 +84,7 @@ interface DashboardState {
   setSelectedNode: (nodeId?: string) => void;
   setSelectedSpan: (spanId?: string, traceId?: string) => void;
   setSelectedTrace: (traceId?: string) => void;
+  setTimelineGroupBy: (groupBy: TimelineGroupBy) => void;
   setDistrictFilter: (districtIds: string[]) => void;
   setNodeTypeFilter: (nodeTypes: NodeType[]) => void;
   setSpanKindFilter: (spanKinds: SpanKind[]) => void;
@@ -96,6 +112,10 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   target: "mock",
   targets: [],
   parseJobs: [],
+  repositories: [],
+  jobs: [],
+  runtimeStatus: undefined,
+  appSettings: undefined,
   ingestDirectory: undefined,
   searchQuery: "",
   traces: [],
@@ -104,6 +124,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   parserAnalysis: undefined,
   desktopStatus: undefined,
   liveEvents: [],
+  timelineGroupBy: "time",
   filters: defaultFilters,
   replay: {
     active: false,
@@ -145,16 +166,36 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
           ? "parser_analysis"
           : get().viewMode === "reports"
             ? "reports"
-          : get().replay.active
-            ? "replay"
-            : get().diagnosticMode === "realtime"
-              ? "overview"
-              : "diagnostics",
+            : get().viewMode === "repositories"
+              ? "repositories"
+              : get().viewMode === "jobs"
+                ? "jobs"
+                : get().viewMode === "settings"
+                  ? "settings"
+                  : get().replay.active
+                    ? "replay"
+                    : get().diagnosticMode === "realtime"
+                      ? "overview"
+                      : "diagnostics",
     }),
 
   setTargets: (targets) => set({ targets }),
 
   setParseJobs: (parseJobs) => set({ parseJobs }),
+  setRepositories: (repositories) => set({ repositories }),
+  setControlJobs: (jobs) => set({ jobs }),
+  upsertControlJob: (item) => {
+    const jobs = [...get().jobs];
+    const index = jobs.findIndex((job) => job.id === item.id);
+    if (index >= 0) {
+      jobs[index] = item;
+    } else {
+      jobs.unshift(item);
+    }
+    set({ jobs: jobs.slice(0, 200) });
+  },
+  setRuntimeStatus: (runtimeStatus) => set({ runtimeStatus }),
+  setAppSettings: (appSettings) => set({ appSettings }),
 
   setIngestDirectory: (ingestDirectory) => set({ ingestDirectory }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),
@@ -210,6 +251,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   setSelectedNode: (nodeId) => set({ selectedNodeId: nodeId }),
   setSelectedSpan: (spanId, traceId) => set({ selectedSpanId: spanId, selectedTraceId: traceId }),
   setSelectedTrace: (traceId) => set({ selectedTraceId: traceId }),
+  setTimelineGroupBy: (timelineGroupBy) => set({ timelineGroupBy }),
 
   setDistrictFilter: (districtIds) => set({ filters: { ...get().filters, districtIds } }),
   setNodeTypeFilter: (nodeTypes) => set({ filters: { ...get().filters, nodeTypes } }),

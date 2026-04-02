@@ -15,9 +15,10 @@ import { FlowEvent, Node, TraceRecord } from "@/types/schema";
 interface ReplayAppProps {
   traceId: string;
   target: string;
+  initialSpanId?: string;
 }
 
-export function ReplayApp({ traceId, target }: ReplayAppProps) {
+export function ReplayApp({ traceId, target, initialSpanId }: ReplayAppProps) {
   const { loading } = useBootstrapData();
   const [hoveredEvent, setHoveredEvent] = useState<FlowEvent>();
   const [trace, setTrace] = useState<TraceRecord>();
@@ -31,6 +32,7 @@ export function ReplayApp({ traceId, target }: ReplayAppProps) {
   const replay = useDashboardStore((state) => state.replay);
   const startReplay = useDashboardStore((state) => state.startReplay);
   const stopReplay = useDashboardStore((state) => state.stopReplay);
+  const setReplayCursor = useDashboardStore((state) => state.setReplayCursor);
   const diagnosticMode = useDashboardStore((state) => state.diagnosticMode);
 
   useEffect(() => {
@@ -64,6 +66,14 @@ export function ReplayApp({ traceId, target }: ReplayAppProps) {
     };
   }, [target, traceId]);
 
+  useEffect(() => {
+    if (!trace || !initialSpanId) return;
+    const index = trace.spans.findIndex((span) => span.span_id === initialSpanId);
+    if (index >= 0) {
+      setReplayCursor(index + 1);
+    }
+  }, [initialSpanId, setReplayCursor, trace]);
+
   const events = trace?.spans ?? [];
   const nodesById = (topology?.nodes ?? []).reduce<Record<string, Node>>((acc, node) => {
     acc[node.id] = node;
@@ -91,7 +101,9 @@ export function ReplayApp({ traceId, target }: ReplayAppProps) {
                 nodes={topology?.nodes ?? []}
                 edges={topology?.edges ?? []}
                 events={events}
+                viewMode="replay"
                 diagnosticMode={diagnosticMode}
+                selectedTraceId={traceId}
                 replay={{
                   enabled: replay.active,
                   traceId: replay.traceId,

@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { districtStyle } from "@/lib/visualTheme";
+import { useDashboardStore } from "@/store/useDashboardStore";
 import { District, FlowEvent, Node, TopologyGraph } from "@/types/schema";
 
 interface CityMiniMapProps {
@@ -33,6 +34,12 @@ function normalizeZ(value: number): number {
 }
 
 export function CityMiniMap({ topology, nodes, events, replayTraceId }: CityMiniMapProps) {
+  const [overlay, setOverlay] = useState<"activity" | "errors" | "parser">("activity");
+  const setDistrictFilter = useDashboardStore((state) => state.setDistrictFilter);
+  const setViewMode = useDashboardStore((state) => state.setViewMode);
+  const diagnostics = useDashboardStore((state) => state.diagnosticsSummary);
+  const parser = useDashboardStore((state) => state.parserAnalysis);
+
   const nodeById = useMemo(() => {
     const map: Record<string, Node> = {};
     for (const node of nodes) {
@@ -41,7 +48,7 @@ export function CityMiniMap({ topology, nodes, events, replayTraceId }: CityMini
     return map;
   }, [nodes]);
 
-  const activeDistricts = useMemo(() => {
+  const activityDistricts = useMemo(() => {
     const set = new Set<string>();
     for (const event of events) {
       if (replayTraceId && event.trace_id !== replayTraceId) continue;
@@ -52,6 +59,29 @@ export function CityMiniMap({ topology, nodes, events, replayTraceId }: CityMini
     }
     return set;
   }, [events, nodeById, replayTraceId]);
+
+  const errorDistricts = useMemo(() => {
+    const set = new Set<string>();
+    for (const item of diagnostics?.error_nodes ?? []) {
+      set.add(item.district_id);
+    }
+    return set;
+  }, [diagnostics?.error_nodes]);
+
+  const lowConfidenceDistricts = useMemo(() => {
+    const set = new Set<string>();
+    const threshold = 0.65;
+    const lowEdges = parser?.low_confidence_edges ?? [];
+    for (const edge of lowEdges) {
+      const from = nodeById[edge.from];
+      const to = nodeById[edge.to];
+      if (edge.confidence <= threshold) {
+        if (from) set.add(from.district_id);
+        if (to) set.add(to.district_id);
+      }
+    }
+    return set;
+  }, [nodeById, parser?.low_confidence_edges]);
 
   const districts = useMemo<RectDistrict[]>(() => {
     if (!topology) return [];
@@ -68,12 +98,37 @@ export function CityMiniMap({ topology, nodes, events, replayTraceId }: CityMini
     });
   }, [topology]);
 
+  const activeSet =
+    overlay === "errors"
+      ? errorDistricts
+      : overlay === "parser"
+        ? lowConfidenceDistricts
+        : activityDistricts;
+
   return (
-    <div className="pointer-events-none absolute bottom-3 left-3 rounded border border-line bg-[#081323d8] p-2 shadow-glow">
-      <div className="panel-title text-[10px] uppercase tracking-wide text-slate-300">City Overview</div>
+    <div className="absolute bottom-3 left-3 rounded border border-line bg-[#081323d8] p-2 shadow-glow">
+      <div className="flex items-center justify-between gap-2">
+        <div className="panel-title text-[10px] uppercase tracking-wide text-slate-300">City Overview</div>
+        <div className="flex gap-1">
+          {(["activity", "errors", "parser"] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              className={`rounded border px-1 py-0.5 text-[9px] uppercase ${
+                overlay === mode
+                  ? "border-cyan-400 bg-[#17324d] text-slate-100"
+                  : "border-line bg-[#0b1728] text-slate-500 hover:text-slate-300"
+              }`}
+              onClick={() => setOverlay(mode)}
+            >
+              {mode}
+            </button>
+          ))}
+        </div>
+      </div>
       <svg width={mapWidth} height={mapHeight} className="mt-1 overflow-visible">
         {districts.map(({ district, x, y, w, h }) => {
-          const style = districtStyle(district.type, { active: activeDistricts.has(district.id) });
+          const style = districtStyle(district.type, { active: activeSet.has(district.id) });
           return (
             <g key={district.id}>
               <rect
@@ -83,10 +138,15 @@ export function CityMiniMap({ topology, nodes, events, replayTraceId }: CityMini
                 height={h}
                 rx={2}
                 fill={style.fill}
-                fillOpacity={style.fillOpacity + 0.1}
+                fillOpacity={activeSet.has(district.id) ? style.fillOpacity + 0.14 : style.fillOpacity + 0.05}
                 stroke={style.border}
                 strokeOpacity={style.borderOpacity}
-                strokeWidth={activeDistricts.has(district.id) ? 1.6 : 1}
+                strokeWidth={activeSet.has(district.id) ? 1.8 : 1}
+                className="cursor-pointer"
+                onClick={() => {
+                  setDistrictFilter([district.id]);
+                  setViewMode("overview");
+                }}
               />
               <text
                 x={x + w / 2}
@@ -104,3 +164,4 @@ export function CityMiniMap({ topology, nodes, events, replayTraceId }: CityMini
     </div>
   );
 }
+
