@@ -21,6 +21,11 @@ export function ControlInspector() {
 
   const latestJob = jobs[0];
   const importedCount = repositories.filter((repo) => repo.source_type !== "mock").length;
+  const nextAction = importedCount === 0
+    ? { label: t("workflow.action.import"), run: () => setViewMode("repositories") }
+    : activeJobs.length > 0
+      ? { label: t("workflow.action.report"), run: () => setViewMode("jobs") }
+      : { label: t("workflow.action.diagnostics"), run: () => setViewMode("diagnostics") };
 
   return (
     <section
@@ -93,6 +98,13 @@ export function ControlInspector() {
       </div>
 
       <div className="mt-3 text-[11px] text-slate-500">{t("inspector.hint")}</div>
+      <button
+        type="button"
+        className="mt-2 rounded border border-line bg-[#102239] px-2 py-1 text-[11px] text-slate-100 hover:border-sky-400"
+        onClick={nextAction.run}
+      >
+        {t("workflow.nextAction")}: {nextAction.label}
+      </button>
     </section>
   );
 }

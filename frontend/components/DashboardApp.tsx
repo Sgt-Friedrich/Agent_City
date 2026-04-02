@@ -13,6 +13,7 @@ import { RepositoriesCenter } from "@/components/analysis/RepositoriesCenter";
 import { ReportsCenter } from "@/components/analysis/ReportsCenter";
 import { SettingsCenter } from "@/components/analysis/SettingsCenter";
 import { StartHerePanel } from "@/components/analysis/StartHerePanel";
+import { WorkspaceModeBanner } from "@/components/analysis/WorkspaceModeBanner";
 import { CityScene } from "@/components/city/CityScene";
 import { FilterPanel } from "@/components/panels/FilterPanel";
 import { DetailDrawer } from "@/components/panels/DetailDrawer";
@@ -195,6 +196,7 @@ export function DashboardApp() {
         </header>
 
         <ControlCenterBar onOpenImportWizard={() => setImportWizardOpen(true)} />
+        <WorkspaceModeBanner mode={viewMode} diagnosticMode={diagnosticMode} />
 
         <div data-testid="parse-progress-banner" className="border-b border-line bg-[#06111dcc] px-4 py-2 text-[11px] text-slate-300">
           <div className="flex flex-wrap items-center justify-between gap-2">

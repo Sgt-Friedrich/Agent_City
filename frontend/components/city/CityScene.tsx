@@ -1,6 +1,6 @@
 "use client";
 
-import { RefObject, useCallback, useMemo, useRef, useState } from "react";
+import { RefObject, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { OrbitControls } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
@@ -120,10 +120,25 @@ export function CityScene({
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
   const [cameraView, setCameraView] = useState<CameraViewSnapshot>({ x: 0, z: 0, distance: 165 });
   const [navigationTarget, setNavigationTarget] = useState<{ x: number; z: number }>();
+  const [edgeDensity, setEdgeDensity] = useState<"focus" | "balanced" | "full">("focus");
 
   const diagnosticFocus = useDashboardStore((state) => state.diagnosticFocus);
   const setSelectedTrace = useDashboardStore((state) => state.setSelectedTrace);
   const setSelectedSpan = useDashboardStore((state) => state.setSelectedSpan);
+
+  useEffect(() => {
+    if (replay?.enabled) {
+      setEdgeDensity("balanced");
+      return;
+    }
+    if (viewMode === "overview") {
+      setEdgeDensity("focus");
+      return;
+    }
+    if (viewMode === "diagnostics" || viewMode === "live") {
+      setEdgeDensity("balanced");
+    }
+  }, [replay?.enabled, viewMode]);
 
   const nodesById = useMemo<Record<string, Node>>(() => {
     return nodes.reduce<Record<string, Node>>((acc, node) => {
@@ -458,7 +473,13 @@ export function CityScene({
                 ? "primary"
                 : isTrunkEdge
                   ? "secondary"
-                  : "suppressed";
+                        : "suppressed";
+
+          if (edgeDensity === "focus" && renderLayer === "suppressed" && !highlighted && !inFocusedPath) {
+            return null;
+          }
+          const effectiveRenderLayer: "primary" | "secondary" | "suppressed" =
+            edgeDensity === "full" && renderLayer === "suppressed" ? "secondary" : renderLayer;
 
           return (
             <EdgeRoad
@@ -467,7 +488,7 @@ export function CityScene({
               fromNode={from}
               toNode={to}
               highlighted={highlighted || inFocusedPath}
-              renderLayer={renderLayer}
+              renderLayer={effectiveRenderLayer}
               diagnosticMode={diagnosticMode}
               dimmed={false}
             />
@@ -535,11 +556,27 @@ export function CityScene({
         />
       </Canvas>
 
-      <div className="pointer-events-none absolute right-3 top-3 z-10 w-[300px] rounded border border-line bg-[#081626dc] p-2 text-[11px] text-slate-200 shadow-glow">
+      <div className="pointer-events-none absolute right-3 top-3 z-10 w-[320px] rounded border border-line bg-[#081626dc] p-2 text-[11px] text-slate-200 shadow-glow">
         <div className="panel-title text-[11px] uppercase tracking-wide text-cyan-200">{modeHeadline}</div>
         <div className="mt-1 text-[10px] text-slate-400">{modeHint}</div>
         <div className="mt-1 text-[10px] text-slate-400">
-          {t("metrics.activeFlows")}: {activeEvents.length} | {t("filter.trace")}: {focusedTraceId ? focusedTraceId.slice(-8) : t("common.none")}
+          {t("metrics.activeFlows")}: {activeEvents.length} | {t("city.edges")}: {edges.length} | {t("filter.trace")}: {focusedTraceId ? focusedTraceId.slice(-8) : t("common.none")}
+        </div>
+        <div className="pointer-events-auto mt-2 flex items-center gap-1">
+          {(["focus", "balanced", "full"] as const).map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              className={`rounded border px-1.5 py-0.5 text-[10px] uppercase ${
+                edgeDensity === mode
+                  ? "border-cyan-400 bg-[#16314d] text-slate-100"
+                  : "border-line bg-[#0b1a2c] text-slate-400 hover:text-slate-200"
+              }`}
+              onClick={() => setEdgeDensity(mode)}
+            >
+              {mode === "focus" ? t("city.edgeDensity.focus") : mode === "balanced" ? t("city.edgeDensity.balanced") : t("city.edgeDensity.full")}
+            </button>
+          ))}
         </div>
         {focusedPathPreview ? (
           <div className="mt-2 rounded border border-line bg-[#0b1a2c] px-2 py-1 text-[10px] text-slate-300">{focusedPathPreview}</div>

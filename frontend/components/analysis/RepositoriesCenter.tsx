@@ -24,6 +24,7 @@ export function RepositoriesCenter() {
   const upsertControlJob = useDashboardStore((state) => state.upsertControlJob);
   const [busyRepo, setBusyRepo] = useState<string>();
   const [message, setMessage] = useState("");
+  const lowConfidenceCount = repositories.filter((repo) => repo.parser_confidence < 0.72).length;
 
   const runParse = async (repo: RepositoryRecord, force: boolean) => {
     setBusyRepo(repo.target_id);
@@ -76,8 +77,41 @@ export function RepositoriesCenter() {
         <div className="panel-title text-sm uppercase tracking-wide text-slate-100">
           {t("repositories.title")}
         </div>
-        <div className="mt-1 text-[11px] text-slate-400">
-          {repositories.length} {t("repositories.count")}
+        <div className="mt-1 grid grid-cols-2 gap-1 text-[11px] text-slate-400 xl:grid-cols-4">
+          <div>{repositories.length} {t("repositories.count")}</div>
+          <div>{t("repositories.lowConfidence")}: {lowConfidenceCount}</div>
+          <div>{t("repositories.readyCount")}: {repositories.filter((repo) => repo.status === "ready").length}</div>
+          <div>{t("repositories.parsingCount")}: {repositories.filter((repo) => repo.status === "parsing").length}</div>
+        </div>
+        <div className="mt-2 flex flex-wrap items-center gap-1">
+          <button
+            type="button"
+            className="rounded border border-line bg-[#10253d] px-2 py-1 text-[11px] text-slate-100 hover:border-sky-400"
+            onClick={() => setViewMode("jobs")}
+          >
+            {t("repositories.quick.openJobs")}
+          </button>
+          <button
+            type="button"
+            className="rounded border border-line bg-[#10253d] px-2 py-1 text-[11px] text-slate-100 hover:border-amber-400"
+            onClick={() => setViewMode("parser_analysis")}
+          >
+            {t("repositories.quick.openParser")}
+          </button>
+          <button
+            type="button"
+            className="rounded border border-line bg-[#10253d] px-2 py-1 text-[11px] text-slate-100 hover:border-rose-400"
+            onClick={() => setViewMode("diagnostics")}
+          >
+            {t("repositories.quick.openDiagnostics")}
+          </button>
+          <button
+            type="button"
+            className="rounded border border-line bg-[#10253d] px-2 py-1 text-[11px] text-slate-100 hover:border-emerald-400"
+            onClick={() => setViewMode("reports")}
+          >
+            {t("repositories.quick.openReports")}
+          </button>
         </div>
         {message ? <div className="mt-1 text-[11px] text-emerald-300">{message}</div> : null}
       </div>
@@ -95,6 +129,15 @@ export function RepositoriesCenter() {
                 <div className="panel-title text-sm text-slate-100">{repo.name}</div>
                 <div className="mt-1 max-w-[820px] truncate text-[11px] text-slate-400" title={repo.path}>
                   {repo.path}
+                </div>
+                <div className="mt-1">
+                  <button
+                    type="button"
+                    className="rounded border border-line bg-[#0f2135] px-1.5 py-0.5 text-[10px] text-slate-300 hover:border-sky-400"
+                    onClick={() => navigator.clipboard?.writeText(repo.path)}
+                  >
+                    {t("repositories.copyPath")}
+                  </button>
                 </div>
               </div>
               <span className={`rounded border px-2 py-0.5 text-[10px] uppercase ${statusClass(repo.status)}`}>

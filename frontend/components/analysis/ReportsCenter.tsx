@@ -64,6 +64,7 @@ export function ReportsCenter() {
   const [docsRoot, setDocsRoot] = useState<string>("");
   const [selectedReportId, setSelectedReportId] = useState<string>();
   const [reportContent, setReportContent] = useState<string>("");
+  const [reportSearch, setReportSearch] = useState<string>("");
   const [loadingList, setLoadingList] = useState(false);
   const [loadingContent, setLoadingContent] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -73,6 +74,15 @@ export function ReportsCenter() {
     () => reports.find((item) => item.id === selectedReportId),
     [reports, selectedReportId],
   );
+  const filteredReports = useMemo(() => {
+    const query = reportSearch.trim().toLowerCase();
+    if (!query) return reports;
+    return reports.filter((item) =>
+      item.title.toLowerCase().includes(query) ||
+      item.file_name.toLowerCase().includes(query) ||
+      item.category.toLowerCase().includes(query),
+    );
+  }, [reportSearch, reports]);
 
   const deepLinks = useMemo(() => {
     const contentTraces = Array.from(
@@ -255,12 +265,18 @@ export function ReportsCenter() {
       <div className="mt-3 grid min-h-0 flex-1 grid-cols-1 gap-3 xl:grid-cols-[340px_1fr]">
         <section className="min-h-0 overflow-y-auto rounded border border-line bg-[#0a1626] p-2 scrollbar-thin">
           <div className="panel-title text-xs uppercase tracking-wide text-slate-300">{t("reports.artifacts")}</div>
+          <input
+            value={reportSearch}
+            onChange={(event) => setReportSearch(event.target.value)}
+            placeholder={t("reports.searchPlaceholder")}
+            className="mt-2 w-full rounded border border-line bg-[#0f1f32] px-2 py-1 text-[11px] text-slate-100 outline-none focus:border-sky-400"
+          />
           {loadingList && <div className="mt-2 text-[11px] text-slate-500">{t("reports.loadingCatalog")}</div>}
-          {!loadingList && reports.length === 0 && (
+          {!loadingList && filteredReports.length === 0 && (
             <div className="mt-2 text-[11px] text-slate-500">{t("reports.noArtifact")}</div>
           )}
           <div className="mt-2 space-y-1">
-            {reports.map((artifact) => (
+            {filteredReports.map((artifact) => (
               <button
                 key={artifact.id}
                 type="button"
@@ -312,6 +328,16 @@ export function ReportsCenter() {
                     className="rounded border border-line bg-[#12314d] px-2 py-1 text-[11px] text-slate-100 hover:border-sky-400"
                   >
                     {t("reports.openRelatedWorkspace")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setViewMode("jobs");
+                      setSearchQuery("generate_report");
+                    }}
+                    className="rounded border border-line bg-[#10302a] px-2 py-1 text-[11px] text-slate-100 hover:border-emerald-400"
+                  >
+                    {t("reports.openGeneratorJobs")}
                   </button>
                   <span className="text-slate-400">{t("reports.category")}: {selectedReport.category}</span>
                 </div>

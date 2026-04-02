@@ -55,10 +55,15 @@ export function JobsCenter() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<"all" | JobRecord["status"]>("all");
 
   const active = useMemo(
     () => jobs.find((job) => job.status === "running" || job.status === "queued"),
     [jobs],
+  );
+  const filteredJobs = useMemo(
+    () => jobs.filter((job) => (statusFilter === "all" ? true : job.status === statusFilter)),
+    [jobs, statusFilter],
   );
 
   const runJob = async (type: ControlJobType) => {
@@ -110,6 +115,39 @@ export function JobsCenter() {
           <span>
             {t("jobs.count")}: {jobs.length}
           </span>
+          <span>
+            {t("jobs.failedCount")}: {jobs.filter((job) => job.status === "failed").length}
+          </span>
+        </div>
+        <div className="mt-2 flex flex-wrap items-center gap-1">
+          {(["all", "queued", "running", "failed", "success", "cancelled"] as const).map((item) => (
+            <button
+              key={item}
+              type="button"
+              className={`rounded border px-1.5 py-0.5 text-[10px] uppercase ${
+                statusFilter === item
+                  ? "border-sky-400 bg-[#15314d] text-slate-100"
+                  : "border-line bg-[#0f2136] text-slate-400 hover:text-slate-200"
+              }`}
+              onClick={() => setStatusFilter(item)}
+            >
+              {item === "all" ? t("jobs.filter.all") : t(statusLabel[item as JobRecord["status"]])}
+            </button>
+          ))}
+          <button
+            type="button"
+            className="rounded border border-line bg-[#10253d] px-2 py-0.5 text-[10px] text-slate-200 hover:border-emerald-400"
+            onClick={() => setViewMode("reports")}
+          >
+            {t("jobs.quick.openReports")}
+          </button>
+          <button
+            type="button"
+            className="rounded border border-line bg-[#10253d] px-2 py-0.5 text-[10px] text-slate-200 hover:border-cyan-400"
+            onClick={() => setViewMode("diagnostics")}
+          >
+            {t("jobs.quick.openDiagnostics")}
+          </button>
         </div>
         {message ? <div className="mt-1 text-[11px] text-emerald-300">{message}</div> : null}
       </div>
@@ -132,12 +170,12 @@ export function JobsCenter() {
       </div>
 
       <div className="mt-3 space-y-2">
-        {jobs.length === 0 && (
+        {filteredJobs.length === 0 && (
           <div className="rounded border border-line bg-[#0a1626] p-3 text-xs text-slate-500">
-            {t("jobs.empty")}
+            {statusFilter === "all" ? t("jobs.empty") : t("jobs.noFiltered")}
           </div>
         )}
-        {jobs.map((job) => (
+        {filteredJobs.map((job) => (
           <article key={job.id} className="rounded border border-line bg-[#0a1626] p-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
@@ -156,10 +194,10 @@ export function JobsCenter() {
                 {t("jobs.progress")}: {job.progress}%
               </div>
               <div>
-                stage: {job.stage}
+                {t("jobs.stage")}: {job.stage}
               </div>
               <div>
-                error: {job.error_code ?? t("common.none")}
+                {t("jobs.errorCode")}: {job.error_code ?? t("common.none")}
               </div>
               <div>
                 {t("jobs.start")}: {formatDateTime(job.started_at)}
@@ -168,10 +206,10 @@ export function JobsCenter() {
                 {t("jobs.end")}: {formatDateTime(job.ended_at)}
               </div>
               <div>
-                retries: {job.retry_count}
+                {t("jobs.retries")}: {job.retry_count}
               </div>
               <div>
-                report links: {job.related_report_ids.length}
+                {t("jobs.reportLinks")}: {job.related_report_ids.length}
               </div>
             </div>
             <div className="mt-2 rounded border border-line bg-[#0f1f32] px-2 py-1 text-[11px] text-slate-300">

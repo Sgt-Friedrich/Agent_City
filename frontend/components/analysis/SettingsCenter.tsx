@@ -215,6 +215,19 @@ export function SettingsCenter() {
       <div className="mt-3 flex justify-end">
         <button
           type="button"
+          onClick={() => {
+            if (appSettings) {
+              setForm(appSettings);
+              setValidationErrors({});
+              setMessage(t("settings.restored"));
+            }
+          }}
+          className="mr-2 rounded border border-line bg-[#0f2136] px-3 py-1.5 text-xs text-slate-200 hover:border-slate-400"
+        >
+          {t("settings.restore")}
+        </button>
+        <button
+          type="button"
           onClick={save}
           disabled={saving}
           className="rounded border border-line bg-[#173851] px-3 py-1.5 text-xs text-slate-100 hover:border-sky-400 disabled:opacity-50"

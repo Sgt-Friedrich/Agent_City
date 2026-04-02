@@ -43,6 +43,7 @@ export function FilterPanel() {
   const [builderField, setBuilderField] = useState("status");
   const [builderOp, setBuilderOp] = useState(":");
   const [builderValue, setBuilderValue] = useState("error");
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const topology = useDashboardStore((state) => state.topology);
   const traces = useDashboardStore((state) => state.traces);
   const filters = useDashboardStore((state) => state.filters);
@@ -386,82 +387,100 @@ export function FilterPanel() {
         </div>
       </section>
 
-      <section className="mt-4 space-y-2">
-        <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.district")}</h3>
-        {topology?.districts.map((district) => {
-          const checked = filters.districtIds.includes(district.id);
-          return (
-            <label key={district.id} className="flex cursor-pointer items-center gap-2 text-xs text-slate-300">
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={() => setDistrictFilter(toggle(filters.districtIds, district.id))}
-              />
-              <span>{district.name}</span>
-            </label>
-          );
-        })}
-      </section>
+      <section className="mt-4 rounded border border-line bg-[#0a1829] p-2">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.advanced")}</h3>
+          <button
+            type="button"
+            className="rounded border border-line bg-[#0f2035] px-1.5 py-0.5 text-[10px] text-slate-300 hover:border-sky-400"
+            onClick={() => setShowAdvanced((prev) => !prev)}
+          >
+            {showAdvanced ? t("filter.collapse") : t("filter.expand")}
+          </button>
+        </div>
+        {showAdvanced ? (
+          <div className="mt-2 space-y-4">
+            <section className="space-y-2">
+              <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.district")}</h3>
+              {topology?.districts.map((district) => {
+                const checked = filters.districtIds.includes(district.id);
+                return (
+                  <label key={district.id} className="flex cursor-pointer items-center gap-2 text-xs text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => setDistrictFilter(toggle(filters.districtIds, district.id))}
+                    />
+                    <span>{district.name}</span>
+                  </label>
+                );
+              })}
+            </section>
 
-      <section className="mt-4 space-y-2">
-        <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.nodeType")}</h3>
-        {nodeTypes.map((type) => {
-          const checked = filters.nodeTypes.includes(type);
-          return (
-            <label key={type} className="flex cursor-pointer items-center gap-2 text-xs text-slate-300">
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={() => setNodeTypeFilter(toggle(filters.nodeTypes, type))}
-              />
-              <span>{type}</span>
-            </label>
-          );
-        })}
-      </section>
+            <section className="space-y-2">
+              <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.nodeType")}</h3>
+              {nodeTypes.map((type) => {
+                const checked = filters.nodeTypes.includes(type);
+                return (
+                  <label key={type} className="flex cursor-pointer items-center gap-2 text-xs text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => setNodeTypeFilter(toggle(filters.nodeTypes, type))}
+                    />
+                    <span>{type}</span>
+                  </label>
+                );
+              })}
+            </section>
 
-      <section className="mt-4 space-y-2">
-        <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.status")}</h3>
-        {statusOptions.map((status) => (
-          <label key={status} className="flex cursor-pointer items-center gap-2 text-xs text-slate-300">
-            <input
-              type="checkbox"
-              checked={filters.statuses.includes(status)}
-              onChange={() => setStatusFilter(toggle(filters.statuses, status))}
-            />
-            <span>{status}</span>
-          </label>
-        ))}
-      </section>
+            <section className="space-y-2">
+              <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.status")}</h3>
+              {statusOptions.map((status) => (
+                <label key={status} className="flex cursor-pointer items-center gap-2 text-xs text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={filters.statuses.includes(status)}
+                    onChange={() => setStatusFilter(toggle(filters.statuses, status))}
+                  />
+                  <span>{status}</span>
+                </label>
+              ))}
+            </section>
 
-      <section className="mt-4 space-y-2">
-        <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.spanKind")}</h3>
-        {spanKindOptions.map((spanKind) => (
-          <label key={spanKind} className="flex cursor-pointer items-center gap-2 text-xs text-slate-300">
-            <input
-              type="checkbox"
-              checked={filters.spanKinds.includes(spanKind)}
-              onChange={() => setSpanKindFilter(toggle(filters.spanKinds, spanKind))}
-            />
-            <span>{spanKind}</span>
-          </label>
-        ))}
-      </section>
+            <section className="space-y-2">
+              <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.spanKind")}</h3>
+              {spanKindOptions.map((spanKind) => (
+                <label key={spanKind} className="flex cursor-pointer items-center gap-2 text-xs text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={filters.spanKinds.includes(spanKind)}
+                    onChange={() => setSpanKindFilter(toggle(filters.spanKinds, spanKind))}
+                  />
+                  <span>{spanKind}</span>
+                </label>
+              ))}
+            </section>
 
-      <section className="mt-4 space-y-2">
-        <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.trace")}</h3>
-        <select
-          className="w-full border border-line bg-[#0a1828] p-1 text-xs text-slate-200"
-          value={filters.traceId ?? ""}
-          onChange={(event) => setTraceFilter(event.target.value || undefined)}
-        >
-          <option value="">{t("filter.allTraces")}</option>
-          {traces.map((trace) => (
-            <option key={trace.envelope.trace_id} value={trace.envelope.trace_id}>
-              {trace.envelope.trace_id}
-            </option>
-          ))}
-        </select>
+            <section className="space-y-2">
+              <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.trace")}</h3>
+              <select
+                className="w-full border border-line bg-[#0a1828] p-1 text-xs text-slate-200"
+                value={filters.traceId ?? ""}
+                onChange={(event) => setTraceFilter(event.target.value || undefined)}
+              >
+                <option value="">{t("filter.allTraces")}</option>
+                {traces.map((trace) => (
+                  <option key={trace.envelope.trace_id} value={trace.envelope.trace_id}>
+                    {trace.envelope.trace_id}
+                  </option>
+                ))}
+              </select>
+            </section>
+          </div>
+        ) : (
+          <div className="mt-1 text-[11px] text-slate-500">{t("filter.advancedHint")}</div>
+        )}
       </section>
 
       <section className="mt-4 space-y-2 rounded border border-line bg-[#0a1829] p-2">

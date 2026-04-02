@@ -41,6 +41,8 @@ export function DetailDrawer({ hoveredEvent }: DetailDrawerProps) {
   const setSelectedTrace = useDashboardStore((state) => state.setSelectedTrace);
   const setSelectedSpan = useDashboardStore((state) => state.setSelectedSpan);
   const setViewMode = useDashboardStore((state) => state.setViewMode);
+  const setSearchQuery = useDashboardStore((state) => state.setSearchQuery);
+  const setDiagnosticFocus = useDashboardStore((state) => state.setDiagnosticFocus);
 
   const nodeById = useMemo(() => {
     const map: Record<string, Node> = {};
@@ -201,6 +203,29 @@ export function DetailDrawer({ hoveredEvent }: DetailDrawerProps) {
             </div>
             <div className="mt-1 text-[11px] text-slate-400">{t("drawer.inTop3")}: {nodeContext?.inboundTop.join(", ") || t("common.na")}</div>
             <div className="text-[11px] text-slate-400">{t("drawer.outTop3")}: {nodeContext?.outboundTop.join(", ") || t("common.na")}</div>
+            <div className="mt-2 flex flex-wrap gap-1">
+              <button
+                type="button"
+                className="rounded border border-line bg-[#10243a] px-2 py-1 text-[11px] text-slate-100 hover:border-amber-400"
+                onClick={() => {
+                  setViewMode("diagnostics");
+                  setDiagnosticFocus("errors");
+                  setSearchQuery(`node:${selectedNode.id} status:error`);
+                }}
+              >
+                {t("drawer.openNodeDiagnostics")}
+              </button>
+              <button
+                type="button"
+                className="rounded border border-line bg-[#10243a] px-2 py-1 text-[11px] text-slate-100 hover:border-sky-400"
+                onClick={() => {
+                  setViewMode("parser_analysis");
+                  setSearchQuery(`node:${selectedNode.id}`);
+                }}
+              >
+                {t("drawer.openNodeParser")}
+              </button>
+            </div>
           </div>
 
           <div className="rounded border border-line bg-[#0a1626] p-2">
