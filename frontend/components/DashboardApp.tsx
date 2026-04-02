@@ -13,6 +13,7 @@ import { RepositoriesCenter } from "@/components/analysis/RepositoriesCenter";
 import { ReportsCenter } from "@/components/analysis/ReportsCenter";
 import { SettingsCenter } from "@/components/analysis/SettingsCenter";
 import { StartHerePanel } from "@/components/analysis/StartHerePanel";
+import { WorkspaceModeBanner } from "@/components/analysis/WorkspaceModeBanner";
 import { CityScene } from "@/components/city/CityScene";
 import { FilterPanel } from "@/components/panels/FilterPanel";
 import { DetailDrawer } from "@/components/panels/DetailDrawer";
@@ -129,6 +130,9 @@ export function DashboardApp() {
   const shouldShowStartHere = isArchitectureMode && !isDiagnosticsMode && importedRepositoryCount === 0;
   const shellModeText =
     desktopStatus?.shellMode === "desktop" ? t("header.desktopMode") : t("header.browserMode");
+  const backendBadge = desktopStatus?.backend.ready ? t("common.ready") : desktopStatus?.backend.message ?? t("common.unknown");
+  const frontendBadge = desktopStatus?.frontend.ready ? t("common.ready") : desktopStatus?.frontend.message ?? t("common.unknown");
+  const ingestPathLabel = ingestDirectory ?? t("app.loading");
 
   return (
     <main data-testid="dashboard-root" className="h-screen w-screen overflow-hidden bg-transparent text-slate-100">
@@ -145,14 +149,14 @@ export function DashboardApp() {
                   desktopStatus?.backend.ready ? "border-emerald-500/40 text-emerald-300" : "border-rose-500/40 text-rose-300"
                 }`}
               >
-                {t("header.backend")}: {desktopStatus?.backend.message ?? t("common.unknown")}
+                {t("header.backend")}: {backendBadge}
               </span>
               <span
                 className={`rounded border px-1.5 py-0.5 ${
                   desktopStatus?.frontend.ready ? "border-emerald-500/40 text-emerald-300" : "border-rose-500/40 text-rose-300"
                 }`}
               >
-                {t("header.frontend")}: {desktopStatus?.frontend.message ?? t("common.unknown")}
+                {t("header.frontend")}: {frontendBadge}
               </span>
             </div>
           </div>
@@ -192,13 +196,21 @@ export function DashboardApp() {
         </header>
 
         <ControlCenterBar onOpenImportWizard={() => setImportWizardOpen(true)} />
+        <WorkspaceModeBanner mode={viewMode} diagnosticMode={diagnosticMode} />
 
         <div data-testid="parse-progress-banner" className="border-b border-line bg-[#06111dcc] px-4 py-2 text-[11px] text-slate-300">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
+            <div className="min-w-0">
               {t("parse.bannerTitle")}:
-              <span className="ml-1 rounded bg-[#0f2238] px-1.5 py-0.5 font-mono text-[10px] text-sky-200">
-                {ingestDirectory ?? t("app.loading")}
+              <span className="ml-1 inline-flex max-w-[54vw] items-center gap-1 rounded bg-[#0f2238] px-1.5 py-0.5 font-mono text-[10px] text-sky-200">
+                <span className="max-w-[46vw] truncate" title={ingestPathLabel}>{ingestPathLabel}</span>
+                <button
+                  type="button"
+                  className="rounded border border-line bg-[#0b1c2f] px-1 py-0.5 text-[9px] text-slate-300 hover:border-sky-400"
+                  onClick={() => navigator.clipboard?.writeText(ingestPathLabel)}
+                >
+                  {t("common.copy")}
+                </button>
               </span>
             </div>
             <div className="text-slate-400">{t("parse.bannerHint")}</div>

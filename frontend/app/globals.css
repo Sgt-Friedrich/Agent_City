@@ -79,6 +79,20 @@ a {
   backdrop-filter: blur(6px);
 }
 
+.workspace-card {
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(12, 26, 42, 0.9), rgba(9, 18, 30, 0.88));
+}
+
+.status-pill {
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  padding: 0.1rem 0.5rem;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 .scrollbar-thin {
   scrollbar-width: thin;
   scrollbar-color: #314e6d transparent;

@@ -29,11 +29,21 @@ function toggle<T>(current: T[], value: T): T[] {
   return [...current, value];
 }
 
+function toggleDslToken(current: string, token: string): string {
+  const chunks = current
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  const next = chunks.includes(token) ? chunks.filter((item) => item !== token) : [...chunks, token];
+  return next.join(" ");
+}
+
 export function FilterPanel() {
   const { t } = useI18n();
   const [builderField, setBuilderField] = useState("status");
   const [builderOp, setBuilderOp] = useState(":");
   const [builderValue, setBuilderValue] = useState("error");
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const topology = useDashboardStore((state) => state.topology);
   const traces = useDashboardStore((state) => state.traces);
   const filters = useDashboardStore((state) => state.filters);
@@ -44,6 +54,7 @@ export function FilterPanel() {
   const parseJobs = useDashboardStore((state) => state.parseJobs);
   const diagnostics = useDashboardStore((state) => state.diagnosticsSummary);
   const parserAnalysis = useDashboardStore((state) => state.parserAnalysis);
+  const liveEvents = useDashboardStore((state) => state.liveEvents);
   const setDistrictFilter = useDashboardStore((state) => state.setDistrictFilter);
   const setNodeTypeFilter = useDashboardStore((state) => state.setNodeTypeFilter);
   const setSpanKindFilter = useDashboardStore((state) => state.setSpanKindFilter);
@@ -68,11 +79,11 @@ export function FilterPanel() {
     { id: "errors", label: t("filter.mode.errors") },
   ];
   const diagnosticFocusModes: Array<{ id: "all" | "errors" | "slow" | "congestion" | "retry_fallback"; label: string }> = [
-    { id: "all", label: "all" },
-    { id: "errors", label: "errors" },
-    { id: "slow", label: "slow" },
-    { id: "congestion", label: "congestion" },
-    { id: "retry_fallback", label: "retry/fallback" },
+    { id: "all", label: t("diagnostics.focus.all") },
+    { id: "errors", label: t("diagnostics.focus.errors") },
+    { id: "slow", label: t("diagnostics.focus.slow") },
+    { id: "congestion", label: t("diagnostics.focus.congestion") },
+    { id: "retry_fallback", label: t("diagnostics.focus.retryFallback") },
   ];
   const workbenchViews: Array<{ id: DashboardMode; label: string }> = [
     { id: "overview", label: t("nav.overview") },
@@ -90,6 +101,11 @@ export function FilterPanel() {
     () => parseJobs.find((job) => job.status === "completed" && job.target_id),
     [parseJobs],
   );
+  const protocolOptions = useMemo(
+    () => Array.from(new Set(liveEvents.map((event) => event.protocol))).slice(0, 8),
+    [liveEvents],
+  );
+  const parserConfidence = parserAnalysis?.parser_confidence ?? 0;
   const hotTrace = traces[0];
   const hasErrorChains = (diagnostics?.error_event_count ?? 0) > 0;
   const hasRetryFallback =
@@ -325,82 +341,146 @@ export function FilterPanel() {
         </div>
       </section>
 
-      <section className="mt-4 space-y-2">
-        <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.district")}</h3>
-        {topology?.districts.map((district) => {
-          const checked = filters.districtIds.includes(district.id);
-          return (
-            <label key={district.id} className="flex cursor-pointer items-center gap-2 text-xs text-slate-300">
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={() => setDistrictFilter(toggle(filters.districtIds, district.id))}
-              />
-              <span>{district.name}</span>
-            </label>
-          );
-        })}
+      <section className="mt-4 space-y-2 rounded border border-line bg-[#0a1829] p-2">
+        <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.protocol")}</h3>
+        <div className="flex flex-wrap gap-1">
+          {protocolOptions.length === 0 ? (
+            <div className="text-[11px] text-slate-500">{t("common.na")}</div>
+          ) : protocolOptions.map((protocol) => {
+            const token = `protocol:${protocol}`;
+            const active = searchQuery.includes(token);
+            return (
+              <button
+                key={protocol}
+                type="button"
+                className={`rounded border px-1.5 py-0.5 text-[10px] ${
+                  active
+                    ? "border-cyan-400 bg-[#14314f] text-slate-100"
+                    : "border-line bg-[#0b1728] text-slate-400 hover:text-slate-200"
+                }`}
+                onClick={() => setSearchQuery(toggleDslToken(searchQuery, token))}
+              >
+                {protocol}
+              </button>
+            );
+          })}
+        </div>
+        <div>
+          <h4 className="text-[10px] uppercase tracking-wide text-slate-500">{t("filter.parserConfidence")}</h4>
+          <div className="mt-1 flex items-center gap-2 text-[11px] text-slate-300">
+            <span className={`rounded border px-1.5 py-0.5 ${
+              parserConfidence < 0.72 ? "border-rose-500/40 bg-[#2b1418] text-rose-200" : "border-line bg-[#0b1728] text-slate-300"
+            }`}>
+              {parserConfidence.toFixed(3)}
+            </span>
+            <button
+              type="button"
+              className="rounded border border-line bg-[#10243a] px-1.5 py-0.5 text-[10px] text-slate-200 hover:border-amber-400"
+              onClick={() => {
+                setViewMode("parser_analysis");
+                setSearchQuery(parserConfidence < 0.72 ? "confidence:low unresolved:high" : "confidence:stable");
+              }}
+            >
+              {t("filter.openParserQuality")}
+            </button>
+          </div>
+        </div>
       </section>
 
-      <section className="mt-4 space-y-2">
-        <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.nodeType")}</h3>
-        {nodeTypes.map((type) => {
-          const checked = filters.nodeTypes.includes(type);
-          return (
-            <label key={type} className="flex cursor-pointer items-center gap-2 text-xs text-slate-300">
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={() => setNodeTypeFilter(toggle(filters.nodeTypes, type))}
-              />
-              <span>{type}</span>
-            </label>
-          );
-        })}
-      </section>
+      <section className="mt-4 rounded border border-line bg-[#0a1829] p-2">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.advanced")}</h3>
+          <button
+            type="button"
+            className="rounded border border-line bg-[#0f2035] px-1.5 py-0.5 text-[10px] text-slate-300 hover:border-sky-400"
+            onClick={() => setShowAdvanced((prev) => !prev)}
+          >
+            {showAdvanced ? t("filter.collapse") : t("filter.expand")}
+          </button>
+        </div>
+        {showAdvanced ? (
+          <div className="mt-2 space-y-4">
+            <section className="space-y-2">
+              <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.district")}</h3>
+              {topology?.districts.map((district) => {
+                const checked = filters.districtIds.includes(district.id);
+                return (
+                  <label key={district.id} className="flex cursor-pointer items-center gap-2 text-xs text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => setDistrictFilter(toggle(filters.districtIds, district.id))}
+                    />
+                    <span>{district.name}</span>
+                  </label>
+                );
+              })}
+            </section>
 
-      <section className="mt-4 space-y-2">
-        <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.status")}</h3>
-        {statusOptions.map((status) => (
-          <label key={status} className="flex cursor-pointer items-center gap-2 text-xs text-slate-300">
-            <input
-              type="checkbox"
-              checked={filters.statuses.includes(status)}
-              onChange={() => setStatusFilter(toggle(filters.statuses, status))}
-            />
-            <span>{status}</span>
-          </label>
-        ))}
-      </section>
+            <section className="space-y-2">
+              <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.nodeType")}</h3>
+              {nodeTypes.map((type) => {
+                const checked = filters.nodeTypes.includes(type);
+                return (
+                  <label key={type} className="flex cursor-pointer items-center gap-2 text-xs text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => setNodeTypeFilter(toggle(filters.nodeTypes, type))}
+                    />
+                    <span>{type}</span>
+                  </label>
+                );
+              })}
+            </section>
 
-      <section className="mt-4 space-y-2">
-        <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.spanKind")}</h3>
-        {spanKindOptions.map((spanKind) => (
-          <label key={spanKind} className="flex cursor-pointer items-center gap-2 text-xs text-slate-300">
-            <input
-              type="checkbox"
-              checked={filters.spanKinds.includes(spanKind)}
-              onChange={() => setSpanKindFilter(toggle(filters.spanKinds, spanKind))}
-            />
-            <span>{spanKind}</span>
-          </label>
-        ))}
-      </section>
+            <section className="space-y-2">
+              <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.status")}</h3>
+              {statusOptions.map((status) => (
+                <label key={status} className="flex cursor-pointer items-center gap-2 text-xs text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={filters.statuses.includes(status)}
+                    onChange={() => setStatusFilter(toggle(filters.statuses, status))}
+                  />
+                  <span>{status}</span>
+                </label>
+              ))}
+            </section>
 
-      <section className="mt-4 space-y-2">
-        <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.trace")}</h3>
-        <select
-          className="w-full border border-line bg-[#0a1828] p-1 text-xs text-slate-200"
-          value={filters.traceId ?? ""}
-          onChange={(event) => setTraceFilter(event.target.value || undefined)}
-        >
-          <option value="">{t("filter.allTraces")}</option>
-          {traces.map((trace) => (
-            <option key={trace.envelope.trace_id} value={trace.envelope.trace_id}>
-              {trace.envelope.trace_id}
-            </option>
-          ))}
-        </select>
+            <section className="space-y-2">
+              <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.spanKind")}</h3>
+              {spanKindOptions.map((spanKind) => (
+                <label key={spanKind} className="flex cursor-pointer items-center gap-2 text-xs text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={filters.spanKinds.includes(spanKind)}
+                    onChange={() => setSpanKindFilter(toggle(filters.spanKinds, spanKind))}
+                  />
+                  <span>{spanKind}</span>
+                </label>
+              ))}
+            </section>
+
+            <section className="space-y-2">
+              <h3 className="text-xs uppercase tracking-wide text-slate-400">{t("filter.trace")}</h3>
+              <select
+                className="w-full border border-line bg-[#0a1828] p-1 text-xs text-slate-200"
+                value={filters.traceId ?? ""}
+                onChange={(event) => setTraceFilter(event.target.value || undefined)}
+              >
+                <option value="">{t("filter.allTraces")}</option>
+                {traces.map((trace) => (
+                  <option key={trace.envelope.trace_id} value={trace.envelope.trace_id}>
+                    {trace.envelope.trace_id}
+                  </option>
+                ))}
+              </select>
+            </section>
+          </div>
+        ) : (
+          <div className="mt-1 text-[11px] text-slate-500">{t("filter.advancedHint")}</div>
+        )}
       </section>
 
       <section className="mt-4 space-y-2 rounded border border-line bg-[#0a1829] p-2">

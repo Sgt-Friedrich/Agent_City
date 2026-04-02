@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 import { spanKindColor } from "@/lib/colorMaps";
 import { useI18n } from "@/hooks/useI18n";
@@ -16,10 +16,14 @@ function EventRow({
   event,
   selected,
   onSelect,
+  retryLabel,
+  fallbackLabel,
 }: {
   event: FlowEvent;
   selected: boolean;
   onSelect: (event: FlowEvent) => void;
+  retryLabel: string;
+  fallbackLabel: string;
 }) {
   const errorLike = event.status === "error" || event.retry_count > 0 || Boolean(event.fallback_from);
 
@@ -42,8 +46,8 @@ function EventRow({
           style={{ backgroundColor: spanKindColor(event.span_kind, event.status) }}
         />
         <span>{event.from_node.split(".").at(-1)} -&gt; {event.to_node?.split(".").at(-1)}</span>
-        {event.retry_count > 0 && <span className="text-[10px] uppercase text-rose-300">retry</span>}
-        {event.fallback_from && <span className="text-[10px] uppercase text-amber-300">fallback</span>}
+        {event.retry_count > 0 && <span className="text-[10px] uppercase text-rose-300">{retryLabel}</span>}
+        {event.fallback_from && <span className="text-[10px] uppercase text-amber-300">{fallbackLabel}</span>}
       </span>
       <span className="text-[10px] text-slate-400">
         {shortId(event.trace_id)} / {event.latency_ms}ms
@@ -89,6 +93,7 @@ export function TimelinePanel({ maxItems = 60 }: TimelinePanelProps) {
   const selectedSpanId = useDashboardStore((state) => state.selectedSpanId);
   const setSelectedSpan = useDashboardStore((state) => state.setSelectedSpan);
   const diagnosticMode = useDashboardStore((state) => state.diagnosticMode);
+  const viewMode = useDashboardStore((state) => state.viewMode);
   const groupBy = useDashboardStore((state) => state.timelineGroupBy);
   const setGroupBy = useDashboardStore((state) => state.setTimelineGroupBy);
 
@@ -121,12 +126,18 @@ export function TimelinePanel({ maxItems = 60 }: TimelinePanelProps) {
     node: t("timeline.group.node"),
   };
 
+  useEffect(() => {
+    if (viewMode === "diagnostics" && groupBy === "time") {
+      setGroupBy("trace");
+    }
+  }, [groupBy, setGroupBy, viewMode]);
+
   return (
     <section data-testid="timeline-panel" className="h-full overflow-y-auto border-t border-line bg-[#070f1bcc] p-2 scrollbar-thin">
       <div className="flex flex-wrap items-center justify-between gap-2 px-1">
         <div className="panel-title text-xs uppercase tracking-wide text-slate-300">{t("timeline.title")}</div>
         <div className="flex items-center gap-2 text-[10px] uppercase tracking-wide text-slate-500">
-          <span>{items.length} {t("timeline.events")} | mode: {diagnosticMode}</span>
+          <span>{items.length} {t("timeline.events")} | {t("timeline.modeLabel")}: {diagnosticMode}</span>
           <GroupButtons groupBy={groupBy} onChange={setGroupBy} labels={groupLabels} />
         </div>
       </div>
@@ -139,6 +150,8 @@ export function TimelinePanel({ maxItems = 60 }: TimelinePanelProps) {
               event={event}
               selected={selectedSpanId === event.span_id}
               onSelect={select}
+              retryLabel={t("timeline.retry")}
+              fallbackLabel={t("timeline.fallback")}
             />
           ))}
         </div>
@@ -159,6 +172,8 @@ export function TimelinePanel({ maxItems = 60 }: TimelinePanelProps) {
                     event={event}
                     selected={selectedSpanId === event.span_id}
                     onSelect={select}
+                    retryLabel={t("timeline.retry")}
+                    fallbackLabel={t("timeline.fallback")}
                   />
                 ))}
               </div>
@@ -182,6 +197,8 @@ export function TimelinePanel({ maxItems = 60 }: TimelinePanelProps) {
                     event={event}
                     selected={selectedSpanId === event.span_id}
                     onSelect={select}
+                    retryLabel={t("timeline.retry")}
+                    fallbackLabel={t("timeline.fallback")}
                   />
                 ))}
               </div>

@@ -280,9 +280,9 @@ export function edgeStyle(
   const dimmed = opts?.dimmed || inErrorModeDimmed || renderLayer === "suppressed";
 
   const baseOpacity =
-    renderLayer === "primary" ? 0.52 : renderLayer === "secondary" ? 0.22 : 0.1;
+    renderLayer === "primary" ? 0.56 : renderLayer === "secondary" ? 0.24 : 0.14;
   const baseGlowOpacity =
-    renderLayer === "primary" ? 0.34 : renderLayer === "secondary" ? 0.17 : 0.08;
+    renderLayer === "primary" ? 0.36 : renderLayer === "secondary" ? 0.18 : 0.1;
   const baseWidth =
     renderLayer === "primary"
       ? edge.kind === "invocation"
@@ -290,13 +290,15 @@ export function edgeStyle(
         : 1.85
       : edge.kind === "invocation"
         ? 1.4
-        : 1.05;
+        : renderLayer === "suppressed"
+          ? 0.9
+          : 1.05;
 
   return {
     color,
     glowColor: opts?.highlighted ? mixHex(color, "#ffffff", 0.22) : color,
-    opacity: dimmed ? 0.1 : opts?.highlighted ? 0.88 : baseOpacity,
-    glowOpacity: dimmed ? 0.08 : opts?.highlighted ? 0.74 : baseGlowOpacity,
+    opacity: dimmed ? 0.12 : opts?.highlighted ? 0.9 : baseOpacity,
+    glowOpacity: dimmed ? 0.1 : opts?.highlighted ? 0.76 : baseGlowOpacity,
     width: opts?.highlighted ? 2.5 : baseWidth,
     dashed: edge.kind === "dependency" || edge.kind === "fallback" || edge.kind === "retry",
   };

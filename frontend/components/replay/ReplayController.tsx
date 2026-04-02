@@ -28,6 +28,7 @@ export function ReplayController({ trace }: ReplayControllerProps) {
 
   const spans = trace?.spans ?? [];
   const current = spans[Math.max(0, Math.min(replay.cursor - 1, spans.length - 1))];
+  const progress = spans.length > 0 ? Math.min(100, Math.round((Math.min(replay.cursor, spans.length) / spans.length) * 100)) : 0;
 
   useEffect(() => {
     if (!trace || !replay.playing) return;
@@ -56,9 +57,15 @@ export function ReplayController({ trace }: ReplayControllerProps) {
   return (
     <section data-testid="replay-controller" className="border-b border-line bg-[#091323ee] p-3">
       <div className="flex flex-wrap items-center gap-2 text-xs text-slate-300">
-        <span className="badge">Replay</span>
+        <span className="badge">{t("replay.modeTitle")}</span>
         <span className="panel-title text-slate-100">{shortId(trace.envelope.trace_id)}</span>
         <span className="text-slate-500">{trace.envelope.user_input}</span>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-1 text-[10px] text-slate-300">
+        <span className="rounded border border-line bg-[#10233a] px-1.5 py-0.5">{t("replay.label.duration")} {trace.envelope.duration_ms}ms</span>
+        <span className="rounded border border-line bg-[#10233a] px-1.5 py-0.5">{t("replay.label.tokens")} {trace.envelope.token_in}/{trace.envelope.token_out}</span>
+        <span className="rounded border border-line bg-[#10233a] px-1.5 py-0.5">{t("replay.label.cost")} ${trace.envelope.estimated_cost.toFixed(5)}</span>
+        <span className="rounded border border-line bg-[#10233a] px-1.5 py-0.5">{t("replay.label.status")} {trace.envelope.status}</span>
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -115,6 +122,9 @@ export function ReplayController({ trace }: ReplayControllerProps) {
             </button>
           ))}
         </div>
+      </div>
+      <div className="mt-2 h-1.5 overflow-hidden rounded bg-[#0a1626]">
+        <div className="h-full bg-gradient-to-r from-cyan-500 via-sky-400 to-emerald-400 transition-all duration-200" style={{ width: `${Math.max(4, progress)}%` }} />
       </div>
 
       {current && (

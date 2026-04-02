@@ -12,6 +12,12 @@ interface CityMiniMapProps {
   nodes: Node[];
   events: FlowEvent[];
   replayTraceId?: string;
+  cameraView?: {
+    x: number;
+    z: number;
+    distance: number;
+  };
+  onNavigateDistrict?: (district: District) => void;
 }
 
 interface RectDistrict {
@@ -34,7 +40,11 @@ function normalizeZ(value: number): number {
   return ((value - mapWorld.minZ) / (mapWorld.maxZ - mapWorld.minZ)) * mapHeight;
 }
 
-export function CityMiniMap({ topology, nodes, events, replayTraceId }: CityMiniMapProps) {
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+export function CityMiniMap({ topology, nodes, events, replayTraceId, cameraView, onNavigateDistrict }: CityMiniMapProps) {
   const { t } = useI18n();
   const [overlay, setOverlay] = useState<"activity" | "errors" | "parser">("activity");
   const districtFilters = useDashboardStore((state) => state.filters.districtIds);
@@ -111,6 +121,17 @@ export function CityMiniMap({ topology, nodes, events, replayTraceId }: CityMini
         ? lowConfidenceDistricts
         : activityDistricts;
 
+  const viewportRect = useMemo(() => {
+    const x = normalizeX(cameraView?.x ?? 0);
+    const y = normalizeZ(cameraView?.z ?? 0);
+    const span = clamp(((cameraView?.distance ?? 165) - 80) * 0.18 + 24, 20, 44);
+    return {
+      x: clamp(x - span / 2, 0, mapWidth - span),
+      y: clamp(y - span / 2, 0, mapHeight - span),
+      size: span,
+    };
+  }, [cameraView?.distance, cameraView?.x, cameraView?.z]);
+
   return (
     <div className="absolute bottom-3 left-3 rounded border border-line bg-[#081323d8] p-2 shadow-glow">
       <div className="flex items-center justify-between gap-2">
@@ -157,22 +178,23 @@ export function CityMiniMap({ topology, nodes, events, replayTraceId }: CityMini
                 strokeOpacity={selected ? 1 : style.borderOpacity}
                 strokeWidth={selected ? 2.4 : activeSet.has(district.id) ? 1.8 : 1}
                 className="cursor-pointer"
-                onClick={() => {
-                  setDistrictFilter([district.id]);
-                  if (overlay === "parser") {
-                    setViewMode("parser_analysis");
-                    setSearchQuery(`district:${district.id}`);
+              onClick={() => {
+                setDistrictFilter([district.id]);
+                if (overlay === "parser") {
+                  setViewMode("parser_analysis");
+                  setSearchQuery(`district:${district.id}`);
                   } else if (overlay === "errors") {
                     setViewMode("diagnostics");
                     setDiagnosticMode("errors");
                     setDiagnosticFocus("errors");
                     setSearchQuery(`district:${district.id} status:error`);
-                  } else {
-                    setViewMode("overview");
-                    setSearchQuery(`district:${district.id}`);
-                  }
-                }}
-              />
+                } else {
+                  setViewMode("overview");
+                  setSearchQuery(`district:${district.id}`);
+                }
+                onNavigateDistrict?.(district);
+              }}
+            />
               <text
                 x={x + w / 2}
                 y={y + h / 2}
@@ -185,6 +207,19 @@ export function CityMiniMap({ topology, nodes, events, replayTraceId }: CityMini
             </g>
           );
         })}
+        <rect
+          x={viewportRect.x}
+          y={viewportRect.y}
+          width={viewportRect.size}
+          height={viewportRect.size}
+          rx={2}
+          fill="none"
+          stroke="#9fd5ff"
+          strokeOpacity={0.86}
+          strokeWidth={1.2}
+          strokeDasharray="2 2"
+          pointerEvents="none"
+        />
       </svg>
     </div>
   );

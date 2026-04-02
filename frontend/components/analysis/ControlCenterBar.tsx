@@ -27,9 +27,16 @@ export function ControlCenterBar({ onOpenImportWizard }: ControlCenterBarProps) 
   const { t } = useI18n();
   const target = useDashboardStore((state) => state.target);
   const jobs = useDashboardStore((state) => state.jobs);
+  const parseJobs = useDashboardStore((state) => state.parseJobs);
+  const repositories = useDashboardStore((state) => state.repositories);
+  const topology = useDashboardStore((state) => state.topology);
+  const diagnosticsSummary = useDashboardStore((state) => state.diagnosticsSummary);
+  const parserAnalysis = useDashboardStore((state) => state.parserAnalysis);
   const upsertControlJob = useDashboardStore((state) => state.upsertControlJob);
   const setViewMode = useDashboardStore((state) => state.setViewMode);
   const setDiagnosticMode = useDashboardStore((state) => state.setDiagnosticMode);
+  const setDiagnosticFocus = useDashboardStore((state) => state.setDiagnosticFocus);
+  const setSearchQuery = useDashboardStore((state) => state.setSearchQuery);
   const [message, setMessage] = useState<string>("");
   const [busyType, setBusyType] = useState<ControlJobType | "cancel" | null>(null);
 
@@ -37,6 +44,82 @@ export function ControlCenterBar({ onOpenImportWizard }: ControlCenterBarProps) 
     () => jobs.find((job) => job.status === "running" || job.status === "queued"),
     [jobs],
   );
+  const importedCount = useMemo(
+    () => repositories.filter((repo) => repo.source_type !== "mock").length,
+    [repositories],
+  );
+  const parseComplete = useMemo(
+    () => parseJobs.some((job) => job.status === "completed"),
+    [parseJobs],
+  );
+  const topologyReady = (topology?.nodes.length ?? 0) > 0;
+  const diagnosticsReady = Boolean(
+    diagnosticsSummary &&
+      ((diagnosticsSummary.error_event_count ?? 0) > 0 ||
+        (diagnosticsSummary.active_trace_count ?? 0) > 0 ||
+        diagnosticsSummary.slow_nodes.length > 0),
+  );
+  const parserReady = (parserAnalysis?.parser_confidence ?? 0) > 0;
+  const reportsReady = jobs.some((job) => job.type === "generate_report" && job.status === "success");
+
+  const workflowSteps: Array<{
+    id: string;
+    done: boolean;
+    label: string;
+    actionLabel: string;
+    action: () => void;
+  }> = [
+    {
+      id: "import",
+      done: importedCount > 0,
+      label: t("workflow.step.import"),
+      actionLabel: t("workflow.action.import"),
+      action: onOpenImportWizard,
+    },
+    {
+      id: "parse",
+      done: parseComplete,
+      label: t("workflow.step.parse"),
+      actionLabel: t("workflow.action.parse"),
+      action: () => setViewMode("repositories"),
+    },
+    {
+      id: "topology",
+      done: topologyReady,
+      label: t("workflow.step.topology"),
+      actionLabel: t("workflow.action.topology"),
+      action: () => setViewMode("overview"),
+    },
+    {
+      id: "diagnostics",
+      done: diagnosticsReady,
+      label: t("workflow.step.diagnostics"),
+      actionLabel: t("workflow.action.diagnostics"),
+      action: () => {
+        setViewMode("diagnostics");
+        setDiagnosticMode("errors");
+        setDiagnosticFocus("errors");
+        setSearchQuery("status:error");
+      },
+    },
+    {
+      id: "parser",
+      done: parserReady,
+      label: t("workflow.step.parser"),
+      actionLabel: t("workflow.action.parser"),
+      action: () => setViewMode("parser_analysis"),
+    },
+    {
+      id: "report",
+      done: reportsReady,
+      label: t("workflow.step.report"),
+      actionLabel: t("workflow.action.report"),
+      action: () => setViewMode("reports"),
+    },
+  ];
+  const completedSteps = workflowSteps.filter((step) => step.done).length;
+  const workflowProgress = Math.round((completedSteps / workflowSteps.length) * 100);
+  const nextStep = workflowSteps.find((step) => !step.done) ?? workflowSteps[workflowSteps.length - 1];
 
   const runJob = async (type: ControlJobType, payload?: Record<string, unknown>) => {
     setBusyType(type);
@@ -160,7 +243,47 @@ export function ControlCenterBar({ onOpenImportWizard }: ControlCenterBarProps) 
         <span>
           {t("control.activeJob")}: {activeJob?.id ?? t("common.none")}
         </span>
+        <span>
+          {t("workflow.progress")}: {workflowProgress}%
+        </span>
         {message ? <span className="text-emerald-300">{message}</span> : null}
+      </div>
+
+      <div className="mt-2 rounded border border-line bg-[#0a1727] p-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="panel-title text-[11px] uppercase tracking-wide text-slate-300">{t("workflow.title")}</div>
+          <button
+            type="button"
+            className="rounded border border-line bg-[#12314e] px-2 py-1 text-[10px] text-slate-100 hover:border-sky-400"
+            onClick={nextStep.action}
+          >
+            {t("workflow.nextAction")}: {nextStep.actionLabel}
+          </button>
+        </div>
+        <div className="mt-2 h-1.5 overflow-hidden rounded bg-[#0a1420]">
+          <div
+            className="h-full bg-gradient-to-r from-cyan-500 via-sky-400 to-emerald-400 transition-all duration-300"
+            style={{ width: `${Math.max(7, workflowProgress)}%` }}
+          />
+        </div>
+        <div className="mt-2 grid grid-cols-2 gap-1 xl:grid-cols-6">
+          {workflowSteps.map((step) => (
+            <button
+              key={step.id}
+              type="button"
+              onClick={step.action}
+              className={`rounded border px-2 py-1 text-left text-[10px] ${
+                step.done
+                  ? "border-emerald-500/40 bg-[#112b22] text-emerald-200"
+                  : nextStep.id === step.id
+                    ? "border-sky-400 bg-[#153250] text-slate-100"
+                    : "border-line bg-[#0f2136] text-slate-400 hover:border-slate-400"
+              }`}
+            >
+              {step.label}
+            </button>
+          ))}
+        </div>
       </div>
     </section>
   );
