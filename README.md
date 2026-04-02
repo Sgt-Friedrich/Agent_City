@@ -224,7 +224,27 @@ python scripts/cleanup_refs.py --root . --targets refs --threshold-mb 200 --keep
 
 ---
 
-## 15. 文档索引 | Docs Index
+## 15. 外部参考优先级 | External Reference Priority
+
+默认执行顺序：
+1. 官方文档
+2. 官方截图/官方演示
+3. 必要时才浅克隆源码
+4. 论坛/博客仅补充且标注为非官方
+
+每个参考目标在 clone 前必须先输出：
+1. 最值得借鉴的 3-5 点
+2. 适合本项目的点
+3. 不适合照搬的点
+4. 是否真的需要 clone
+5. 若 clone，具体查看目录/文件
+
+模板：
+- `docs/reference-evaluation-template.md`
+
+---
+
+## 16. 文档索引 | Docs Index
 
 - `docs/architecture.md`
 - `docs/product-ux.md`
@@ -237,10 +257,11 @@ python scripts/cleanup_refs.py --root . --targets refs --threshold-mb 200 --keep
 - `docs/frontend-fix-report-template.md`
 - `docs/full-system-test-report.md`
 - `docs/reference-notes.md`
+- `docs/reference-evaluation-template.md`
 
 ---
 
-## 16. 已知边界 | Known Boundaries
+## 17. 已知边界 | Known Boundaries
 
 1. 当前桌面壳以 Windows + Tauri 为优先。
 2. 多语言静态解析采用启发式 + 规则融合，不是全量 AST 编译级求解。
@@ -248,7 +269,7 @@ python scripts/cleanup_refs.py --root . --targets refs --threshold-mb 200 --keep
 
 ---
 
-## 17. 后续扩展 | Future Extensions
+## 18. 后续扩展 | Future Extensions
 
 - OpenTelemetry / Jaeger / Phoenix / Langfuse adapters
 - richer desktop shortcuts/menu integrations

@@ -1,4 +1,4 @@
-# AGENTS.md
+ï»¿# AGENTS.md
 
 ## Project Summary
 Agent_City is a desktop workbench for Agent architecture parsing, runtime trace observation, city-style visualization, replay diagnostics, parser analysis, and report export.
@@ -15,7 +15,7 @@ Agent_City is a desktop workbench for Agent architecture parsing, runtime trace 
 - Desktop shell smoke: `npm --prefix desktop run test:smoke`
 - Frontend workbench dev: `npm --prefix frontend run dev`
 - Frontend build (clean): `npm --prefix frontend run build:clean`
-- Frontend automation tests: `npm --prefix frontend run e2e`
+- App UI automation tests (static bundle): `npm --prefix frontend run e2e:app`
 - Backend service run: `python -m uvicorn app.main:app --host 127.0.0.1 --port 8000` (cwd: `backend`)
 - Full system test: `python scripts/run_full_system_tests.py`
 
@@ -51,4 +51,32 @@ Prefer this repository-local sequence:
 - `frontend-report`
 
 ## Trigger Hints
-When tasks mention ¡°ÏÔÊ¾ÎÊÌâ / layout / responsive / overflow / overlap / replay / z-index / canvas / visual regression¡±, use the debug skill chain.
+When tasks mention â€œæ˜¾ç¤ºé—®é¢˜ / layout / responsive / overflow / overlap / replay / z-index / canvas / visual regressionâ€, use the debug skill chain.
+
+## External Reference Policy (Must Follow)
+When researching external products/projects for design or architecture:
+
+Priority order:
+1. Official documentation first
+2. Official screenshots/demo pages second
+3. Source repositories only when necessary
+4. Community blogs/forums only as supplemental (must be labeled non-official)
+5. Unattributed screenshots last (do not use as primary evidence)
+
+Clone restrictions:
+- Do not mass-clone first.
+- If clone is required, use shallow clone (`--depth=1`) and prefer `--filter=blob:none`.
+- Keep external repos under `refs/` or `tmp_refs/` only.
+- Analyze only required directories/files.
+
+Mandatory output before clone (per reference target):
+1. 3-5 key takeaways
+2. What fits Agent_City
+3. What should not be copied directly
+4. Whether clone is required
+5. If clone is required, exact directories/files to inspect
+
+Cleanup requirements:
+- Remove all unneeded reference repos after research.
+- Any single reference directory > 200MB must be deleted.
+- Run cleanup script and record what was kept/removed.

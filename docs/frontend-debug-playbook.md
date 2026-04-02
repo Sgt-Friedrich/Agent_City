@@ -29,5 +29,5 @@ Provide a repeatable workflow for diagnosing and fixing Agent_City desktop app U
 - Desktop app: `npm --prefix desktop run dev`
 - Local backend only: `cd backend && python -m uvicorn app.main:app --host 127.0.0.1 --port 8000`
 - Workbench UI only: `npm --prefix frontend run dev`
-- App UI automation: `npm --prefix frontend run e2e`
+- App UI automation (static bundle): `npm --prefix frontend run e2e:app`
 - Full system check: `python scripts/run_full_system_tests.py`
