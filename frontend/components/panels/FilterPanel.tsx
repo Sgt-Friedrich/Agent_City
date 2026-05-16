@@ -199,7 +199,7 @@ export function FilterPanel({ layout = "sidebar" }: FilterPanelProps) {
 
   const panelClassName =
     layout === "drawer"
-      ? "h-full overflow-y-auto rounded border border-line bg-[#081320d8] p-3 scrollbar-thin"
+      ? "max-h-[58vh] overflow-y-auto rounded border border-line bg-[#081320d8] p-3 scrollbar-thin md:grid md:grid-cols-2 md:gap-3 [&>section]:mt-0"
       : "h-full max-h-[34vh] overflow-y-auto border-r border-line bg-[#081320cc] p-3 scrollbar-thin lg:max-h-none";
 
   return (

@@ -6,9 +6,11 @@ import { Html } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 
+import { MessageKey } from "@/i18n/messages";
 import { useI18n } from "@/hooks/useI18n";
 import { animationPresets, DiagnosticMode, nodeStyle } from "@/lib/visualTheme";
 import { Node } from "@/types/schema";
+import { NodeExplainabilityProfile } from "@/types/schema";
 
 interface NodeActivitySummary {
   districtName?: string;
@@ -25,6 +27,7 @@ interface BuildingNodeProps {
   active?: boolean;
   activity?: NodeActivitySummary;
   diagnosticMode?: DiagnosticMode;
+  aggregateCount?: number;
   onSelect: (nodeId: string) => void;
 }
 
@@ -155,6 +158,7 @@ export function BuildingNode({
   active,
   activity,
   diagnosticMode = "realtime",
+  aggregateCount = 1,
   onSelect,
 }: BuildingNodeProps) {
   const { t } = useI18n();
@@ -168,6 +172,17 @@ export function BuildingNode({
     () => ["planner", "llm", "guardrail", "runtime", "event_bus"].includes(node.type),
     [node.type],
   );
+  const explainability = useMemo(() => {
+    const raw = node.metadata?.explainability;
+    if (!raw || typeof raw !== "object") return {} as NodeExplainabilityProfile;
+    return raw as NodeExplainabilityProfile;
+  }, [node.metadata]);
+  const displayName = explainability.display_name ?? (node.metadata?.display_name as string | undefined) ?? node.name;
+  const technicalName = explainability.technical_name ?? node.name;
+  const roleName = t(`nodeType.${node.type}` as MessageKey);
+  const semanticLabel = aggregateCount > 1 ? `${roleName} ${t("city.node.cluster")}` : displayName;
+  const responsibility = explainability.responsibility ?? (node.metadata?.summary as string | undefined) ?? "";
+  const protocols = Array.isArray(explainability.protocols) ? explainability.protocols : [];
 
   const visual = useMemo(
     () => nodeStyle(node, { hovered, highlighted, dimmed, active, diagnosticMode }),
@@ -261,23 +276,47 @@ export function BuildingNode({
       ) : null}
 
       {(labelMode !== "none" || hovered || highlighted) && (
-        <Html position={[0, iconY + 1.05, 0]} center zIndexRange={[8, 0]} wrapperClass="city-html-overlay">
-          <div className="rounded border border-line bg-[#071629df] px-2 py-1 text-[10px] text-slate-200 shadow-glow">
-            <div className="panel-title text-[10px] uppercase tracking-wide text-slate-200">{visual.glyph}</div>
-            {(labelMode === "full" || hovered || highlighted) ? (
-              <div className="mt-0.5 max-w-[140px] truncate text-[10px] text-slate-300">{node.name}</div>
+        <Html position={[0, iconY + 1.05, 0]} center zIndexRange={[2, 0]} wrapperClass="city-html-overlay">
+          <div className="min-w-[74px] rounded-lg border border-line bg-[#071629df] px-2 py-1 text-[10px] text-slate-200 shadow-glow">
+            <div className="flex items-center justify-center gap-1">
+              <span className="panel-title max-w-[132px] truncate text-[10px] uppercase tracking-wide text-slate-200">
+                {labelMode === "mini" && !hovered && !highlighted ? roleName : semanticLabel}
+              </span>
+              <span className="rounded border border-line/80 bg-[#0d2238] px-1 text-[9px] uppercase text-slate-500">
+                {visual.glyph}
+              </span>
+            </div>
+            {aggregateCount > 1 ? (
+              <div className="mt-0.5 text-center text-[10px] text-emerald-200">
+                {aggregateCount} {t("city.node.modules")}
+              </div>
+            ) : null}
+            {(labelMode === "full" || hovered || highlighted) && aggregateCount <= 1 ? (
+              <div className="mt-0.5 max-w-[152px] truncate text-center text-[10px] text-slate-400">{roleName}</div>
             ) : null}
           </div>
         </Html>
       )}
 
       {cardVisible && (
-        <Html position={[0, node.height + 2.4, 0]} center zIndexRange={[10, 0]} wrapperClass="city-html-overlay">
+        <Html position={[0, node.height + 2.4, 0]} center zIndexRange={[3, 0]} wrapperClass="city-html-overlay">
           <div className="w-56 rounded border border-line bg-[#051222ee] p-2 text-xs text-slate-200 shadow-glow">
-            <div className="panel-title text-[11px] uppercase tracking-wide text-slate-200">{node.name}</div>
+            <div className="panel-title text-[11px] uppercase tracking-wide text-slate-200">{semanticLabel}</div>
             <div className="mt-1 text-[10px] text-slate-400">
-              {node.type} | {activity?.districtName ?? node.district_id}
+              {roleName} | {activity?.districtName ?? node.district_id}
             </div>
+            <div className="mt-1 truncate text-[10px] text-slate-500">
+              {t("city.node.technicalName")}: {technicalName}
+            </div>
+            {responsibility ? (
+              <div className="mt-1 line-clamp-2 text-[10px] text-slate-300">{responsibility}</div>
+            ) : null}
+            {protocols.length > 0 ? (
+              <div className="mt-1 text-[10px] text-cyan-200">{protocols.slice(0, 3).join(" | ")}</div>
+            ) : null}
+            {aggregateCount > 1 ? (
+              <div className="text-[10px] text-emerald-200">{t("city.node.clusterSize")}: {aggregateCount}</div>
+            ) : null}
             <div className="mt-1 text-[10px] text-slate-400">{t("city.node.status")}: {node.status}</div>
             <div className="text-[10px] text-slate-400">
               {t("city.node.qpsP95Error")}: {(node.metrics?.qps ?? 0).toFixed(1)} / {(node.metrics?.p95_ms ?? 0).toFixed(0)}ms / {((node.metrics?.error_rate ?? 0) * 100).toFixed(2)}%

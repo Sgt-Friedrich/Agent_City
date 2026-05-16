@@ -35,6 +35,8 @@ class ConfidenceScoringServiceTest(unittest.TestCase):
         self.assertLess(score.score, 0.6)
         self.assertIn("missing core roles", " ".join(score.unresolved_symbols))
         self.assertIn(score.grade, {"C", "D"})
+        self.assertIn("runtime_consistency", score.breakdown)
+        self.assertIn("code", score.breakdown)
 
     def test_higher_confidence_with_core_roles_and_relations(self) -> None:
         components = [
@@ -106,6 +108,8 @@ class ConfidenceScoringServiceTest(unittest.TestCase):
         self.assertGreaterEqual(score.score, 0.68)
         self.assertIn(score.grade, {"A", "B"})
         self.assertEqual(score.source_coverage["code"], True)
+        self.assertEqual(score.source_coverage["config"], True)
+        self.assertEqual(score.source_coverage["registry"], True)
 
 
 if __name__ == "__main__":

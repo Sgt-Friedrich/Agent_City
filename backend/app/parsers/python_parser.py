@@ -13,7 +13,14 @@ class PythonParser(LanguageParser):
         [
             r"@tool\b",
             r"@agent\b",
+            r"@[A-Za-z_][A-Za-z0-9_]*\.(register|attach|mount)\b",
             r"register_[a-z_]+\(",
+            r"register\(",
+            r"registry\.[a-z_]+\(",
+            r"factory\(",
+            r"plugin_loader",
+            r"mount_mcp",
+            r"attach_toolset",
             r"create_agent\(",
             r"ToolRegistry",
             r"workflow",
@@ -27,6 +34,8 @@ class PythonParser(LanguageParser):
             r"^\s*from\s+([A-Za-z0-9_\.]+)\s+import\b",
             r"^\s*import\s+([A-Za-z0-9_\.]+)",
             r"importlib\.import_module\(\s*['\"]([^'\"]+)['\"]\s*\)",
+            r"__import__\(\s*['\"]([^'\"]+)['\"]\s*\)",
+            r"entry_points\(\)\.select\(\s*group=['\"]([^'\"]+)['\"]\s*\)",
         ]
     )
 
@@ -37,5 +46,10 @@ class PythonParser(LanguageParser):
             r"setattr\(",
             r"eval\(",
             r"exec\(",
+            r"pkgutil\.iter_modules",
+            r"entry_points\(",
+            r"load_plugins?",
+            r"mount_mcp",
+            r"attach_toolset",
         ]
     )

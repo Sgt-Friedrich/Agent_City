@@ -32,13 +32,12 @@ class RuntimeActivityGateTest(unittest.TestCase):
         self.assertFalse(emit)
         self.assertEqual(reason, "waiting_codex")
 
-    def test_codex_real_only_non_codex_target_not_blocked(self) -> None:
+    def test_codex_real_only_non_codex_target_is_gated(self) -> None:
         gate = RuntimeActivityGate(codex_probe=lambda: (False, "waiting_codex"))
         emit, reason = gate.should_emit(target="mock", mode=LiveFlowMode.CODEX_REAL_ONLY)
-        self.assertTrue(emit)
-        self.assertEqual(reason, "mode_not_applicable")
+        self.assertFalse(emit)
+        self.assertEqual(reason, "codex_gate_target_mismatch")
 
 
 if __name__ == "__main__":
     unittest.main()
-

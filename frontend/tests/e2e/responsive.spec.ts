@@ -19,7 +19,10 @@ test.describe("responsive layout", () => {
       await expect(page.getByTestId("timeline-panel")).toBeVisible();
 
       if (viewport.name !== "mobile") {
+        await expect(page.getByTestId("ribbon-tab-analysis")).toBeVisible();
+        await page.getByTestId("ribbon-tab-analysis").click();
         await expect(page.getByTestId("filter-panel")).toBeVisible();
+        await page.keyboard.press("Escape");
         await expect(page.getByTestId("detail-drawer")).toBeVisible();
       }
 

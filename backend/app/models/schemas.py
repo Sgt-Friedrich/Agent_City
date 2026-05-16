@@ -240,6 +240,7 @@ class DiscoveryResult(BaseModel):
     parser_confidence: float | None = None
     parser_grade: str | None = None
     unresolved_symbols: list[str] = Field(default_factory=list)
+    confidence_breakdown: dict[str, float] = Field(default_factory=dict)
     source_coverage: dict[str, bool] = Field(default_factory=dict)
 
 
@@ -382,22 +383,46 @@ class ParserAnalysisIssue(BaseModel):
     suggestion: str
 
 
+class UnresolvedSymbolDetail(BaseModel):
+    symbol: str
+    reason: str
+    confidence: float = 0.5
+    source: str | None = None
+
+
+class ParserFixAction(BaseModel):
+    id: str
+    priority: str
+    category: str
+    title: str
+    description: str
+    suggested_file: str
+    expected_gain: str
+    action_query: str | None = None
+
+
 class ParserAnalysisReport(BaseModel):
     generated_at: datetime
     target: str
     parser_confidence: float
     parser_grade: str
+    confidence_breakdown: dict[str, float] = Field(default_factory=dict)
     source_coverage: dict[str, bool] = Field(default_factory=dict)
     unresolved_symbols: list[str] = Field(default_factory=list)
+    unresolved_details: list[UnresolvedSymbolDetail] = Field(default_factory=list)
     provisional_node_count: int
     declared_edge_count: int
     observed_edge_count: int
     inferred_edge_count: int
+    promotable_inferred_count: int = 0
+    promotable_edges: list[Edge] = Field(default_factory=list)
+    explainability_coverage: float = 0.0
     role_coverage: list[CoveragePoint] = Field(default_factory=list)
     district_coverage: list[CoveragePoint] = Field(default_factory=list)
     low_confidence_edges: list[Edge] = Field(default_factory=list)
     recent_parse_jobs: list[ParseJob] = Field(default_factory=list)
     issues: list[ParserAnalysisIssue] = Field(default_factory=list)
+    fix_queue: list[ParserFixAction] = Field(default_factory=list)
 
 
 class AnalysisReportExport(BaseModel):
@@ -518,7 +543,7 @@ class AppSettings(BaseModel):
     data_dir: str = ""
     export_dir: str = ""
     cleanup_threshold_mb: float = 200.0
-    live_flow_mode: LiveFlowMode = LiveFlowMode.ALWAYS_SIMULATED
+    live_flow_mode: LiveFlowMode = LiveFlowMode.CODEX_REAL_ONLY
     codex_activity_poll_sec: float = 1.8
     parser_options: dict[str, Any] = Field(default_factory=lambda: {"strict_mode": False})
     telemetry: dict[str, Any] = Field(default_factory=lambda: {"enabled": False, "level": "basic"})

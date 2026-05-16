@@ -4,6 +4,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+from app.sources.intelligent_topology_source import IntelligentTopologySource
+
 
 class RepositoryTopologySource:
     """Static topology source from real repositories (Claude/Codex)."""
@@ -12,6 +14,11 @@ class RepositoryTopologySource:
         self.repo_root = repo_root
         self.target_hint = target_hint
         self.repo_kind = self._detect_repo_kind()
+        self._intelligent_source = (
+            IntelligentTopologySource(repo_root=repo_root, target_hint=target_hint)
+            if self.repo_kind == "generic"
+            else None
+        )
 
         self._components_cache: list[dict[str, Any]] | None = None
         self._relations_cache: list[dict[str, Any]] | None = None
@@ -62,7 +69,16 @@ class RepositoryTopologySource:
         candidates = [
             self.repo_root / "README.md",
         ]
+        if self._intelligent_source is not None:
+            snippets = self._intelligent_source.python_registration_snippets()
+            if snippets:
+                return snippets
         return self._scan_registration_snippets(candidates)
+
+    def unresolved_hints(self) -> list[str]:
+        if self._intelligent_source is not None:
+            return self._intelligent_source.unresolved_hints()
+        return []
 
     def _detect_repo_kind(self) -> str:
         if (self.repo_root / "codex-rs" / "Cargo.toml").exists():
@@ -155,6 +171,10 @@ class RepositoryTopologySource:
         return components
 
     def _build_generic_components(self) -> list[dict[str, Any]]:
+        if self._intelligent_source is not None:
+            components = self._intelligent_source.config_components()
+            if components:
+                return components
         return [
             {
                 "id": "node.entry",
@@ -282,6 +302,10 @@ class RepositoryTopologySource:
         return list(relations.values())
 
     def _build_generic_relations(self, components: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        if self._intelligent_source is not None:
+            relations = self._intelligent_source.workflow_relations()
+            if relations:
+                return relations
         ids = {item["id"] for item in components}
         base = []
         if {"node.entry", "node.planner"}.issubset(ids):

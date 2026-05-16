@@ -119,31 +119,43 @@ if (process.platform === "win32" && !hasMsvcLinkerInPath()) {
   }
 }
 
-const commandByMode = {
-  dev: ["dev", "--no-dev-server"],
-  build: ["build"],
-  smoke: ["dev", "--no-watch", "--no-dev-server"],
-};
-
-const tauriArgs = commandByMode[mode] || process.argv.slice(2);
-if (mode === "smoke") {
-  env.AGENT_CITY_DESKTOP_SMOKE = "1";
-}
-
 let child;
-if (process.platform === "win32") {
-  const command = `npm exec tauri -- ${tauriArgs.join(" ")}`;
-  child = spawn("cmd.exe", ["/d", "/s", "/c", command], {
-    cwd: desktopDir,
-    env,
-    stdio: "inherit",
-  });
+if (mode === "dev" || mode === "smoke") {
+  const cargoArgs = ["run", "--manifest-path", "src-tauri/Cargo.toml"];
+  if (mode === "smoke") {
+    env.AGENT_CITY_DESKTOP_SMOKE = "1";
+  }
+
+  if (process.platform === "win32") {
+    const command = `cargo ${cargoArgs.join(" ")}`;
+    child = spawn("cmd.exe", ["/d", "/s", "/c", command], {
+      cwd: desktopDir,
+      env,
+      stdio: "inherit",
+    });
+  } else {
+    child = spawn("cargo", cargoArgs, {
+      cwd: desktopDir,
+      env,
+      stdio: "inherit",
+    });
+  }
 } else {
-  child = spawn("npm", ["exec", "tauri", "--", ...tauriArgs], {
-    cwd: desktopDir,
-    env,
-    stdio: "inherit",
-  });
+  const tauriArgs = mode === "build" ? ["build"] : process.argv.slice(2);
+  if (process.platform === "win32") {
+    const command = `npm exec tauri -- ${tauriArgs.join(" ")}`;
+    child = spawn("cmd.exe", ["/d", "/s", "/c", command], {
+      cwd: desktopDir,
+      env,
+      stdio: "inherit",
+    });
+  } else {
+    child = spawn("npm", ["exec", "tauri", "--", ...tauriArgs], {
+      cwd: desktopDir,
+      env,
+      stdio: "inherit",
+    });
+  }
 }
 
 child.on("exit", (code, signal) => {

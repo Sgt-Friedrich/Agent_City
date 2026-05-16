@@ -1,5 +1,37 @@
-﻿# UI Product Improvement Report (2026-04-02)
+﻿# UI Product Improvement Report
 
+## 2026-05-17 Defect Fix Addendum
+
+### 修复目标
+
+本轮集中修复用户在桌面 App 真实使用中暴露的问题：自动模拟流误导、设置入口不统一、弹窗遮挡、中文切换回退、城市节点语义不可读、密集节点重叠、边线在缩放时丢失、搜索/过滤浮层过重。
+
+### 关键修复
+
+- 实时流默认改为 `codex_real_only`，只有 Codex 目标且检测到真实 Codex 活动时才推送流；非 Codex 目标不再误发模拟流。
+- 顶部增加 flow/source 状态提示，明确当前是 `codex_real_only`、等待真实活动、手动暂停还是模拟模式。
+- Settings 统一为顶端入口打开的玻璃浮层，不再同时存在主页面 settings 与浮窗 settings。
+- 修复 Settings 浮层 z-index 与 pointer 关系，顶部按钮可关闭，浮层内容可点击，底层图层不会盖过菜单。
+- Settings 保存增加本地路径与数值校验，避免旧配置/乱码路径导致保存失败后 UI 秒回退。
+- 城市节点从 `RT/TL/MC` 缩写改为“语义角色 + 小徽标”的表达；hover 中保留技术名，避免丢失细节。
+- dense district 支持自适应聚合/平衡/细节模式，缩放时自动切换；聚合节点显示模块数量。
+- 信息传输线在缩小时不隐藏，只降低权重；静态边增加 lane offset/折线路径，减少重叠和毛线团。
+- Search/Filter 浮层改为更短的两列密度，减少遮挡主画布。
+
+### 验证结果
+
+- `npm --prefix frontend run e2e:app -- --reporter=line frontend/tests/e2e/layout.spec.ts frontend/tests/e2e/locale.spec.ts`：PASS（2 passed）
+- `npm --prefix frontend run e2e:app -- --reporter=line frontend/tests/e2e/responsive.spec.ts`：PASS（3 passed）
+- `npm run app:smoke`：PASS（一键启动链路与 Tauri shell smoke 通过）
+- `npm run parser:test`：PASS（22 tests）
+
+### 剩余建议
+
+- 继续把超大 Runtime / Tools district 做成“cluster drill-down”二级视图，而不是只在主城市内展开。
+- 给每类 node 增加“职责摘要/可调用模块/证据来源”的 hover mini-inspector，进一步解决非开发者看不懂模块职责的问题。
+- 把 App 主菜单升级为更完整的专业软件菜单栏：文件、视图、解析、诊断、报告、设置。
+
+---
 ## 1) 本轮优化目标
 
 基于产品/UX/视觉评审结论，执行一轮集中改善，目标是把 Agent_City 从“功能完整工作台”进一步推进到“可交付桌面产品”形态，重点覆盖：
@@ -171,3 +203,4 @@
 3. 把 `workspace-card/status-pill` 扩展为完整视觉 token 体系并替换散落样式。
 4. 增加报告到任务的半自动化动作（例如一键创建回归任务）。
 5. 补充更细粒度的 i18n 质量检查（缺失 key、术语一致性、语气规范）。
+

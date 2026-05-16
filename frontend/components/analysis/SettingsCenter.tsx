@@ -110,7 +110,7 @@ export function SettingsCenter({ onClose }: SettingsCenterProps) {
   };
 
   return (
-    <section className="h-full overflow-y-auto p-3 scrollbar-thin" data-testid="settings-center">
+    <section className="max-h-[calc(100vh-4rem)] overflow-y-auto p-3 scrollbar-thin" data-testid="settings-center">
       <div className="rounded border border-line bg-[#091626] p-2">
         <div className="flex items-start justify-between gap-2">
           <div>

@@ -37,7 +37,7 @@ class RuntimeActivityGate:
         if mode == LiveFlowMode.MANUAL:
             return False, "manual_pause"
         if target != "codex":
-            return True, "mode_not_applicable"
+            return False, "codex_gate_target_mismatch"
         return self._probe_codex_activity_cached()
 
     def _probe_codex_activity_cached(self) -> ProbeResult:

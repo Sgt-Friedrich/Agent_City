@@ -10,6 +10,8 @@ import { FlowEvent, TimelineGroupBy } from "@/types/schema";
 
 interface TimelinePanelProps {
   maxItems?: number;
+  compact?: boolean;
+  onToggleCompact?: () => void;
 }
 
 function EventRow({
@@ -87,7 +89,7 @@ function GroupButtons({
   );
 }
 
-export function TimelinePanel({ maxItems = 100 }: TimelinePanelProps) {
+export function TimelinePanel({ maxItems = 100, compact = false, onToggleCompact }: TimelinePanelProps) {
   const { t } = useI18n();
   const events = useDashboardStore((state) => state.liveEvents);
   const selectedSpanId = useDashboardStore((state) => state.selectedSpanId);
@@ -133,16 +135,43 @@ export function TimelinePanel({ maxItems = 100 }: TimelinePanelProps) {
   }, [groupBy, setGroupBy, viewMode]);
 
   return (
-    <section data-testid="timeline-panel" className="h-full overflow-y-auto border-t border-line bg-[#070f1bcc] p-2 scrollbar-thin">
+    <section data-testid="timeline-panel" className="h-full overflow-y-auto border-t border-line bg-[#070f1bdc] p-2 scrollbar-thin">
       <div className="flex flex-wrap items-center justify-between gap-2 px-1">
         <div className="panel-title text-xs uppercase tracking-wide text-slate-300">{t("timeline.title")}</div>
         <div className="flex items-center gap-2 text-[10px] uppercase tracking-wide text-slate-500">
           <span>{items.length} {t("timeline.events")} | {t("timeline.modeLabel")}: {diagnosticMode}</span>
-          <GroupButtons groupBy={groupBy} onChange={setGroupBy} labels={groupLabels} />
+          {!compact ? <GroupButtons groupBy={groupBy} onChange={setGroupBy} labels={groupLabels} /> : null}
+          {onToggleCompact ? (
+            <button
+              type="button"
+              className="rounded border border-line bg-[#0b1828] px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-slate-300 hover:border-cyan-400"
+              onClick={onToggleCompact}
+            >
+              {compact ? t("common.open") : t("common.close")}
+            </button>
+          ) : null}
         </div>
       </div>
 
-      {groupBy === "time" && (
+      {compact ? (
+        <div className="mt-1">
+          {items[0] ? (
+            <EventRow
+              event={items[0]}
+              selected={selectedSpanId === items[0].span_id}
+              onSelect={select}
+              retryLabel={t("timeline.retry")}
+              fallbackLabel={t("timeline.fallback")}
+            />
+          ) : (
+            <div className="rounded border border-line bg-[#0a1626] px-2 py-1 text-xs text-slate-500">
+              {t("common.none")}
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      {!compact && groupBy === "time" && (
         <div data-testid="timeline-time-groups" className="mt-2 space-y-1">
           {items.map((event) => (
             <EventRow
@@ -157,7 +186,7 @@ export function TimelinePanel({ maxItems = 100 }: TimelinePanelProps) {
         </div>
       )}
 
-      {groupBy === "trace" && (
+      {!compact && groupBy === "trace" && (
         <div data-testid="timeline-trace-groups" className="mt-2 space-y-2">
           {groupedByTrace.map(([traceId, traceEvents]) => (
             <div key={traceId} className="rounded border border-line bg-[#0a1626] p-2">
@@ -182,7 +211,7 @@ export function TimelinePanel({ maxItems = 100 }: TimelinePanelProps) {
         </div>
       )}
 
-      {groupBy === "node" && (
+      {!compact && groupBy === "node" && (
         <div data-testid="timeline-node-groups" className="mt-2 space-y-2">
           {groupedByNode.map(([nodeId, nodeEvents]) => (
             <div key={nodeId} className="rounded border border-line bg-[#0a1626] p-2">

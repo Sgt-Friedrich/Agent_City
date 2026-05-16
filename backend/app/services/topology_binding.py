@@ -98,6 +98,12 @@ class TopologyBindingService:
                 "status": span.status,
                 "span_kind": span.span_kind.value,
                 "fallback_from": fallback_from,
+                "observations": 1,
+                "error_count": 1 if span.status == "error" else 0,
+                "retry_count": 1 if span.retry_count > 0 else 0,
+                "fallback_count": 1 if bool(span.fallback_from) else 0,
+                "promotable": False,
+                "promotable_reason": "needs stable multi-trace observations",
             },
         )
 

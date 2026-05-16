@@ -1,304 +1,226 @@
-# Agent_City Desktop App / Agent_City 桌面应用
+# Agent_City
 
-Agent_City is a **desktop control-plane workbench** for agent architecture parsing and runtime observability.  
-Agent_City 是一个面向 Agent 架构解析与运行时可观测的**桌面控制平面工作台**。
+Agent_City is a desktop workbench for parsing, visualizing, and diagnosing AI agent systems. It turns an agent codebase into a city model: districts are architecture domains, buildings are modules, roads are dependencies, and moving flows are runtime trace events.
 
-It is not a browser demo. It is a local App that closes the loop from repository import to parse, city visualization, diagnostics, replay, reporting, and regression tests.  
-它不是网页演示，而是本地 App：从导入仓库到解析、城市可视化、诊断、回放、报告和回归测试形成闭环。
+Agent_City 是一个面向 AI Agent 系统的桌面工作台。它把 Agent 源码解析成“软件城市”：街区代表架构域，建筑代表模块，道路代表依赖关系，动态流线代表运行时 trace / span / event。
 
----
-
-## 1. Product Positioning / 产品定位
-
-**English**
-- Desktop-native workbench (Tauri shell + local FastAPI service)
-- Static architecture parsing + runtime trace binding
-- City metaphor + observability diagnosis + parser quality analysis
-- Control Plane for repositories, jobs, reports, settings
-
-**中文**
-- 桌面原生工作台（Tauri 壳 + 本地 FastAPI 服务）
-- 静态架构解析 + 运行时链路绑定
-- 城市隐喻可视化 + 诊断 + 解析质量分析
-- 提供仓库、任务、报告、设置的完整控制平面
+Repository: <https://github.com/Sgt-Friedrich/Agent_City>
 
 ---
 
-## 2. One-Click Entry / 一键启动入口
+## Why This Project Exists / 项目目标
+
+Modern agent projects are difficult to understand because static architecture, runtime behavior, tool calls, memory access, MCP integrations, and fallback paths are usually scattered across code, config, logs, and prompt templates.
+
+Agent_City closes that loop:
+
+- Import a local agent repository.
+- Parse topology from source code, configuration, registries, and workflow definitions.
+- Normalize modules into districts, nodes, and edges.
+- Bind runtime traces to the static topology.
+- Replay a prompt execution path through the city.
+- Diagnose slow, failed, inferred, retry, and fallback links.
+- Export parser, diagnostics, and system reports.
+
+现代 Agent 项目通常很难理解，因为静态架构、运行时行为、工具调用、记忆访问、MCP 集成和 fallback 路径分散在代码、配置、日志和 prompt 模板里。
+
+Agent_City 的目标是形成闭环：
+
+- 导入本地 Agent 仓库。
+- 从源码、配置、注册表和工作流定义中解析拓扑。
+- 归一化为街区、节点、边。
+- 将运行时 trace 绑定到静态拓扑。
+- 以城市路径回放一次 prompt 执行过程。
+- 诊断慢链路、错误链路、推断边、重试和 fallback。
+- 导出解析、诊断和系统报告。
+
+---
+
+## Desktop App Entry / 桌面 App 启动
+
+The main entry is:
 
 ```bash
 npm run app:start
 ```
 
-Windows shortcuts:
-- `start-agent-city.bat`
-- `start-agent-city.ps1`
+Windows helper launchers:
 
-`app:start` bootstraps dependencies, static UI bundle, backend venv, and starts the desktop App flow.
+```text
+start-agent-city.bat
+start-agent-city.ps1
+```
 
----
+The startup script bootstraps frontend dependencies, the static UI bundle, the backend Python environment, and the Tauri desktop shell. The intended user experience is one-click local startup, not a browser-only dashboard.
 
-## 3. Core Workbench Views / 核心工作台视图
+主入口是：
 
-- `Overview`
-- `Live`
-- `Replay`
-- `Diagnostics`
-- `Parser Analysis`
-- `Repositories`
-- `Jobs`
-- `Reports`
-- `Settings`
+```bash
+npm run app:start
+```
 
-Main window layout:
-- Top: KPI + shell/service status + global controls
-- Left: view switching + filters + quick analysis entry
-- Center: city workspace / parser center / repositories/jobs/reports/settings center
-- Right: inspector / diagnostics details
-- Bottom: timeline / task stream
-
-Interaction accelerators:
-- clickable KPI cards with trend sparklines
-- semantic mini-map navigator (activity/errors/parser overlays)
-- search DSL (`type:tool`, `status:error`, `has:retry`, `latency>700`, `qps>10`, `-term`)
-- command palette + keyboard shortcuts (`Ctrl/Cmd+K`, `Alt+1..9`)
-- intelligent next-step recommendations in inspector
+启动脚本会处理前端依赖、静态 UI 包、本地 Python 后端环境和 Tauri 桌面壳。项目定位是本地桌面 App 工作台，而不是浏览器里的临时 dashboard。
 
 ---
 
-## 4. Control Plane Modules / 控制平面模块
+## Core Views / 核心视图
 
-### Repositories / 仓库中心
-- import local repository
-- recent repository list
-- parser confidence / unresolved / inferred edges
-- parse / re-parse / open topology / open parser analysis / remove / export
-
-### Jobs / 任务中心
-- parse repository / re-parse
-- parser regression
-- frontend self-check
-- full system test
-- generate report
-- cleanup refs
-- live simulation
-
-Each job has status, progress, timestamps, log summary, detail output, and optional artifact path.
-
-### Reports / 报告中心
-- parser reports
-- capability summaries
-- diagnostics summary
-- full-system test report
-- frontend fix report
-
-### Settings / 设置中心
-- workspace/data/export directory
-- cleanup threshold
-- live flow mode (`always_simulated` / `manual` / `codex_real_only`)
-- codex activity poll interval (seconds)
-- telemetry/logging options
-- runtime status snapshot
-- **language switch (中文 / English)**
+- `Overview`: city-level static architecture and dominant routes.
+- `Live`: real-time flow events and active trace movement.
+- `Replay`: step-by-step prompt execution replay.
+- `Diagnostics`: slow links, errors, retry, fallback, inferred runtime edges.
+- `Parser Analysis`: parser confidence, unresolved symbols, fix queue, promotable inferred edges.
+- `Repositories`: imported local repositories and parse health.
+- `Jobs`: parse, regression, self-check, report, and cleanup task status.
+- `Reports`: generated parser, diagnostics, frontend, and full-system reports.
+- `Settings`: workspace paths, flow mode, language, logging, cleanup threshold.
 
 ---
 
-## 5. Language Switching / 语言切换
-
-Language switching is implemented as a real product feature:
-- supported locales: `en`, `zh`
-- locale state persisted locally (Zustand persist)
-- immediate UI update after switching
-- backend settings persistence via `/api/control/settings`
-- fallback dictionary strategy for safe extension
-
-Key files:
-- `frontend/i18n/messages.ts`
-- `frontend/store/useLocaleStore.ts`
-- `frontend/hooks/useI18n.ts`
-- `frontend/components/analysis/SettingsCenter.tsx`
-
-Internationalized coverage in this phase includes:
-- top status/header core text
-- left navigation and major filters
-- control center actions
-- repositories/jobs/reports/settings core text
-- common empty/error/success states
-- repository import wizard key text
-
----
-
-## 6. Architecture / 系统架构
+## Architecture / 系统架构
 
 ```mermaid
 flowchart LR
-  App["Desktop App (Tauri)"] --> UI["Workbench UI (Next.js static bundle)"]
+  App["Tauri Desktop App"] --> UI["Next.js Static Workbench"]
   App --> API["Local FastAPI Service"]
   UI --> API
   API --> Discovery["Topology Discovery"]
-  API --> Normalizer["Topology Normalizer"]
+  Discovery --> Normalizer["Topology Normalizer"]
   API --> Runtime["Runtime Trace Resolver"]
-  API --> Binding["Topology + Trace Binding"]
-  API --> Control["Repositories/Jobs/Reports/Settings Control APIs"]
+  Runtime --> Binding["Topology + Trace Binding"]
+  API --> Control["Repositories / Jobs / Reports / Settings"]
+  API --> Reports["Report Export"]
 ```
 
-More details:
-- [docs/architecture.md](docs/architecture.md)
-- [docs/app-workbench-design.md](docs/app-workbench-design.md)
-- [docs/product-ux.md](docs/product-ux.md)
+Backend layers:
+
+- `backend/app/parsers`: Python, TypeScript, Go, Rust, Java, C#, and config parsers.
+- `backend/app/services/topology_discovery.py`: discovers raw components, relations, unresolved symbols, and provenance.
+- `backend/app/services/topology_normalizer.py`: normalizes discovered signals into the city topology schema.
+- `backend/app/services/runtime_trace_resolver.py`: creates trace/span/flow event models.
+- `backend/app/services/topology_binding.py`: binds runtime events to static nodes and edges.
+- `backend/app/services/platform_service.py`: coordinates targets, traces, parser analysis, diagnostics, and jobs.
+
+Frontend layers:
+
+- `frontend/components/city`: 3D city, buildings, districts, roads, live flows, mini-map.
+- `frontend/components/analysis`: control plane, parser analysis, repositories, jobs, reports, settings.
+- `frontend/components/panels`: inspector, filters, command palette, timeline, import wizard.
+- `frontend/store/useDashboardStore.ts`: desktop workbench state.
+- `frontend/i18n/messages.ts`: English and Chinese text resources.
 
 ---
 
-## 7. Local APIs / 本地服务接口
+## Data Model / 数据模型
 
-### Topology + Runtime
-- `GET /api/targets`
-- `POST /api/targets/preview`
-- `POST /api/targets/register`
-- `GET /api/topology`
-- `GET /api/traces`
-- `GET /api/traces/{trace_id}`
-- `GET /api/nodes/{node_id}`
-- `GET /api/metrics/summary`
-- `GET /ws/live`
+Core schema objects:
 
-### Analysis
-- `GET /api/analysis/diagnostics`
-- `GET /api/analysis/parser`
-- `GET /api/analysis/report`
-
-### Control Plane
-- `GET /api/control/repositories`
-- `DELETE /api/control/repositories/{target_id}`
-- `GET /api/control/jobs`
-- `POST /api/control/jobs`
-- `POST /api/control/jobs/{job_id}/cancel`
-- `GET /api/control/settings`
-- `PUT /api/control/settings`
-- `GET /api/control/runtime`
+- `District`: architecture domain such as Planning, Runtime, Tools, LLM, Memory, Safety.
+- `Node`: concrete module, service, tool, model gateway, retriever, memory, runtime, or external boundary.
+- `Edge`: declared, observed, inferred, retry, fallback, dependency, or dataflow edge.
+- `TraceEnvelope`: one user request or prompt run.
+- `SpanEvent / FlowEvent`: runtime step with protocol, payload preview, latency, status, retry, fallback.
+- `NodeMetricSnapshot`: qps, p95 latency, error rate, active count, queue depth, token and cost rates.
 
 ---
 
-## 8. Project Structure / 目录结构
+## Runtime Modes / 运行时模式
 
-```text
-agent-city-mvp/
-  backend/            # FastAPI local service + parser/runtime core
-  frontend/           # desktop workbench UI (Next.js + R3F + Zustand)
-  desktop/            # Tauri shell
-  docs/               # architecture, UX, reports, test outputs
-  scripts/            # bootstrap, cleanup, full-system testing
-  tests/              # parser/control API regression tests
-  .agents/            # Codex self-debug skill chain
-```
+Agent_City separates simulated flow from real activity:
+
+- `always_simulated`: stream mock runtime flows for demonstration and UI testing.
+- `manual`: pause automatic live flow emission.
+- `codex_real_only`: emit Codex-target flow only when a Codex app-server process shows real activity.
+
+This distinction is visible in the app header so the user can tell whether the city is showing mock flow, paused flow, or gated Codex activity.
 
 ---
 
-## 9. Validation Commands / 验证命令
+## Parser Intelligence / 解析能力
+
+The parser is designed for unfamiliar agent systems. It uses multiple lightweight strategies instead of requiring every project to run:
+
+- Directory and filename heuristics.
+- Config parsing for YAML, TOML, JSON, and `.env`.
+- Registry, factory, decorator, plugin loader, toolset attach, and MCP mount patterns.
+- README/example/config hints.
+- Confidence scoring across code, config, registry, and runtime consistency.
+- Graceful degradation with unresolved reasons.
+- Promotable inferred edges when runtime observations are stable.
+
+Regression samples currently cover multiple ecosystems, including Python, TypeScript, Go, Rust, Java/JVM, and mixed agent frameworks.
+
+---
+
+## Built With Codex / Codex 构建方式
+
+This project was developed with Codex as an iterative engineering partner. The workflow was:
+
+1. Break the product into static parsing, runtime tracing, city visualization, desktop shell, and control plane.
+2. Ask Codex to implement code directly in the local repository.
+3. Run builds, parser tests, app smoke tests, and UI checks after each major change.
+4. Use Codex to inspect failures, patch regressions, and improve the product loop.
+5. Test the parser against real agent projects such as Codex, Claude Code, OpenClaw, and Hermes-style self-evolving agents.
+
+Codex helped implement the FastAPI backend, parser services, topology binding, Next.js + React Three Fiber UI, Zustand state, Tauri startup path, i18n, settings persistence, live flow gating, parser analysis, and product-level UI refinements.
+
+这个项目是通过 Codex 进行长链路工程迭代完成的。整体流程是：
+
+1. 将产品拆成静态解析、运行时追踪、城市可视化、桌面壳和控制平面。
+2. 让 Codex 直接在本地仓库中读写代码。
+3. 每轮改动后运行构建、解析测试、App smoke 和界面检查。
+4. 用 Codex 定位失败、修复回归、持续优化产品闭环。
+5. 使用 Codex / Claude Code / OpenClaw / Hermes 等真实 Agent 项目验证解析能力。
+
+---
+
+## Validation / 验证命令
 
 ```bash
-# parser and control-plane regression
+npm run frontend:build
 npm run parser:test
-
-# app-oriented UI regression (static bundle + backend + playwright)
-npm --prefix frontend run e2e:app
-
-# desktop shell smoke
 npm run app:smoke
-
-# full closure test
 npm run system:test
 ```
 
-Latest full-system report path:
-- `docs/full-system-test-report.md`
+Useful frontend checks:
 
----
-
-## 10. Latest Update (2026-04-02) / 最新更新（2026-04-02）
-
-- Control Plane upgraded with Repositories/Jobs/Settings centers.
-- Parser Analysis upgraded to a full quality center (matrix + quick actions).
-- Diagnostics enhanced with dedicated focus layers (`errors/slow/congestion/retry_fallback`).
-- Search DSL upgraded (`key:value`, `!=`, `has:*`, numeric filters like `latency>700`).
-- Command Palette + keyboard shortcuts added (`Ctrl/Cmd+K`, `Alt+1..9`).
-- Mini-map upgraded as a semantic navigator with overlay-driven jumps.
-
----
-
-## 11. Screenshots / 展示截图
-
-### Overview (Desktop)
-![Agent_City Overview Desktop](docs/screenshots/dashboard-overview-desktop.png)
-
-### Diagnostics
-![Agent_City Diagnostics Desktop](docs/screenshots/dashboard-diagnostics-desktop.png)
-
-### Parser Analysis Center
-![Agent_City Parser Analysis Desktop](docs/screenshots/dashboard-parser-analysis-desktop.png)
-
-### Repositories Center
-![Agent_City Repositories Desktop](docs/screenshots/dashboard-repositories-desktop.png)
-
-### Jobs Center
-![Agent_City Jobs Desktop](docs/screenshots/dashboard-jobs-desktop.png)
-
-### Settings Center
-![Agent_City Settings Desktop](docs/screenshots/dashboard-settings-desktop.png)
-
-### Command Palette
-![Agent_City Command Palette Desktop](docs/screenshots/dashboard-command-palette-desktop.png)
-
-### Replay
-![Agent_City Replay Desktop](docs/screenshots/dashboard-replay-desktop.png)
-
-### Overview (Mobile)
-![Agent_City Overview Mobile](docs/screenshots/dashboard-overview-mobile.png)
-
-To refresh screenshots locally:
 ```bash
+npm --prefix frontend run e2e:app
 npm --prefix frontend run screenshots:app
 ```
 
 ---
 
-## 12. Cleanup Mechanism / 参考仓库清理机制
+## Screenshots / 界面截图
 
-```bash
-python scripts/cleanup_refs.py --root . --targets refs --threshold-mb 200 --keep-list-file docs/parser-tested-keep.txt --delete-unlisted --dry-run
-```
+Screenshots are stored under `docs/screenshots/`.
 
-Rules:
-- delete any reference directory larger than 200MB
-- delete unlisted reference repos when `--delete-unlisted` is enabled
-- keep only project source + necessary reports/fixtures
+Examples:
 
----
-
-## 13. Self-Debug Toolchain / 自调试工具链
-
-- `AGENTS.md`
-- `.agents/skills/frontend-repro`
-- `.agents/skills/frontend-visual-debug`
-- `.agents/skills/frontend-fix`
-- `.agents/skills/frontend-regression`
-- `.agents/skills/frontend-report`
-
-Used for App UI issue reproduction, evidence capture, minimal fix, and regression closure.
+- `docs/screenshots/dashboard-overview-desktop.png`
+- `docs/screenshots/dashboard-diagnostics-desktop.png`
+- `docs/screenshots/dashboard-parser-analysis-desktop.png`
+- `docs/screenshots/dashboard-replay-desktop.png`
+- `docs/screenshots/dashboard-settings-desktop.png`
 
 ---
 
-## 14. Known Boundaries / 已知边界
+## Current Boundaries / 当前边界
 
-- Parser is heuristic-first with graceful degradation for unknown frameworks.
-- Large topologies may still benefit from future clustering/aggregation strategies.
-- Production signing/notarization for desktop distribution is outside current scope.
+- Real telemetry adapters are scaffolded, but the default runtime flow is still mock or locally gated.
+- Static parsing is heuristic and intentionally lightweight; it does not compile every external project.
+- Large dynamic agent systems may still require custom parser rules for project-specific registries.
+- The city layout is optimized for analysis, but very large graphs still benefit from clustering and focused subgraph views.
 
 ---
 
-## 15. Next Extension Direction / 后续扩展方向
+## Roadmap / 后续方向
 
-- OpenTelemetry / Jaeger / Langfuse / Phoenix adapters
-- richer command palette + desktop shortcut map
-- deeper parser rule packs for uncommon agent frameworks
-- packaged release pipeline for desktop distributions
+- OpenTelemetry / Jaeger / Tempo / Langfuse / Phoenix adapters.
+- Better cluster inspector for dense Runtime and Tools districts.
+- Rule authoring workflow for parser fix queues.
+- Structured report actions that create follow-up jobs.
+- Packaged desktop releases for Windows/macOS/Linux.
+- More parser regression fixtures for self-evolving and multi-agent systems.
+

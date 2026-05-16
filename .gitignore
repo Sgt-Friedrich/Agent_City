@@ -10,6 +10,7 @@ frontend/out/
 frontend/playwright-report/
 frontend/test-results/
 test-results/
+output/
 
 # desktop
 desktop/node_modules/

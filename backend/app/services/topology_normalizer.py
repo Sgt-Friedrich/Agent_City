@@ -151,6 +151,7 @@ class TopologyNormalizer:
                 "parser_confidence": discovery.parser_confidence,
                 "parser_grade": discovery.parser_grade,
                 "unresolved_symbols": discovery.unresolved_symbols,
+                "confidence_breakdown": discovery.confidence_breakdown,
                 "source_coverage": discovery.source_coverage,
             },
         )
@@ -208,6 +209,9 @@ class TopologyNormalizer:
                         "summary": component.summary,
                         "role": component.role,
                         "sources": component.metadata.get("sources", []),
+                        "display_name": self._display_name_for_component(component),
+                        "technical_name": component.id,
+                        "explainability": self._build_explainability_profile(component),
                     },
                     source_provenance=[
                         SourceProvenance(
@@ -221,6 +225,56 @@ class TopologyNormalizer:
                 nodes.append(node)
 
         return nodes
+
+    def _display_name_for_component(self, component: RawComponent) -> str:
+        base = component.name.strip()
+        if base:
+            return base
+        return component.id.replace("node.", "").replace("_", " ").title()
+
+    def _build_explainability_profile(self, component: RawComponent) -> dict[str, object]:
+        role = component.role
+        role_to_io: dict[str, tuple[list[str], list[str], list[str], str]] = {
+            "planner": (["user task", "context signals"], ["execution plan", "step routing"], ["internal/http+json"], "planning failure can stall full request chain"),
+            "agent": (["task objective"], ["delegated actions"], ["internal/http+json"], "agent orchestration drift may propagate downstream"),
+            "sub_agent": (["delegated sub-task"], ["partial result"], ["internal/http+json"], "sub-agent instability increases retries"),
+            "retriever": (["query", "memory refs"], ["candidate contexts"], ["internal/http+json"], "low retrieval quality hurts LLM grounding"),
+            "reranker": (["retrieved contexts"], ["ordered contexts"], ["internal/http+json"], "reranker errors may degrade response quality"),
+            "embedding": (["raw content"], ["vector embeddings"], ["internal/http+json"], "embedding drift breaks semantic retrieval"),
+            "memory": (["session updates"], ["state snapshot"], ["internal/http+json"], "state inconsistency causes wrong long-context behavior"),
+            "tool": (["tool-call request"], ["tool output"], ["tool-call", "shell", "fs"], "tool failures trigger retry/fallback chains"),
+            "mcp": (["mcp request"], ["mcp tool result"], ["mcp"], "mcp transport failures isolate external capabilities"),
+            "llm": (["prompt + context"], ["model completion"], ["internal/http+json"], "llm latency and errors dominate end-to-end time"),
+            "prompt": (["prompt template refs"], ["resolved prompt"], ["internal/module"], "prompt mismatch causes policy and quality drift"),
+            "guardrail": (["candidate output"], ["approved/rejected output"], ["internal/http+json"], "guardrail false positives can block valid output"),
+            "evaluator": (["trace outputs"], ["quality score"], ["internal/http+json"], "missing eval feedback weakens self-improvement loops"),
+            "runtime_node": (["incoming event"], ["routed event"], ["internal/http+json"], "runtime bottlenecks impact all module paths"),
+            "session": (["session event"], ["session state"], ["internal/http+json"], "session loss breaks continuity"),
+            "event_bus": (["published event"], ["subscribed event"], ["ws", "internal/http+json"], "event bus lag creates systemic congestion"),
+            "external": (["integration request"], ["external response"], ["http+json"], "external dependency outages cause boundary failures"),
+        }
+
+        defaults = (["runtime input"], ["runtime output"], ["internal/http+json"], "insufficient static evidence; verify runtime traces")
+        inputs, outputs, protocols, risk_hint = role_to_io.get(role, defaults)
+        sources = component.metadata.get("sources", [])
+        source_count = len(sources) if isinstance(sources, list) else 0
+        evidence_conf = 0.85 if source_count >= 2 else 0.68 if source_count == 1 else 0.55
+        display_name = self._display_name_for_component(component)
+        group = role if role in {"planner", "retriever", "memory", "tool", "mcp", "llm", "guardrail", "runtime_node"} else "runtime_node"
+
+        return {
+            "display_name": display_name,
+            "technical_name": component.id,
+            "role": role,
+            "responsibility": component.summary,
+            "inputs": inputs,
+            "outputs": outputs,
+            "protocols": protocols,
+            "risk_hint": risk_hint,
+            "group": group,
+            "evidence_count": source_count,
+            "explainability_confidence": round(evidence_conf, 2),
+        }
 
     def _augment_with_relation_placeholders(
         self,

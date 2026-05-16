@@ -53,6 +53,7 @@ async function saveReportContent(defaultFileName: string, content: string): Prom
 export function ReportsCenter() {
   const { t, formatDateTime } = useI18n();
   const target = useDashboardStore((state) => state.target);
+  const parserAnalysis = useDashboardStore((state) => state.parserAnalysis);
   const desktopStatus = useDashboardStore((state) => state.desktopStatus);
   const setViewMode = useDashboardStore((state) => state.setViewMode);
   const setTraceFilter = useDashboardStore((state) => state.setTraceFilter);
@@ -105,6 +106,11 @@ export function ReportsCenter() {
     ).slice(0, 8);
     return { traces, nodes, jobs };
   }, [reportContent, selectedReport?.related_job_ids, selectedReport?.related_node_ids, selectedReport?.related_trace_ids]);
+
+  const fixQueue = useMemo(
+    () => (parserAnalysis?.fix_queue ?? []).slice(0, 4),
+    [parserAnalysis?.fix_queue],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -393,6 +399,36 @@ export function ReportsCenter() {
                     </button>
                   ) : null}
                 </div>
+                {selectedReport.category === "parser" ? (
+                  <div className="mt-3 rounded border border-line bg-[#0b192c] p-2">
+                    <div className="panel-title text-[11px] uppercase tracking-wide text-slate-200">
+                      {t("reports.fixQueue.title")}
+                    </div>
+                    {fixQueue.length === 0 ? (
+                      <div className="mt-1 text-[11px] text-slate-500">{t("reports.fixQueue.empty")}</div>
+                    ) : (
+                      <div className="mt-2 space-y-1">
+                        {fixQueue.map((item) => (
+                          <button
+                            key={item.id}
+                            type="button"
+                            className="w-full rounded border border-line bg-[#10233a] px-2 py-1 text-left text-[11px] text-slate-200 hover:border-emerald-400"
+                            onClick={() => {
+                              setViewMode("parser_analysis");
+                              setSearchQuery(item.action_query ?? item.category);
+                            }}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span>{item.title}</span>
+                              <span className="text-slate-400">{item.priority}</span>
+                            </div>
+                            <div className="mt-0.5 text-slate-400">{item.expected_gain}</div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : null}
               </div>
             )}
             {!loadingContent && selectedReport && (

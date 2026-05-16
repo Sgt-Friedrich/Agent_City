@@ -99,5 +99,9 @@ a {
 }
 
 .city-html-overlay {
-  z-index: 8 !important;
+  z-index: 1 !important;
+}
+
+.app-floating-layer {
+  z-index: 1000;
 }

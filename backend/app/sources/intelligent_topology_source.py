@@ -65,6 +65,7 @@ class IntelligentTopologySource:
         ".ini",
         ".md",
     }
+    ALLOWED_FILE_NAMES = {".env", ".env.example", ".env.local"}
 
     ROLE_HINTS: dict[str, list[str]] = {
         "agent": ["agent", "assistant", "worker", "handoff"],
@@ -163,6 +164,8 @@ class IntelligentTopologySource:
         raw_snippets: list[tuple[str, str, str]] = []
         import_signals: list[tuple[str, str, str]] = []
         unresolved_hints: set[str] = set()
+        config_role_evidence: dict[str, set[str]] = defaultdict(set)
+        config_manifest_files: set[str] = set()
 
         for file_path in file_paths:
             rel_path = file_path.relative_to(self.repo_root)
@@ -193,17 +196,60 @@ class IntelligentTopologySource:
                 raw_snippets.append((cluster_key, first_registration_line, rel_str))
 
             for hint in signal.unresolved_hints:
-                unresolved_hints.add(hint)
+                normalized_hint = self._normalize_unresolved_hint(hint)
+                if normalized_hint:
+                    unresolved_hints.add(normalized_hint)
+
+            if self._looks_like_config_file(file_path):
+                config_manifest_files.add(rel_str)
+                for role, confidence in self._extract_config_roles(content).items():
+                    if confidence >= 0.4:
+                        config_role_evidence[role].add(rel_str)
 
         components, cluster_to_component = self._build_components(cluster_stats)
         relations = self._build_relations(cluster_stats, cluster_to_component, import_signals)
         snippets = self._build_snippets(raw_snippets, cluster_to_component)
+        self._apply_config_evidence(components, relations, config_role_evidence)
+        self._annotate_config_manifests(components, config_manifest_files, unresolved_hints)
 
         self._components_cache = components
         self._relations_cache = relations
         self._snippets_cache = snippets
         self._unresolved_hints_cache = sorted(unresolved_hints)[:24]
         self._scanned = True
+
+    def _annotate_config_manifests(
+        self,
+        components: list[dict[str, Any]],
+        config_manifest_files: set[str],
+        unresolved_hints: set[str],
+    ) -> None:
+        if not components or not config_manifest_files:
+            return
+
+        preferred_roles = ("runtime_node", "planner", "agent")
+        target_component = next(
+            (component for component in components if component.get("role") in preferred_roles),
+            components[0],
+        )
+
+        metadata = target_component.setdefault("metadata", {})
+        current = list(metadata.get("config_sources", []))
+        existing = set(current)
+        for item in sorted(config_manifest_files):
+            if item not in existing:
+                current.append(item)
+                existing.add(item)
+        metadata["config_sources"] = current[:14]
+        metadata["config_manifest_count"] = len(config_manifest_files)
+
+        tags = list(target_component.get("tags", []))
+        if "config-driven" not in tags:
+            tags.append("config-driven")
+        target_component["tags"] = tags
+
+        if len(config_manifest_files) >= 1 and not any("config" in hint for hint in unresolved_hints):
+            unresolved_hints.add(f"missing_config:detected {len(config_manifest_files)} config manifests")
 
     def _collect_candidate_files(self) -> list[Path]:
         candidates: list[Path] = []
@@ -218,7 +264,7 @@ class IntelligentTopologySource:
             root_path = Path(root)
             for file_name in files:
                 file_path = root_path / file_name
-                if file_path.suffix.lower() not in self.ALLOWED_EXT:
+                if file_path.suffix.lower() not in self.ALLOWED_EXT and file_path.name.lower() not in self.ALLOWED_FILE_NAMES:
                     continue
 
                 try:
@@ -263,6 +309,48 @@ class IntelligentTopologySource:
                 return handle.read(12_000)
         except OSError:
             return ""
+
+    def _looks_like_config_file(self, file_path: Path) -> bool:
+        suffix = file_path.suffix.lower()
+        if suffix in {".json", ".yaml", ".yml", ".toml", ".ini", ".env"}:
+            return True
+        return file_path.name.lower() in self.ALLOWED_FILE_NAMES
+
+    def _extract_config_roles(self, content: str) -> dict[str, float]:
+        content_lower = content.lower()
+        role_patterns = {
+            "planner": ("planner", "orchestrator", "workflow", "graph"),
+            "tool": ("tool", "toolset", "plugin"),
+            "mcp": ("mcp", "modelcontextprotocol"),
+            "memory": ("memory", "session", "state"),
+            "retriever": ("retriev", "rag", "index"),
+            "llm": ("llm", "model", "provider"),
+            "guardrail": ("guardrail", "policy", "safety"),
+            "runtime_node": ("runtime", "gateway", "server"),
+        }
+        result: dict[str, float] = {}
+        for role, keywords in role_patterns.items():
+            hits = sum(content_lower.count(keyword) for keyword in keywords)
+            if hits > 0:
+                result[role] = min(1.0, 0.25 + hits * 0.13)
+        return result
+
+    def _normalize_unresolved_hint(self, hint: str) -> str | None:
+        value = hint.strip()
+        if not value:
+            return None
+        if value.startswith("#") or value.startswith("//"):
+            return None
+        if len(value) > 180:
+            value = value[:177] + "..."
+        lower = value.lower()
+        if any(token in lower for token in ("importlib", "getattr(", "setattr(", "eval(", "exec(", "dynamic", "plugin_loader")):
+            return f"dynamic_runtime:{value}"
+        if any(token in lower for token in (".yaml", ".yml", ".toml", ".json", "config", "env", "manifest")):
+            return f"missing_config:{value}"
+        if any(token in lower for token in ("register", "factory", "decorator", "workflow")):
+            return f"parser_rule_missing:{value}"
+        return f"ambiguous_symbol:{value}"
 
     def _infer_protocol_from_ref(self, ref: str) -> str:
         lower = ref.lower()
@@ -468,6 +556,63 @@ class IntelligentTopologySource:
         self._add_semantic_edges(edges_by_key, role_nodes)
 
         return list(edges_by_key.values())
+
+    def _apply_config_evidence(
+        self,
+        components: list[dict[str, Any]],
+        relations: list[dict[str, Any]],
+        config_role_evidence: dict[str, set[str]],
+    ) -> None:
+        if not config_role_evidence:
+            return
+
+        by_role: dict[str, list[dict[str, Any]]] = defaultdict(list)
+        for component in components:
+            by_role[component["role"]].append(component)
+
+        runtime_candidates = by_role.get("runtime_node") or []
+        entry = runtime_candidates[0]["id"] if runtime_candidates else components[0]["id"]
+        relation_index = {(item["source"], item["target"], item["relation_type"]): item for item in relations}
+
+        for role, sources in config_role_evidence.items():
+            nodes = by_role.get(role) or []
+            if not nodes:
+                continue
+
+            source_list = sorted(sources)[:8]
+            for node in nodes[:3]:
+                node_sources = node.setdefault("metadata", {}).setdefault("config_sources", [])
+                for src in source_list:
+                    if src not in node_sources:
+                        node_sources.append(src)
+                node.setdefault("tags", []).append("config-driven")
+                node["source_type"] = "config_manifest"
+
+                edge_key = (entry, node["id"], "dependency")
+                inferred_from = [f"config:{src}" for src in source_list]
+                if edge_key in relation_index:
+                    edge = relation_index[edge_key]
+                    edge["confidence"] = max(edge.get("confidence", 0.0), 0.72)
+                    for item in inferred_from:
+                        if item not in edge["inferred_from"]:
+                            edge["inferred_from"].append(item)
+                    continue
+
+                edge_id = f"edge.config.{entry.replace('.', '_')}.{node['id'].replace('.', '_')}.{role}"
+                edge = {
+                    "id": edge_id,
+                    "source": entry,
+                    "target": node["id"],
+                    "relation_type": "dependency",
+                    "protocol": "config",
+                    "confidence": 0.72,
+                    "inferred_from": inferred_from,
+                    "metadata": {
+                        "inference": "config_manifest",
+                    },
+                }
+                relations.append(edge)
+                relation_index[edge_key] = edge
 
     def _resolve_target_cluster(self, import_ref: str, known_clusters: list[str]) -> str | None:
         normalized = import_ref.lower().replace("\\", "/").replace("::", "/").replace(".", "/")

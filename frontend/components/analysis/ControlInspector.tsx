@@ -5,7 +5,11 @@ import { useMemo } from "react";
 import { useI18n } from "@/hooks/useI18n";
 import { useDashboardStore } from "@/store/useDashboardStore";
 
-export function ControlInspector() {
+interface ControlInspectorProps {
+  onOpenSettings?: () => void;
+}
+
+export function ControlInspector({ onOpenSettings }: ControlInspectorProps) {
   const { t, formatDateTime } = useI18n();
   const target = useDashboardStore((state) => state.target);
   const viewMode = useDashboardStore((state) => state.viewMode);
@@ -89,7 +93,7 @@ export function ControlInspector() {
           </button>
           <button
             type="button"
-            onClick={() => setViewMode("settings")}
+            onClick={onOpenSettings}
             className="rounded border border-line bg-[#102239] px-2 py-1 text-[11px] text-slate-100 hover:border-cyan-400"
           >
             {t("nav.settings")}

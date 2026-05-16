@@ -18,16 +18,34 @@ export function useLiveFlowSocket(): void {
   const setMetrics = useDashboardStore((state) => state.setMetrics);
   const setDiagnosticsSummary = useDashboardStore((state) => state.setDiagnosticsSummary);
   const setParserAnalysis = useDashboardStore((state) => state.setParserAnalysis);
+  const setLiveStreamStatus = useDashboardStore((state) => state.setLiveStreamStatus);
 
   useEffect(() => {
     const socket = new WebSocket(`${WS_LIVE_URL}?target=${encodeURIComponent(target)}`);
     socketRef.current = socket;
+    setLiveStreamStatus({ connected: false, lastMessageAt: new Date().toISOString() });
+
+    socket.onopen = () => {
+      setLiveStreamStatus({ connected: true, lastMessageAt: new Date().toISOString() });
+    };
+
+    socket.onclose = () => {
+      setLiveStreamStatus({ connected: false, lastMessageAt: new Date().toISOString() });
+    };
 
     socket.onmessage = async (event) => {
       const message = JSON.parse(event.data) as LiveMessage;
       if (message.target && message.target !== target) {
         return;
       }
+
+      setLiveStreamStatus({
+        connected: true,
+        liveMode: message.live_mode,
+        flowGate: message.flow_gate,
+        activeTraceId: message.active_trace_id ?? message.trace_id,
+        lastMessageAt: new Date().toISOString(),
+      });
 
       if (message.type === "trace_started" && message.trace) {
         upsertTrace({ envelope: message.trace, spans: [] });
@@ -81,6 +99,7 @@ export function useLiveFlowSocket(): void {
     setDiagnosticsSummary,
     setMetrics,
     setParserAnalysis,
+    setLiveStreamStatus,
     setTraceDetail,
     target,
     upsertTrace,

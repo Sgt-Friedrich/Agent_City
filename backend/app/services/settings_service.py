@@ -48,7 +48,12 @@ class SettingsService:
 
         try:
             raw = json.loads(self._settings_path.read_text(encoding="utf-8"))
-            return AppSettings.model_validate(raw)
+            loaded = AppSettings.model_validate(raw)
+            validated_payload = self._validate_payload(loaded.model_dump(mode="json"))
+            normalized = AppSettings.model_validate(validated_payload)
+            if normalized != loaded:
+                self._save(normalized)
+            return normalized
         except Exception:
             fallback = AppSettings(
                 workspace_dir=str(self._project_root.resolve()),
@@ -106,7 +111,7 @@ class SettingsService:
         except Exception:
             errors.append("cleanup_threshold_mb: invalid numeric value")
 
-        live_mode_raw = normalized.get("live_flow_mode", "always_simulated")
+        live_mode_raw = normalized.get("live_flow_mode", "codex_real_only")
         if isinstance(live_mode_raw, str):
             live_mode = live_mode_raw.strip()
         elif hasattr(live_mode_raw, "value"):

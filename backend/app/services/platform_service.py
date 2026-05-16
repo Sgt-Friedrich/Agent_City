@@ -19,6 +19,7 @@ from app.models.schemas import (
     Node,
     NodeDiagnosticItem,
     ParseJob,
+    ParserFixAction,
     ParserAnalysisIssue,
     ParserAnalysisReport,
     ParseJobStatus,
@@ -29,6 +30,7 @@ from app.models.schemas import (
     TargetDescriptor,
     TopologyGraph,
     TraceRecord,
+    UnresolvedSymbolDetail,
 )
 from app.services.runtime_trace_resolver import RuntimeTraceResolver
 from app.services.topology_binding import TopologyBindingService
@@ -537,7 +539,9 @@ class PlatformService:
         parser_conf = float(topology.metadata.get("parser_confidence", 0.5) or 0.5)
         parser_grade = str(topology.metadata.get("parser_grade", "C"))
         source_coverage = dict(topology.metadata.get("source_coverage", {}))
+        confidence_breakdown = dict(topology.metadata.get("confidence_breakdown", {}))
         unresolved_symbols = list(topology.metadata.get("unresolved_symbols", []))
+        unresolved_details = self._build_unresolved_details(unresolved_symbols)
 
         role_counts: dict[str, int] = {}
         district_counts: dict[str, int] = {}
@@ -556,9 +560,20 @@ class PlatformService:
             for edge in observed_edges
             if edge.id.startswith("edge.inferred.") or edge.status == "observed"
         ]
+        promotable_edges = [edge for edge in inferred_edges if bool(edge.metadata.get("promotable"))]
         low_confidence_edges = [
             edge for edge in [*topology.edges, *observed_edges] if edge.confidence < 0.66
         ]
+        explainability_ready = 0
+        for node in topology.nodes:
+            explain = node.metadata.get("explainability")
+            if isinstance(explain, dict) and explain.get("responsibility"):
+                explainability_ready += 1
+        explainability_coverage = (
+            round(explainability_ready / max(1, len(topology.nodes)), 3)
+            if topology.nodes
+            else 0.0
+        )
 
         issues: list[ParserAnalysisIssue] = []
         if parser_conf < 0.72:
@@ -612,18 +627,51 @@ class PlatformService:
                     suggestion="Review runtime-only links and promote stable ones into declared topology rules.",
                 )
             )
+        if promotable_edges:
+            issues.append(
+                ParserAnalysisIssue(
+                    severity="medium",
+                    category="promotion",
+                    title="Stable inferred edges are ready to promote",
+                    detail=f"{len(promotable_edges)} inferred edges are stable across traces.",
+                    suggestion="Review promotable edges and promote them into declared topology rules.",
+                )
+            )
+        if explainability_coverage < 0.85:
+            issues.append(
+                ParserAnalysisIssue(
+                    severity="medium",
+                    category="explainability",
+                    title="Node explainability coverage is incomplete",
+                    detail=f"Only {explainability_coverage:.2%} nodes expose explainability metadata.",
+                    suggestion="Expand parser role mapping and explainability profile generation.",
+                )
+            )
+
+        fix_queue = self._build_parser_fix_queue(
+            source_coverage=source_coverage,
+            unresolved_details=unresolved_details,
+            promotable_edges=promotable_edges,
+            low_confidence_edges=low_confidence_edges,
+            parser_confidence=parser_conf,
+        )
 
         return ParserAnalysisReport(
             generated_at=datetime.now(timezone.utc),
             target=target,
             parser_confidence=round(parser_conf, 3),
             parser_grade=parser_grade,
+            confidence_breakdown=confidence_breakdown,
             source_coverage=source_coverage,
             unresolved_symbols=unresolved_symbols,
+            unresolved_details=unresolved_details,
             provisional_node_count=provisional_count,
             declared_edge_count=declared_edge_count,
             observed_edge_count=observed_edge_count,
             inferred_edge_count=len(inferred_edges),
+            promotable_inferred_count=len(promotable_edges),
+            promotable_edges=promotable_edges[:20],
+            explainability_coverage=explainability_coverage,
             role_coverage=[
                 CoveragePoint(label=role, count=count)
                 for role, count in sorted(role_counts.items(), key=lambda item: (-item[1], item[0]))
@@ -635,7 +683,124 @@ class PlatformService:
             low_confidence_edges=low_confidence_edges[:20],
             recent_parse_jobs=recent_jobs[:10],
             issues=issues,
+            fix_queue=fix_queue,
         )
+
+    def _build_unresolved_details(self, unresolved_symbols: list[str]) -> list[UnresolvedSymbolDetail]:
+        details: list[UnresolvedSymbolDetail] = []
+        for item in unresolved_symbols:
+            reason = "ambiguous_symbol"
+            symbol = item
+            if ":" in item:
+                maybe_reason, tail = item.split(":", 1)
+                if maybe_reason in {
+                    "dynamic_runtime",
+                    "missing_config",
+                    "ambiguous_symbol",
+                    "parser_rule_missing",
+                }:
+                    reason = maybe_reason
+                    symbol = tail
+            confidence_by_reason = {
+                "dynamic_runtime": 0.62,
+                "missing_config": 0.72,
+                "ambiguous_symbol": 0.42,
+                "parser_rule_missing": 0.58,
+            }
+            details.append(
+                UnresolvedSymbolDetail(
+                    symbol=symbol.strip(),
+                    reason=reason,
+                    confidence=confidence_by_reason.get(reason, 0.5),
+                    source=None,
+                )
+            )
+        return details[:40]
+
+    def _build_parser_fix_queue(
+        self,
+        *,
+        source_coverage: dict[str, bool],
+        unresolved_details: list[UnresolvedSymbolDetail],
+        promotable_edges: list[Edge],
+        low_confidence_edges: list[Edge],
+        parser_confidence: float,
+    ) -> list[ParserFixAction]:
+        actions: list[ParserFixAction] = []
+
+        if not source_coverage.get("config", False):
+            actions.append(
+                ParserFixAction(
+                    id="fix-config-coverage",
+                    priority="high",
+                    category="source-coverage",
+                    title="Expand config parser coverage",
+                    description="Config evidence is missing; parse yaml/toml/json/.env agent workflow and tool fields.",
+                    suggested_file="backend/app/parsers/config_parser.py",
+                    expected_gain="+0.06~0.14 parser confidence",
+                    action_query="category:source-coverage config",
+                )
+            )
+
+        dynamic_unresolved = [item for item in unresolved_details if item.reason == "dynamic_runtime"]
+        if dynamic_unresolved:
+            actions.append(
+                ParserFixAction(
+                    id="fix-dynamic-registration",
+                    priority="high",
+                    category="dynamic-runtime",
+                    title="Add dynamic registration rules",
+                    description=f"{len(dynamic_unresolved)} unresolved hints indicate dynamic plugin/tool registration.",
+                    suggested_file="backend/app/parsers/python_parser.py",
+                    expected_gain="reduce unresolved noise by 20~40%",
+                    action_query="reason:dynamic_runtime",
+                )
+            )
+
+        if promotable_edges:
+            actions.append(
+                ParserFixAction(
+                    id="promote-stable-inferred-edges",
+                    priority="medium",
+                    category="promotion",
+                    title="Promote stable inferred edges",
+                    description=f"{len(promotable_edges)} inferred edges are stable and can become declared edges.",
+                    suggested_file="backend/app/services/topology_binding.py",
+                    expected_gain="reduce runtime-diff issues and improve topology stability",
+                    action_query="kind:observed promotable:true",
+                )
+            )
+
+        parser_rule_missing = [item for item in unresolved_details if item.reason == "parser_rule_missing"]
+        if parser_rule_missing or low_confidence_edges:
+            actions.append(
+                ParserFixAction(
+                    id="tune-discovery-rules",
+                    priority="medium",
+                    category="rule-coverage",
+                    title="Tune discovery and normalization rules",
+                    description="Improve rule coverage for unresolved parser symbols and low-confidence static edges.",
+                    suggested_file="backend/app/services/topology_discovery.py",
+                    expected_gain="clear unresolved parser_rule_missing items and edge confidence uplift",
+                    action_query="reason:parser_rule_missing",
+                )
+            )
+
+        if parser_confidence < 0.78 and not actions:
+            actions.append(
+                ParserFixAction(
+                    id="baseline-parser-hardening",
+                    priority="medium",
+                    category="confidence",
+                    title="Baseline parser hardening",
+                    description="Parser confidence is below target; expand language-specific role and registry rules.",
+                    suggested_file="backend/app/parsers/",
+                    expected_gain="parser confidence to >= 0.80",
+                    action_query="parser:confidence",
+                )
+            )
+
+        return actions[:8]
 
     def export_analysis_report(self, target: str = "mock") -> AnalysisReportExport:
         diagnostics = self.get_diagnostics_summary(target=target)
@@ -663,6 +828,19 @@ class PlatformService:
                 )
         else:
             lines.append("- No parser issues were flagged.")
+
+        if parser_report.fix_queue:
+            lines.extend(["", "## Parser Fix Queue"])
+            for item in parser_report.fix_queue:
+                lines.extend(
+                    [
+                        f"- [{item.priority.upper()}] {item.title}",
+                        f"  - category: {item.category}",
+                        f"  - description: {item.description}",
+                        f"  - suggested_file: {item.suggested_file}",
+                        f"  - expected_gain: {item.expected_gain}",
+                    ]
+                )
 
         lines.extend(["", "## Diagnostics Highlights"])
         if diagnostics.error_nodes:
@@ -959,10 +1137,60 @@ class PlatformService:
         context.bound_traces[trace_id] = bound
 
         for inferred in bound.inferred_edges:
-            context.observed_edges[inferred.id] = inferred
+            existing = context.observed_edges.get(inferred.id)
+            if existing is None:
+                context.observed_edges[inferred.id] = inferred
+                continue
+            context.observed_edges[inferred.id] = self._merge_observed_edge(existing, inferred)
 
         for span in bound.trace.spans:
             context.recent_flow_events.append(span)
+
+    def _merge_observed_edge(self, existing: Edge, incoming: Edge) -> Edge:
+        merged = existing.model_copy(deep=True)
+        merged.confidence = round(max(existing.confidence, incoming.confidence), 3)
+
+        existing_meta = dict(existing.metadata)
+        incoming_meta = dict(incoming.metadata)
+        observations = int(existing_meta.get("observations", 1)) + int(incoming_meta.get("observations", 1))
+        error_count = int(existing_meta.get("error_count", 0)) + int(incoming_meta.get("error_count", 0))
+        retry_count = int(existing_meta.get("retry_count", 0)) + int(incoming_meta.get("retry_count", 0))
+        fallback_count = int(existing_meta.get("fallback_count", 0)) + int(incoming_meta.get("fallback_count", 0))
+
+        promotable = observations >= 4 and error_count == 0 and retry_count <= 1 and fallback_count <= 1
+        promotable_reason = (
+            "stable runtime edge with repeated low-error observations"
+            if promotable
+            else f"needs stability (obs={observations}, err={error_count}, retry={retry_count}, fallback={fallback_count})"
+        )
+
+        merged.metadata.update(incoming_meta)
+        merged.metadata.update(
+            {
+                "observations": observations,
+                "error_count": error_count,
+                "retry_count": retry_count,
+                "fallback_count": fallback_count,
+                "promotable": promotable,
+                "promotable_reason": promotable_reason,
+            }
+        )
+
+        for marker in incoming.inferred_from:
+            if marker not in merged.inferred_from:
+                merged.inferred_from.append(marker)
+
+        if "last_latency_ms" in incoming.metrics:
+            merged.metrics["last_latency_ms"] = float(incoming.metrics["last_latency_ms"])
+        if "last_latency_ms" in existing.metrics and "avg_latency_ms" not in merged.metrics:
+            merged.metrics["avg_latency_ms"] = float(existing.metrics["last_latency_ms"])
+        if "avg_latency_ms" in merged.metrics and "last_latency_ms" in incoming.metrics:
+            merged.metrics["avg_latency_ms"] = round(
+                (float(merged.metrics["avg_latency_ms"]) * (observations - 1) + float(incoming.metrics["last_latency_ms"])) / max(observations, 1),
+                2,
+            )
+
+        return merged
 
     def _refresh_node_metrics(self, context: PlatformContext) -> None:
         snapshots = context.metrics_source.snapshot_for_nodes(context.topology.nodes)

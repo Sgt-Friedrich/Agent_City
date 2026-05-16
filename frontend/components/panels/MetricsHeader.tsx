@@ -41,17 +41,17 @@ function Metric({
   return (
     <button
       type="button"
-      className="border-r border-line px-3 py-2 text-left last:border-r-0 hover:bg-[#0c1f34]"
+      className="min-w-[112px] border-r border-line px-2.5 py-1.5 text-left last:border-r-0 hover:bg-[#0c1f34]"
       onClick={onClick}
     >
-      <div className="text-[11px] uppercase tracking-wide text-slate-400">{label}</div>
-      <div className="panel-title mt-1 text-sm text-slate-100">{value}</div>
-      <div className="mt-1 flex items-end gap-[2px]">
+      <div className="text-[10px] uppercase tracking-wide text-slate-500">{label}</div>
+      <div className="panel-title mt-0.5 text-[13px] leading-4 text-slate-100">{value}</div>
+      <div className="mt-0.5 flex h-4 items-end gap-[2px]">
         {spark.map((height, index) => (
           <span
             key={`${label}-${index}`}
             className="inline-block w-[3px] rounded-sm bg-cyan-400/70"
-            style={{ height: `${height}px` }}
+            style={{ height: `${Math.max(3, Math.min(16, height * 0.34))}px` }}
           />
         ))}
       </div>
@@ -107,8 +107,8 @@ export function MetricsHeader({ metrics, mode = "live", diagnosticMode = "realti
   ];
 
   return (
-    <header data-testid="metrics-header" className="border-b border-line bg-[#081323cc] backdrop-blur-sm">
-      <div className="flex items-center justify-between border-b border-line/70 px-3 py-1.5 text-[10px] uppercase tracking-wide text-slate-500">
+    <header data-testid="metrics-header" className="border-b border-line bg-[#081323d6] backdrop-blur-sm">
+      <div className="flex items-center justify-between border-b border-line/60 px-3 py-1 text-[10px] uppercase tracking-wide text-slate-500">
         <span>{t("metrics.window")}</span>
         <div className="flex items-center gap-1">
           {rangeButtons.map((item) => (
@@ -127,7 +127,7 @@ export function MetricsHeader({ metrics, mode = "live", diagnosticMode = "realti
           ))}
         </div>
       </div>
-      <div className="flex flex-wrap items-stretch">
+      <div className="flex items-stretch overflow-x-auto scrollbar-thin">
         <Metric
           label={t("metrics.mode")}
           value={`${displayModeLabel || modeLabel[mode]}${modeDetail}`}

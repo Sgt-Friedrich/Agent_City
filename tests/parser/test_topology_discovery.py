@@ -34,7 +34,13 @@ class StubSource:
         return []
 
     def unresolved_hints(self):
-        return ["dynamic registration encountered"]
+        return [
+            "dynamic registration encountered",
+            "dynamic_runtime:importlib.import_module(plugin_name)",
+            "config/app.yaml missing key",
+            "# comment should be ignored",
+            "\"this is a long documentation sentence that should not become unresolved symbol noise\"",
+        ]
 
 
 class TopologyDiscoveryTest(unittest.TestCase):
@@ -43,7 +49,11 @@ class TopologyDiscoveryTest(unittest.TestCase):
 
         self.assertIsNotNone(discovery.parser_confidence)
         self.assertIsNotNone(discovery.parser_grade)
-        self.assertIn("dynamic registration", " ".join(discovery.unresolved_symbols))
+        unresolved = " ".join(discovery.unresolved_symbols)
+        self.assertIn("dynamic_runtime", unresolved)
+        self.assertIn("missing_config", unresolved)
+        self.assertNotIn("# comment", unresolved)
+        self.assertNotIn("dynamic_runtime:dynamic_runtime", unresolved)
 
 
 if __name__ == "__main__":

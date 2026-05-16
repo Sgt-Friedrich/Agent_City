@@ -27,7 +27,7 @@ test("language switching to Chinese does not crash and persists in-session", asy
 
   await page.goto("/?target=mock", { waitUntil: "networkidle" });
 
-  await page.getByTestId("filter-panel").getByRole("button", { name: /settings|设置/i }).click();
+  await page.getByTestId("header-open-settings").click();
   await expect(page.getByTestId("settings-center")).toBeVisible();
 
   await page.getByTestId("settings-center").getByRole("button", { name: /中文/i }).click();
@@ -36,7 +36,7 @@ test("language switching to Chinese does not crash and persists in-session", asy
   await page.getByRole("button", { name: /保存设置|save settings/i }).click();
   await expect(page.getByText(/设置已保存|Settings saved/i)).toBeVisible();
 
-  await page.getByTestId("filter-panel").getByRole("button", { name: /总览|overview/i }).click();
+  await page.getByTestId("header-open-settings").click();
   await expect(page.getByTestId("city-scene")).toBeVisible();
 
   expect.soft(consoleErrors, consoleErrors.join("\n")).toEqual([]);

@@ -10,6 +10,7 @@ class ConfidenceScore:
     score: float
     grade: str
     unresolved_symbols: list[str]
+    breakdown: dict[str, float]
     source_coverage: dict[str, bool]
 
 
@@ -37,8 +38,30 @@ class ConfidenceScoringService:
         source_coverage = self._source_coverage(components=components, relations=relations, snippet_count=snippet_count)
         source_score = sum(1 for item in source_coverage.values() if item) / len(source_coverage)
 
-        score = 0.18 + (0.36 * core_coverage) + (0.22 * relation_density) + (0.18 * source_score)
-        score += 0.06 * max(0.0, 1.0 - synthetic_ratio)
+        # Explainable sub-scores:
+        # - code: code snippets + role coverage quality
+        # - config: config evidence
+        # - registry: decorators/registration/workflow/graph evidence
+        # - runtime_consistency: relation density + synthetic node ratio
+        code_score = min(1.0, 0.45 * core_coverage + (0.55 if snippet_count > 0 else 0.0))
+        config_score = 1.0 if source_coverage["config"] else 0.0
+        registry_score = 1.0 if source_coverage["registry"] else 0.0
+        runtime_consistency = max(
+            0.0,
+            min(1.0, relation_density * 0.7 + (1.0 - synthetic_ratio) * 0.3),
+        )
+        breakdown = {
+            "code": round(code_score, 3),
+            "config": round(config_score, 3),
+            "registry": round(registry_score, 3),
+            "runtime_consistency": round(runtime_consistency, 3),
+        }
+
+        score = 0.08
+        score += 0.32 * code_score
+        score += 0.2 * config_score
+        score += 0.2 * registry_score
+        score += 0.2 * runtime_consistency
         score = max(0.08, min(0.96, round(score, 3)))
 
         unresolved: list[str] = []
@@ -62,6 +85,7 @@ class ConfidenceScoringService:
             score=score,
             grade=grade,
             unresolved_symbols=sorted(set(unresolved)),
+            breakdown=breakdown,
             source_coverage=source_coverage,
         )
 
@@ -76,6 +100,13 @@ class ConfidenceScoringService:
         config = any(
             any(token in source_type for token in ["config", "manifest", "toml", "yaml", "json", "cargo", "pom"]) 
             for source_type in source_types
+        ) or any(
+            bool(component.metadata.get("config_sources")) for component in components
+        ) or any(
+            relation.protocol == "config" for relation in relations
+        ) or any(
+            any(str(item).startswith("config:") for item in relation.inferred_from)
+            for relation in relations
         )
         registry = any(
             any(token in source_type for token in ["registry", "workflow", "graph", "policy", "prompt", "tool", "mcp"]) 

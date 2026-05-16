@@ -10,6 +10,7 @@ import {
   Edge,
   Filters,
   FlowEvent,
+  LiveFlowMode,
   MetricsSummary,
   NodeType,
   ParseJob,
@@ -34,6 +35,15 @@ interface ReplayState {
 }
 
 export type DiagnosticFocus = "all" | "errors" | "slow" | "congestion" | "retry_fallback";
+export type PromptStageFocus =
+  | "ingress"
+  | "planning"
+  | "context"
+  | "tools"
+  | "llm"
+  | "safety"
+  | "output"
+  | "runtime";
 
 interface DashboardState {
   viewMode: DashboardMode;
@@ -55,8 +65,17 @@ interface DashboardState {
   diagnosticsSummary?: DiagnosticsSummary;
   parserAnalysis?: ParserAnalysisReport;
   desktopStatus?: DesktopAppStatus;
+  liveStreamStatus?: {
+    connected: boolean;
+    liveMode?: LiveFlowMode;
+    flowGate?: string;
+    activeTraceId?: string;
+    lastMessageAt?: string;
+  };
   liveEvents: FlowEvent[];
   timelineGroupBy: TimelineGroupBy;
+  promptStageFocus?: PromptStageFocus;
+  promptStageNodeIds: string[];
   selectedNodeId?: string;
   selectedSpanId?: string;
   selectedTraceId?: string;
@@ -84,11 +103,13 @@ interface DashboardState {
   setDiagnosticsSummary: (summary: DiagnosticsSummary | undefined) => void;
   setParserAnalysis: (report: ParserAnalysisReport | undefined) => void;
   setDesktopStatus: (status: DesktopAppStatus | undefined) => void;
+  setLiveStreamStatus: (status: DashboardState["liveStreamStatus"]) => void;
   pushLiveEvent: (event: FlowEvent) => void;
   setSelectedNode: (nodeId?: string) => void;
   setSelectedSpan: (spanId?: string, traceId?: string) => void;
   setSelectedTrace: (traceId?: string) => void;
   setTimelineGroupBy: (groupBy: TimelineGroupBy) => void;
+  setPromptStageFocus: (stage?: PromptStageFocus, nodeIds?: string[]) => void;
   setDistrictFilter: (districtIds: string[]) => void;
   setNodeTypeFilter: (nodeTypes: NodeType[]) => void;
   setSpanKindFilter: (spanKinds: SpanKind[]) => void;
@@ -128,8 +149,11 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   diagnosticsSummary: undefined,
   parserAnalysis: undefined,
   desktopStatus: undefined,
+  liveStreamStatus: undefined,
   liveEvents: [],
   timelineGroupBy: "time",
+  promptStageFocus: undefined,
+  promptStageNodeIds: [],
   filters: defaultFilters,
   replay: {
     active: false,
@@ -167,6 +191,8 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       selectedNodeId: undefined,
       selectedSpanId: undefined,
       selectedTraceId: undefined,
+      promptStageFocus: undefined,
+      promptStageNodeIds: [],
       filters: defaultFilters,
       viewMode:
         get().viewMode === "parser_analysis"
@@ -249,6 +275,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   setDiagnosticsSummary: (diagnosticsSummary) => set({ diagnosticsSummary }),
   setParserAnalysis: (parserAnalysis) => set({ parserAnalysis }),
   setDesktopStatus: (desktopStatus) => set({ desktopStatus }),
+  setLiveStreamStatus: (liveStreamStatus) => set({ liveStreamStatus }),
 
   pushLiveEvent: (event) => {
     const next = [event, ...get().liveEvents].slice(0, 100);
@@ -259,6 +286,11 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   setSelectedSpan: (spanId, traceId) => set({ selectedSpanId: spanId, selectedTraceId: traceId }),
   setSelectedTrace: (traceId) => set({ selectedTraceId: traceId }),
   setTimelineGroupBy: (timelineGroupBy) => set({ timelineGroupBy }),
+  setPromptStageFocus: (promptStageFocus, promptStageNodeIds = []) =>
+    set({
+      promptStageFocus,
+      promptStageNodeIds,
+    }),
 
   setDistrictFilter: (districtIds) => set({ filters: { ...get().filters, districtIds } }),
   setNodeTypeFilter: (nodeTypes) => set({ filters: { ...get().filters, nodeTypes } }),

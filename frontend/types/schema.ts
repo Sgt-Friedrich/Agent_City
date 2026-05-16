@@ -106,6 +106,20 @@ export interface Node {
   source_provenance: SourceProvenance[];
 }
 
+export interface NodeExplainabilityProfile {
+  display_name?: string;
+  technical_name?: string;
+  role?: string;
+  responsibility?: string;
+  inputs?: string[];
+  outputs?: string[];
+  protocols?: string[];
+  risk_hint?: string;
+  group?: string;
+  evidence_count?: number;
+  explainability_confidence?: number;
+}
+
 export interface Edge {
   id: string;
   from: string;
@@ -341,22 +355,46 @@ export interface ParserAnalysisIssue {
   suggestion: string;
 }
 
+export interface UnresolvedSymbolDetail {
+  symbol: string;
+  reason: string;
+  confidence: number;
+  source?: string | null;
+}
+
+export interface ParserFixAction {
+  id: string;
+  priority: string;
+  category: string;
+  title: string;
+  description: string;
+  suggested_file: string;
+  expected_gain: string;
+  action_query?: string | null;
+}
+
 export interface ParserAnalysisReport {
   generated_at: string;
   target: string;
   parser_confidence: number;
   parser_grade: string;
+  confidence_breakdown: Record<string, number>;
   source_coverage: Record<string, boolean>;
   unresolved_symbols: string[];
+  unresolved_details: UnresolvedSymbolDetail[];
   provisional_node_count: number;
   declared_edge_count: number;
   observed_edge_count: number;
   inferred_edge_count: number;
+  promotable_inferred_count: number;
+  promotable_edges: Edge[];
+  explainability_coverage: number;
   role_coverage: CoveragePoint[];
   district_coverage: CoveragePoint[];
   low_confidence_edges: Edge[];
   recent_parse_jobs: ParseJob[];
   issues: ParserAnalysisIssue[];
+  fix_queue: ParserFixAction[];
 }
 
 export interface ReportArtifact {

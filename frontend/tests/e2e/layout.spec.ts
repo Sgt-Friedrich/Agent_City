@@ -46,16 +46,19 @@ test("dashboard renders core zones and replay route is reachable", async ({ page
 
   await expect(page.getByTestId("dashboard-root")).toBeVisible();
   await expect(page.getByTestId("metrics-header")).toBeVisible();
-  await expect(page.getByTestId("parse-progress-banner")).toBeVisible();
-  await expect(page.getByTestId("filter-panel")).toBeVisible();
   await expect(page.getByTestId("city-scene")).toBeVisible();
   await expect(page.getByTestId("detail-drawer")).toBeVisible();
   await expect(page.getByTestId("timeline-panel")).toBeVisible();
+
+  await page.getByTestId("ribbon-tab-analysis").click();
+  await expect(page.getByTestId("filter-panel")).toBeVisible();
+  await page.keyboard.press("Escape");
 
   await page.getByTestId("command-palette-toggle").click();
   await expect(page.getByTestId("command-palette-input")).toBeVisible();
   await page.keyboard.press("Escape");
 
+  await page.getByTestId("timeline-panel").getByRole("button", { name: /open|打开/i }).click();
   await page.getByTestId("timeline-group-trace").click();
   await expect(page.getByTestId("timeline-trace-groups")).toBeVisible();
   await page.getByTestId("timeline-group-time").click();
@@ -65,15 +68,19 @@ test("dashboard renders core zones and replay route is reachable", async ({ page
   await expect(page.getByTestId("import-wizard")).toBeVisible();
   await page.getByTestId("import-wizard-close").click();
 
+  await page.getByTestId("view-menu-toggle").click();
   await safeClick(page.getByTestId("view-mode-diagnostics"));
   await expect(page.getByTestId("diagnostics-center")).toBeVisible();
 
+  await page.getByTestId("view-menu-toggle").click();
   await safeClick(page.getByTestId("view-mode-parser_analysis"));
   await expect(page.getByTestId("parser-analysis-center")).toBeVisible();
 
+  await page.getByTestId("view-menu-toggle").click();
   await safeClick(page.getByTestId("view-mode-reports"));
   await expect(page.getByTestId("reports-center")).toBeVisible();
 
+  await page.getByTestId("view-menu-toggle").click();
   await safeClick(page.getByTestId("view-mode-overview"));
   await expect(page.getByTestId("city-scene")).toBeVisible();
 

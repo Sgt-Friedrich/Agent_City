@@ -7,6 +7,7 @@ import { useI18n } from "@/hooks/useI18n";
 import { shortId } from "@/lib/utils";
 import { useDashboardStore } from "@/store/useDashboardStore";
 import { FlowEvent, Node } from "@/types/schema";
+import { NodeExplainabilityProfile } from "@/types/schema";
 
 interface DetailDrawerProps {
   hoveredEvent?: FlowEvent;
@@ -108,6 +109,11 @@ export function DetailDrawer({ hoveredEvent }: DetailDrawerProps) {
 
   const nodeContext = useMemo(() => {
     if (!selectedNode || !topology) return undefined;
+    const explainabilityRaw = selectedNode.metadata?.explainability;
+    const explainability =
+      explainabilityRaw && typeof explainabilityRaw === "object"
+        ? (explainabilityRaw as NodeExplainabilityProfile)
+        : undefined;
 
     const relatedEvents = liveEvents.filter(
       (event) => event.from_node === selectedNode.id || event.to_node === selectedNode.id,
@@ -157,6 +163,7 @@ export function DetailDrawer({ hoveredEvent }: DetailDrawerProps) {
     return {
       districtName: district?.name ?? selectedNode.district_id,
       districtSummary: district?.summary,
+      explainability,
       relatedEvents: relatedEvents.slice(0, 8),
       latestTimestamp,
       inboundTop,
@@ -190,9 +197,16 @@ export function DetailDrawer({ hoveredEvent }: DetailDrawerProps) {
 
           <div className="rounded border border-line bg-[#0a1626] p-2">
             <div className="panel-title text-[11px] uppercase tracking-wide text-slate-200">{t("inspector.summary")}</div>
-            <div className="mt-1 text-[12px] text-slate-100">{selectedNode.name}</div>
+            <div className="mt-1 text-[12px] text-slate-100">
+              {nodeContext?.explainability?.display_name ?? selectedNode.name}
+            </div>
             <div className="mt-1 text-[11px] text-slate-400">{selectedNode.type} | {nodeContext?.districtName}</div>
             <div className="text-[11px] text-slate-400">{nodeContext?.districtSummary}</div>
+            {nodeContext?.explainability?.responsibility ? (
+              <div className="mt-1 rounded border border-line bg-[#0b1828] px-2 py-1 text-[11px] text-slate-300">
+                {nodeContext.explainability.responsibility}
+              </div>
+            ) : null}
             <div className="mt-1 grid grid-cols-2 gap-1 text-[11px] text-slate-400">
               <div>{t("drawer.status")}: {selectedNode.status}</div>
               <div>{t("drawer.lastActive")}: {formatRelativeTime(nodeContext?.latestTimestamp)}</div>
@@ -203,6 +217,19 @@ export function DetailDrawer({ hoveredEvent }: DetailDrawerProps) {
             </div>
             <div className="mt-1 text-[11px] text-slate-400">{t("drawer.inTop3")}: {nodeContext?.inboundTop.join(", ") || t("common.na")}</div>
             <div className="text-[11px] text-slate-400">{t("drawer.outTop3")}: {nodeContext?.outboundTop.join(", ") || t("common.na")}</div>
+            {(nodeContext?.explainability?.inputs?.length || nodeContext?.explainability?.outputs?.length) ? (
+              <div className="mt-1 text-[11px] text-slate-400">
+                in: {nodeContext?.explainability?.inputs?.slice(0, 2).join(", ") || t("common.na")} | out: {nodeContext?.explainability?.outputs?.slice(0, 2).join(", ") || t("common.na")}
+              </div>
+            ) : null}
+            {nodeContext?.explainability?.protocols?.length ? (
+              <div className="text-[11px] text-cyan-200">
+                {nodeContext.explainability.protocols.slice(0, 3).join(" | ")}
+              </div>
+            ) : null}
+            {nodeContext?.explainability?.risk_hint ? (
+              <div className="text-[11px] text-amber-200">{nodeContext.explainability.risk_hint}</div>
+            ) : null}
             <div className="mt-2 flex flex-wrap gap-1">
               <button
                 type="button"
@@ -245,6 +272,13 @@ export function DetailDrawer({ hoveredEvent }: DetailDrawerProps) {
             <div className="space-y-2 rounded border border-line bg-[#0a1626] p-2 text-[11px] text-slate-400">
               <div>{t("drawer.nodeId")}: {selectedNode.id}</div>
               <div>{t("drawer.metadata")}: {JSON.stringify(selectedNode.metadata)}</div>
+              {nodeContext?.explainability ? (
+                <div>
+                  explainability:
+                  {" "}
+                  {JSON.stringify(nodeContext.explainability)}
+                </div>
+              ) : null}
               <div>{t("drawer.upstream")}: {nodeContext?.upstream.join(" ; ") || t("common.na")}</div>
               <div>{t("drawer.downstream")}: {nodeContext?.downstream.join(" ; ") || t("common.na")}</div>
               <div>{t("drawer.traceList")}: {nodeContext?.traceSummaries.join(" | ") || t("common.na")}</div>

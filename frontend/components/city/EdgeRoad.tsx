@@ -18,6 +18,14 @@ interface EdgeRoadProps {
   diagnosticMode?: DiagnosticMode;
 }
 
+function edgeLaneOffset(edgeId: string): number {
+  let hash = 0;
+  for (let index = 0; index < edgeId.length; index += 1) {
+    hash = (hash * 31 + edgeId.charCodeAt(index)) >>> 0;
+  }
+  return ((hash % 7) - 3) * 0.72;
+}
+
 export function EdgeRoad({
   edge,
   fromNode,
@@ -32,13 +40,24 @@ export function EdgeRoad({
   const points = useMemo<[number, number, number][]>(() => {
     const start: [number, number, number] = [fromNode.position.x, 0.6, fromNode.position.z];
     const end: [number, number, number] = [toNode.position.x, 0.6, toNode.position.z];
-    return [start, end];
-  }, [fromNode.position.x, fromNode.position.z, toNode.position.x, toNode.position.z]);
+    const dir = new THREE.Vector3(end[0] - start[0], 0, end[2] - start[2]);
+    const length = Math.max(1, dir.length());
+    const perp = length <= 1.01 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(-dir.z, 0, dir.x).normalize();
+    const lane = edgeLaneOffset(edge.id) * (renderLayer === "primary" ? 1.6 : 1);
+    const lift = edge.kind === "invocation" ? 1.1 : edge.kind === "dependency" ? 0.35 : 0.7;
+    const mid = new THREE.Vector3(
+      (start[0] + end[0]) / 2,
+      0.6 + lift,
+      (start[2] + end[2]) / 2,
+    ).add(perp.multiplyScalar(Math.min(12, length * 0.08) + lane));
+    return [start, [mid.x, mid.y, mid.z], end];
+  }, [edge.id, edge.kind, fromNode.position.x, fromNode.position.z, renderLayer, toNode.position.x, toNode.position.z]);
   const roadBasePoints = useMemo<[number, number, number][]>(() => {
     const start: [number, number, number] = [fromNode.position.x, 0.22, fromNode.position.z];
     const end: [number, number, number] = [toNode.position.x, 0.22, toNode.position.z];
-    return [start, end];
-  }, [fromNode.position.x, fromNode.position.z, toNode.position.x, toNode.position.z]);
+    const mainMid = points[1];
+    return [start, [mainMid[0], 0.24, mainMid[2]], end];
+  }, [fromNode.position.x, fromNode.position.z, points, toNode.position.x, toNode.position.z]);
 
   const arrow = useMemo(() => {
     const start = new THREE.Vector3(fromNode.position.x, 0.8, fromNode.position.z);

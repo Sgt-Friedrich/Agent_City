@@ -6,7 +6,7 @@ import { api } from "@/lib/api";
 import { shortId } from "@/lib/utils";
 import { useI18n } from "@/hooks/useI18n";
 import { useDashboardStore } from "@/store/useDashboardStore";
-import { Edge, ParserAnalysisIssue } from "@/types/schema";
+import { Edge, ParserAnalysisIssue, ParserFixAction } from "@/types/schema";
 
 function pct(value: number): string {
   return `${(value * 100).toFixed(1)}%`;
@@ -58,6 +58,13 @@ export function ParserAnalysisCenter() {
 
   const unresolvedCategory = useMemo(() => {
     if (!report) return [];
+    if (report.unresolved_details?.length) {
+      const map = new Map<string, number>();
+      for (const item of report.unresolved_details) {
+        map.set(item.reason, (map.get(item.reason) ?? 0) + 1);
+      }
+      return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+    }
     const map = new Map<string, number>();
     for (const symbol of report.unresolved_symbols) {
       const key = symbol.includes(":") ? symbol.split(":")[0] : "unknown";
@@ -77,6 +84,14 @@ export function ParserAnalysisCenter() {
   const prioritizedIssues = useMemo(
     () => [...(report?.issues ?? [])].sort((a, b) => issueSeverityRank(b) - issueSeverityRank(a)).slice(0, 8),
     [report?.issues],
+  );
+  const fixQueue = useMemo(
+    () =>
+      [...(report?.fix_queue ?? [])].sort((a, b) => {
+        const rank = (item: ParserFixAction) => (item.priority === "high" ? 3 : item.priority === "medium" ? 2 : 1);
+        return rank(b) - rank(a);
+      }),
+    [report?.fix_queue],
   );
 
   const summaryItems = useMemo(() => {
@@ -262,6 +277,8 @@ export function ParserAnalysisCenter() {
           <div>{t("parser.summary.confidence")}: {report.parser_confidence.toFixed(3)} ({report.parser_grade})</div>
           <div>{t("parser.summary.quality")}: {repoScore.toFixed(3)} ({scoreLabel})</div>
           <div>{t("parser.summary.unresolved")}: {report.unresolved_symbols.length}</div>
+          <div>{t("parser.summary.promotable")}: {report.promotable_inferred_count ?? 0}</div>
+          <div>{t("parser.summary.explainability")}: {((report.explainability_coverage ?? 0) * 100).toFixed(1)}%</div>
         </div>
         {message ? <div className="mt-2 text-[11px] text-emerald-300">{message}</div> : null}
       </div>
@@ -299,6 +316,18 @@ export function ParserAnalysisCenter() {
               </button>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="mt-3 rounded border border-line bg-[#0a1626] p-2">
+        <div className="panel-title text-xs uppercase tracking-wide text-slate-300">{t("parser.section.confidenceBreakdown")}</div>
+        <div className="mt-2 grid grid-cols-2 gap-2 text-[11px] xl:grid-cols-4">
+          {Object.entries(report.confidence_breakdown ?? {}).map(([key, value]) => (
+            <div key={key} className="rounded border border-line bg-[#101f34] px-2 py-1 text-slate-300">
+              <div className="text-slate-400">{key}</div>
+              <div>{(Number(value) * 100).toFixed(1)}%</div>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -343,6 +372,34 @@ export function ParserAnalysisCenter() {
       </section>
 
       <section className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
+        <div className="rounded border border-line bg-[#0a1626] p-2">
+          <div className="panel-title text-xs uppercase tracking-wide text-slate-300">{t("parser.section.fixQueue")}</div>
+          <div className="mt-2 space-y-2 text-[11px]">
+            {fixQueue.length === 0 && <div className="text-slate-500">{t("parser.issue.none")}</div>}
+            {fixQueue.map((action) => (
+              <button
+                key={action.id}
+                type="button"
+                className="w-full rounded border border-line bg-[#101f34] p-2 text-left hover:border-emerald-400"
+                onClick={() => {
+                  setViewMode("parser_analysis");
+                  setSearchQuery(action.action_query ?? action.category);
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-100">{action.title}</span>
+                  <span className={`rounded px-1.5 py-0.5 text-[10px] ${severityClass(action.priority)}`}>
+                    {action.priority}
+                  </span>
+                </div>
+                <div className="mt-1 text-slate-400">{action.description}</div>
+                <div className="mt-1 text-slate-300">{action.suggested_file}</div>
+                <div className="text-emerald-300">{action.expected_gain}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="rounded border border-line bg-[#0a1626] p-2">
           <div className="panel-title text-xs uppercase tracking-wide text-slate-300">{t("parser.section.issues")}</div>
           <div className="mt-2 space-y-2 text-[11px]">
@@ -408,9 +465,16 @@ export function ParserAnalysisCenter() {
           <div className="panel-title text-xs uppercase tracking-wide text-slate-300">{t("parser.section.unresolvedSymbols")}</div>
           <div className="mt-2 space-y-1 text-[11px] text-slate-400">
             {report.unresolved_symbols.length === 0 && <div>{t("parser.unresolved.none")}</div>}
-            {report.unresolved_symbols.slice(0, 24).map((item, index) => (
-              <div key={`${item}-${index}`}>- {item}</div>
-            ))}
+            {report.unresolved_details?.length
+              ? report.unresolved_details.slice(0, 24).map((item, index) => (
+                <div key={`${item.symbol}-${index}`} className="rounded border border-line bg-[#101f34] px-2 py-1">
+                  <span className="mr-1 text-cyan-200">{item.reason}</span>
+                  <span>{item.symbol}</span>
+                </div>
+              ))
+              : report.unresolved_symbols.slice(0, 24).map((item, index) => (
+                <div key={`${item}-${index}`}>- {item}</div>
+              ))}
           </div>
         </div>
       </section>
@@ -445,6 +509,31 @@ export function ParserAnalysisCenter() {
           </div>
         </div>
 
+        <div className="rounded border border-line bg-[#0a1626] p-2">
+          <div className="panel-title text-xs uppercase tracking-wide text-slate-300">{t("parser.section.promotableEdges")}</div>
+          <div className="mt-2 space-y-1 text-[11px] text-slate-300">
+            {(report.promotable_edges ?? []).length === 0 && <div className="text-slate-500">{t("parser.promotable.none")}</div>}
+            {(report.promotable_edges ?? []).slice(0, 10).map((edge) => (
+              <button
+                key={edge.id}
+                type="button"
+                className="w-full rounded border border-line bg-[#101f34] px-2 py-1 text-left hover:border-emerald-400"
+                onClick={() => {
+                  const fromNode = resolveEdgeEndpoint(edge, "from");
+                  setSelectedNode(fromNode);
+                  setViewMode("diagnostics");
+                  setDiagnosticFocus("retry_fallback");
+                }}
+              >
+                {shortName(resolveEdgeEndpoint(edge, "from"))} -&gt; {shortName(resolveEdgeEndpoint(edge, "to"))}
+                <span className="ml-2 text-emerald-300">{t("parser.promotable.ready")}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-3 grid grid-cols-1 gap-3 xl:grid-cols-2">
         <div className="rounded border border-line bg-[#0a1626] p-2">
           <div className="panel-title text-xs uppercase tracking-wide text-slate-300">{t("parser.section.recentParseJobs")}</div>
           <div className="mt-2 space-y-1 text-[11px]">

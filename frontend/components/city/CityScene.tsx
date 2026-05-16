@@ -12,6 +12,7 @@ import { CityMiniMap } from "@/components/city/CityMiniMap";
 import { DistrictGround } from "@/components/city/DistrictGround";
 import { EdgeRoad } from "@/components/city/EdgeRoad";
 import { LiveFlows } from "@/components/city/LiveFlows";
+import { MessageKey } from "@/i18n/messages";
 import { useI18n } from "@/hooks/useI18n";
 import { DashboardMode, DiagnosticMode } from "@/lib/visualTheme";
 import { useDashboardStore } from "@/store/useDashboardStore";
@@ -54,6 +55,208 @@ interface CameraDirectorProps {
 const NODE_CLUSTER_RADIUS = 9.5;
 const NODE_LAYOUT_GOLDEN_ANGLE = 2.399963229728653;
 const NODE_ACTIVITY_WINDOW_MS = 150_000;
+const DENSE_NODE_THRESHOLD = 9;
+
+type NodeDensityMode = "aggregate" | "balanced" | "detail";
+
+interface NodeLayoutResult {
+  nodes: Node[];
+  aggregateCounts: Record<string, number>;
+  representativeByNodeId: Record<string, string>;
+}
+
+interface AdaptiveDistrictMeta {
+  toolsScale: number;
+  runtimeScale: number;
+}
+
+type MutableDistrict = TopologyGraph["districts"][number];
+
+function clampNumber(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+function resolveDistrictOverlaps(
+  inputDistricts: MutableDistrict[],
+  anchorDistrictId?: string,
+): MutableDistrict[] {
+  const districts = inputDistricts.map((district) => ({
+    ...district,
+    position: { ...district.position },
+    bounds: { ...district.bounds },
+  }));
+
+  const PADDING = 1.6;
+  const ITERATIONS = 30;
+
+  for (let iteration = 0; iteration < ITERATIONS; iteration += 1) {
+    let moved = false;
+    for (let i = 0; i < districts.length; i += 1) {
+      for (let j = i + 1; j < districts.length; j += 1) {
+        const left = districts[i];
+        const right = districts[j];
+
+        const halfLeftW = left.bounds.width / 2 + PADDING;
+        const halfLeftD = left.bounds.depth / 2 + PADDING;
+        const halfRightW = right.bounds.width / 2 + PADDING;
+        const halfRightD = right.bounds.depth / 2 + PADDING;
+
+        const dx = right.position.x - left.position.x;
+        const dz = right.position.z - left.position.z;
+        const overlapX = halfLeftW + halfRightW - Math.abs(dx);
+        const overlapZ = halfLeftD + halfRightD - Math.abs(dz);
+
+        if (overlapX <= 0 || overlapZ <= 0) continue;
+
+        const moveOnX = overlapX < overlapZ;
+        const overlap = moveOnX ? overlapX : overlapZ;
+        const direction = (moveOnX ? dx : dz) >= 0 ? 1 : -1;
+        const push = overlap / 2 + 0.36;
+
+        const leftLocked = left.id === anchorDistrictId || left.type === "planning";
+        const rightLocked = right.id === anchorDistrictId || right.type === "planning";
+
+        const applyMove = (district: MutableDistrict, deltaX: number, deltaZ: number) => {
+          district.position.x = clampNumber(district.position.x + deltaX, -180, 180);
+          district.position.z = clampNumber(district.position.z + deltaZ, -130, 130);
+        };
+
+        if (!leftLocked && !rightLocked) {
+          if (moveOnX) {
+            applyMove(left, -direction * push, 0);
+            applyMove(right, direction * push, 0);
+          } else {
+            applyMove(left, 0, -direction * push);
+            applyMove(right, 0, direction * push);
+          }
+        } else if (leftLocked && !rightLocked) {
+          if (moveOnX) {
+            applyMove(right, direction * push * 2, 0);
+          } else {
+            applyMove(right, 0, direction * push * 2);
+          }
+        } else if (!leftLocked && rightLocked) {
+          if (moveOnX) {
+            applyMove(left, -direction * push * 2, 0);
+          } else {
+            applyMove(left, 0, -direction * push * 2);
+          }
+        }
+
+        moved = true;
+      }
+    }
+
+    if (!moved) break;
+  }
+
+  return districts;
+}
+
+function agentScaleBias(target: string): { tools: number; runtime: number } {
+  const name = target.toLowerCase();
+  if (
+    name.includes("codex") ||
+    name.includes("swe") ||
+    name.includes("openhands") ||
+    name.includes("autogen")
+  ) {
+    return { tools: 0.26, runtime: 0.18 };
+  }
+  if (name.includes("claude") || name.includes("cloude")) {
+    return { tools: 0.14, runtime: 0.12 };
+  }
+  if (name.includes("langgraph") || name.includes("workflow") || name.includes("agent")) {
+    return { tools: 0.16, runtime: 0.2 };
+  }
+  return { tools: 0.08, runtime: 0.1 };
+}
+
+function adaptTopologyByTarget(
+  topology: TopologyGraph | undefined,
+  nodePool: Node[],
+  target: string,
+): { topology: TopologyGraph | undefined; meta: AdaptiveDistrictMeta } {
+  if (!topology) {
+    return { topology, meta: { toolsScale: 1, runtimeScale: 1 } };
+  }
+
+  const nodes = topology.nodes.length > 0 ? topology.nodes : nodePool;
+  const districtNodeCounts = new Map<string, number>();
+  for (const node of nodes) {
+    districtNodeCounts.set(node.district_id, (districtNodeCounts.get(node.district_id) ?? 0) + 1);
+  }
+
+  const planningDistrict =
+    topology.districts.find((district) => district.type === "planning") ?? topology.districts[0];
+  const centerX = planningDistrict?.position.x ?? 0;
+  const centerZ = planningDistrict?.position.z ?? 0;
+
+  const bias = agentScaleBias(target);
+  let toolsScale = 1;
+  let runtimeScale = 1;
+
+  const districts = topology.districts.map((district) => {
+    if (district.type !== "tools" && district.type !== "runtime") {
+      return district;
+    }
+
+    const count = districtNodeCounts.get(district.id) ?? 0;
+    const density = count / Math.max(1, nodes.length);
+    const metricHeat = nodes
+      .filter((node) => node.district_id === district.id)
+      .reduce((acc, node) => acc + (node.metrics?.qps ?? 0) * 0.02 + (node.metrics?.active_count ?? 0) * 0.05, 0);
+
+    const biasValue = district.type === "tools" ? bias.tools : bias.runtime;
+    const growth =
+      Math.sqrt(Math.max(0, count)) * 0.085 +
+      density * 1.7 +
+      metricHeat * 0.035 +
+      biasValue;
+    const scale = clampNumber(1 + growth, 1, 2.25);
+
+    if (district.type === "tools") toolsScale = scale;
+    if (district.type === "runtime") runtimeScale = scale;
+
+    const directionX = district.position.x - centerX;
+    const directionZ = district.position.z - centerZ;
+    const directionLen = Math.hypot(directionX, directionZ) || 1;
+    const push = (scale - 1) * 8.5;
+    const nextX = district.position.x + (directionX / directionLen) * push;
+    const nextZ = district.position.z + (directionZ / directionLen) * push;
+
+    return {
+      ...district,
+      position: {
+        ...district.position,
+        x: nextX,
+        z: nextZ,
+      },
+      bounds: {
+        width: district.bounds.width * (district.type === "tools" ? scale * 1.06 : scale),
+        depth: district.bounds.depth * (district.type === "runtime" ? scale * 1.04 : scale),
+      },
+      metadata: {
+        ...district.metadata,
+        adaptive_scale: scale,
+        adaptive_target: target,
+      },
+    };
+  });
+
+  const resolvedDistricts = resolveDistrictOverlaps(districts, planningDistrict?.id);
+
+  return {
+    topology: {
+      ...topology,
+      districts: resolvedDistricts,
+    },
+    meta: {
+      toolsScale,
+      runtimeScale,
+    },
+  };
+}
 
 function nodePriority(node: Node): number {
   const coreTypes: Node["type"][] = ["planner", "llm", "guardrail", "runtime", "event_bus"];
@@ -80,8 +283,132 @@ function clampToDistrict(node: Node, districtsById: Record<string, TopologyGraph
   };
 }
 
-function applyNodeDeclutter(nodes: Node[], topology?: TopologyGraph): Node[] {
-  if (!nodes.length) return nodes;
+function clampNodePositionMutable(node: Node, district: TopologyGraph["districts"][number]) {
+  const margin = Math.max(1.8, node.size * 0.55);
+  const minX = district.position.x - district.bounds.width / 2 + margin;
+  const maxX = district.position.x + district.bounds.width / 2 - margin;
+  const minZ = district.position.z - district.bounds.depth / 2 + margin;
+  const maxZ = district.position.z + district.bounds.depth / 2 - margin;
+  node.position.x = clampNumber(node.position.x, minX, maxX);
+  node.position.z = clampNumber(node.position.z, minZ, maxZ);
+}
+
+function relaxDistrictNodeCollisions(
+  districtNodes: Node[],
+  district: TopologyGraph["districts"][number],
+  mode: NodeDensityMode,
+) {
+  if (districtNodes.length < 2) return;
+
+  const iterations = mode === "detail" ? 22 : 14;
+  for (let step = 0; step < iterations; step += 1) {
+    let moved = false;
+    for (let i = 0; i < districtNodes.length; i += 1) {
+      for (let j = i + 1; j < districtNodes.length; j += 1) {
+        const a = districtNodes[i];
+        const b = districtNodes[j];
+        let dx = b.position.x - a.position.x;
+        let dz = b.position.z - a.position.z;
+        let dist = Math.hypot(dx, dz);
+        const minDist = Math.max(
+          2.4,
+          (a.size + b.size) * 0.7 + (mode === "detail" ? 1.1 : 0.75),
+        );
+        if (dist >= minDist) continue;
+
+        if (dist < 0.001) {
+          const angle = ((i + 1) * 1.7 + (j + 1) * 2.3) % (Math.PI * 2);
+          dx = Math.cos(angle);
+          dz = Math.sin(angle);
+          dist = 1;
+        } else {
+          dx /= dist;
+          dz /= dist;
+        }
+
+        const push = (minDist - dist) * 0.54;
+        a.position.x -= dx * push;
+        a.position.z -= dz * push;
+        b.position.x += dx * push;
+        b.position.z += dz * push;
+        moved = true;
+      }
+    }
+
+    for (const node of districtNodes) {
+      clampNodePositionMutable(node, district);
+    }
+
+    if (!moved) break;
+  }
+}
+
+function normalizeNodeName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^\w\-./:]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function nodeGroupKey(node: Node): string {
+  const explainability = node.metadata?.explainability as Record<string, unknown> | undefined;
+  const explicitGroup = typeof explainability?.group === "string" ? explainability.group : undefined;
+  if (explicitGroup) {
+    return `${node.type}:${explicitGroup}`;
+  }
+
+  const normalized = normalizeNodeName(node.name);
+  const parts = normalized.split(/[-_.:/]+/).filter(Boolean);
+  if (!parts.length) {
+    return `${node.type}:core`;
+  }
+
+  if (parts.length >= 2 && (node.type === "runtime" || node.type === "tool" || node.type === "mcp")) {
+    return `${node.type}:${parts[0]}-${parts[1]}`;
+  }
+  return `${node.type}:${parts[0]}`;
+}
+
+function nodeDisplayName(node: Node): string {
+  const explainability = node.metadata?.explainability as Record<string, unknown> | undefined;
+  if (typeof explainability?.display_name === "string" && explainability.display_name.trim()) {
+    return explainability.display_name;
+  }
+  if (typeof node.metadata?.display_name === "string" && node.metadata.display_name.trim()) {
+    return node.metadata.display_name;
+  }
+  return node.name;
+}
+
+function districtGridCenter(
+  district: TopologyGraph["districts"][number],
+  index: number,
+  total: number,
+  margin: number,
+) {
+  const cols = Math.max(1, Math.ceil(Math.sqrt(total)));
+  const rows = Math.max(1, Math.ceil(total / cols));
+  const col = index % cols;
+  const row = Math.floor(index / cols);
+
+  const width = Math.max(8, district.bounds.width - margin * 2);
+  const depth = Math.max(8, district.bounds.depth - margin * 2);
+  const minX = district.position.x - width / 2;
+  const minZ = district.position.z - depth / 2;
+  const cellW = width / cols;
+  const cellD = depth / rows;
+
+  return {
+    x: minX + cellW * (col + 0.5),
+    z: minZ + cellD * (row + 0.5),
+    cellW,
+    cellD,
+  };
+}
+
+function applyNodeLayout(nodes: Node[], topology: TopologyGraph | undefined, mode: NodeDensityMode): NodeLayoutResult {
+  if (!nodes.length) return { nodes, aggregateCounts: {}, representativeByNodeId: {} };
   const districtsById: Record<string, TopologyGraph["districts"][number]> = {};
   for (const district of topology?.districts ?? []) {
     districtsById[district.id] = district;
@@ -99,51 +426,162 @@ function applyNodeDeclutter(nodes: Node[], topology?: TopologyGraph): Node[] {
     byDistrict.set(node.district_id, list);
   }
 
-  for (const districtNodes of byDistrict.values()) {
-    const visited = new Set<string>();
-    const original = districtNodes.map((node) => ({ id: node.id, x: node.position.x, z: node.position.z }));
+  const aggregateCounts: Record<string, number> = {};
+  const representativeByNodeId: Record<string, string> = {};
+  const keptNodes: Node[] = [];
 
-    for (const seed of original) {
-      if (visited.has(seed.id)) continue;
-
-      const clusterIds: string[] = [];
-      for (const candidate of original) {
-        const dx = candidate.x - seed.x;
-        const dz = candidate.z - seed.z;
-        if (Math.hypot(dx, dz) <= NODE_CLUSTER_RADIUS) {
-          clusterIds.push(candidate.id);
-        }
-      }
-
-      clusterIds.forEach((id) => visited.add(id));
-      if (clusterIds.length <= 1) continue;
-
-      const clusterNodes = districtNodes
-        .filter((node) => clusterIds.includes(node.id))
-        .sort((a, b) => nodePriority(b) - nodePriority(a));
-
-      const center = clusterNodes.reduce(
-        (acc, node) => ({ x: acc.x + node.position.x, z: acc.z + node.position.z }),
-        { x: 0, z: 0 },
-      );
-      center.x /= clusterNodes.length;
-      center.z /= clusterNodes.length;
-
-      clusterNodes.forEach((node, index) => {
-        if (index === 0) {
-          node.position.x = center.x;
-          node.position.z = center.z;
-          return;
-        }
-        const radius = 2.8 + Math.sqrt(index) * 3.0;
-        const angle = index * NODE_LAYOUT_GOLDEN_ANGLE;
-        node.position.x = center.x + Math.cos(angle) * radius;
-        node.position.z = center.z + Math.sin(angle) * radius;
-      });
-    }
+  for (const node of cloned) {
+    representativeByNodeId[node.id] = node.id;
   }
 
-  return cloned.map((node) => clampToDistrict(node, districtsById));
+  for (const [districtId, districtNodes] of byDistrict.entries()) {
+    const district = districtsById[districtId];
+    if (!district || districtNodes.length < DENSE_NODE_THRESHOLD) {
+      const visited = new Set<string>();
+      const original = districtNodes.map((node) => ({ id: node.id, x: node.position.x, z: node.position.z }));
+
+      for (const seed of original) {
+        if (visited.has(seed.id)) continue;
+
+        const clusterIds: string[] = [];
+        for (const candidate of original) {
+          const dx = candidate.x - seed.x;
+          const dz = candidate.z - seed.z;
+          if (Math.hypot(dx, dz) <= NODE_CLUSTER_RADIUS) {
+            clusterIds.push(candidate.id);
+          }
+        }
+
+        clusterIds.forEach((id) => visited.add(id));
+        if (clusterIds.length <= 1) continue;
+
+        const clusterNodes = districtNodes
+          .filter((node) => clusterIds.includes(node.id))
+          .sort((a, b) => nodePriority(b) - nodePriority(a));
+
+        const center = clusterNodes.reduce(
+          (acc, node) => ({ x: acc.x + node.position.x, z: acc.z + node.position.z }),
+          { x: 0, z: 0 },
+        );
+        center.x /= clusterNodes.length;
+        center.z /= clusterNodes.length;
+
+        const spread = mode === "detail" ? 4.4 : 3.2;
+        clusterNodes.forEach((node, index) => {
+          if (index === 0) {
+            node.position.x = center.x;
+            node.position.z = center.z;
+            return;
+          }
+          const radius = 3.2 + Math.sqrt(index) * spread;
+          const angle = index * NODE_LAYOUT_GOLDEN_ANGLE;
+          node.position.x = center.x + Math.cos(angle) * radius;
+          node.position.z = center.z + Math.sin(angle) * radius;
+        });
+      }
+
+      if (mode === "aggregate") {
+        const sorted = districtNodes.slice().sort((a, b) => nodePriority(b) - nodePriority(a));
+        const representative = clampToDistrict(sorted[0], districtsById);
+        aggregateCounts[representative.id] = districtNodes.length;
+        for (const node of districtNodes) {
+          representativeByNodeId[node.id] = representative.id;
+        }
+        keptNodes.push(representative);
+      } else {
+        if (district) {
+          relaxDistrictNodeCollisions(districtNodes, district, mode);
+        }
+        keptNodes.push(...districtNodes.map((node) => clampToDistrict(node, districtsById)));
+      }
+      continue;
+    }
+
+    const groups = new Map<string, Node[]>();
+    for (const node of districtNodes) {
+      const key = nodeGroupKey(node);
+      const list = groups.get(key) ?? [];
+      list.push(node);
+      groups.set(key, list);
+    }
+
+    const grouped = Array.from(groups.values())
+      .map((group) => group.slice().sort((a, b) => nodePriority(b) - nodePriority(a)))
+      .sort((a, b) => b.length - a.length || nodePriority(b[0]) - nodePriority(a[0]));
+
+    const margin = mode === "detail" ? 3.4 : 4.6;
+    const visibleDistrictNodes: Node[] = [];
+    grouped.forEach((groupNodes, groupIndex) => {
+      const grid = districtGridCenter(district, groupIndex, grouped.length, margin);
+      const baseRadius = Math.max(2.6, Math.min(grid.cellW, grid.cellD) * (mode === "detail" ? 0.28 : 0.2));
+      const radialStep = Math.max(2.1, Math.min(grid.cellW, grid.cellD) * (mode === "detail" ? 0.22 : 0.16));
+      const maxRadius = Math.max(4.2, Math.min(grid.cellW, grid.cellD) * 0.46);
+
+      const shouldAggregateGroup = mode === "aggregate" || (mode === "balanced" && groupNodes.length > 2);
+      if (shouldAggregateGroup) {
+        const representative = groupNodes[0];
+        representative.position.x = grid.x;
+        representative.position.z = grid.z;
+        aggregateCounts[representative.id] = groupNodes.length;
+        for (const node of groupNodes) {
+          representativeByNodeId[node.id] = representative.id;
+        }
+        visibleDistrictNodes.push(representative);
+        return;
+      }
+
+      groupNodes.forEach((node, index) => {
+        if (index === 0) {
+          node.position.x = grid.x;
+          node.position.z = grid.z;
+          return;
+        }
+        const radius = Math.min(maxRadius, baseRadius + Math.sqrt(index) * radialStep);
+        const angle = index * NODE_LAYOUT_GOLDEN_ANGLE + (groupIndex % 2) * 0.45;
+        node.position.x = grid.x + Math.cos(angle) * radius;
+        node.position.z = grid.z + Math.sin(angle) * radius;
+      });
+      visibleDistrictNodes.push(...groupNodes);
+    });
+
+    relaxDistrictNodeCollisions(visibleDistrictNodes, district, mode);
+    keptNodes.push(...visibleDistrictNodes.map((node) => clampToDistrict(node, districtsById)));
+  }
+
+  if (mode === "aggregate" && keptNodes.length === 0) {
+    return {
+      nodes: cloned.map((node) => clampToDistrict(node, districtsById)),
+      aggregateCounts,
+      representativeByNodeId,
+    };
+  }
+
+  return {
+    nodes: mode === "aggregate" ? keptNodes : keptNodes.length ? keptNodes : cloned.map((node) => clampToDistrict(node, districtsById)),
+    aggregateCounts,
+    representativeByNodeId,
+  };
+}
+
+function nextAutoNodeDensity(
+  current: NodeDensityMode,
+  distance: number,
+  replayEnabled: boolean,
+): NodeDensityMode {
+  if (replayEnabled) return "detail";
+
+  if (current === "aggregate") {
+    if (distance < 170) return "balanced";
+    return "aggregate";
+  }
+  if (current === "detail") {
+    if (distance > 122) return "balanced";
+    return "detail";
+  }
+
+  if (distance >= 188) return "aggregate";
+  if (distance <= 104) return "detail";
+  return "balanced";
 }
 
 function CameraDirector({
@@ -165,6 +603,7 @@ function CameraDirector({
     if (navigationTarget) {
       const target = new THREE.Vector3(navigationTarget.x, 0, navigationTarget.z);
       controls.target.lerp(target, 0.2);
+      controls.target.y = 0;
       const desiredPos = target.clone().add(new THREE.Vector3(56, 112, 56));
       camera.position.lerp(desiredPos, 0.14);
       controls.update();
@@ -176,8 +615,13 @@ function CameraDirector({
     } else if (replayFollowTarget) {
       const target = new THREE.Vector3(replayFollowTarget.x, 0, replayFollowTarget.z);
       controls.target.lerp(target, 0.08);
+      controls.target.y = 0;
       const desiredPos = target.clone().add(new THREE.Vector3(50, 95, 48));
       camera.position.lerp(desiredPos, 0.055);
+      controls.update();
+      forceSnapshot = true;
+    } else if (Math.abs(controls.target.y) > 0.001) {
+      controls.target.y = 0;
       controls.update();
       forceSnapshot = true;
     }
@@ -216,10 +660,14 @@ export function CityScene({
   const [cameraView, setCameraView] = useState<CameraViewSnapshot>({ x: 0, z: 0, distance: 165 });
   const [navigationTarget, setNavigationTarget] = useState<{ x: number; z: number }>();
   const [edgeDensity, setEdgeDensity] = useState<"focus" | "balanced" | "full">("focus");
+  const [nodeDensity, setNodeDensity] = useState<NodeDensityMode>("balanced");
 
   const diagnosticFocus = useDashboardStore((state) => state.diagnosticFocus);
   const setSelectedTrace = useDashboardStore((state) => state.setSelectedTrace);
   const setSelectedSpan = useDashboardStore((state) => state.setSelectedSpan);
+  const promptStageFocus = useDashboardStore((state) => state.promptStageFocus);
+  const promptStageNodeIds = useDashboardStore((state) => state.promptStageNodeIds);
+  const target = useDashboardStore((state) => state.target);
 
   useEffect(() => {
     if (replay?.enabled) {
@@ -235,14 +683,47 @@ export function CityScene({
     }
   }, [replay?.enabled, viewMode]);
 
-  const layoutNodes = useMemo(() => applyNodeDeclutter(nodes, topology), [nodes, topology]);
+  useEffect(() => {
+    setNodeDensity((current) =>
+      nextAutoNodeDensity(current, cameraView.distance, Boolean(replay?.enabled)),
+    );
+  }, [cameraView.distance, replay?.enabled]);
+
+  const adaptiveTopology = useMemo(
+    () => adaptTopologyByTarget(topology, nodes, target),
+    [nodes, target, topology],
+  );
+  const effectiveTopology = adaptiveTopology.topology;
+  const nodeLayout = useMemo(
+    () => applyNodeLayout(nodes, effectiveTopology, nodeDensity),
+    [effectiveTopology, nodeDensity, nodes],
+  );
+  const layoutNodes = nodeLayout.nodes;
+  const aggregateCounts = nodeLayout.aggregateCounts;
+  const representativeByNodeId = nodeLayout.representativeByNodeId;
+  const sourceNodesById = useMemo<Record<string, Node>>(
+    () =>
+      nodes.reduce<Record<string, Node>>((acc, node) => {
+        acc[node.id] = node;
+        return acc;
+      }, {}),
+    [nodes],
+  );
 
   const nodesById = useMemo<Record<string, Node>>(() => {
-    return layoutNodes.reduce<Record<string, Node>>((acc, node) => {
+    const map = layoutNodes.reduce<Record<string, Node>>((acc, node) => {
       acc[node.id] = node;
       return acc;
     }, {});
-  }, [layoutNodes]);
+
+    for (const [nodeId, representativeId] of Object.entries(representativeByNodeId)) {
+      if (!map[nodeId] && map[representativeId]) {
+        map[nodeId] = map[representativeId];
+      }
+    }
+
+    return map;
+  }, [layoutNodes, representativeByNodeId]);
 
   const activeEvents = useMemo(() => {
     if (!replay?.enabled || !replay.traceId) {
@@ -270,6 +751,12 @@ export function CityScene({
     return undefined;
   }, [replay?.enabled, replay?.traceId, selectedTraceId, selectedEvent?.trace_id]);
 
+  const stageFocusedNodeSet = useMemo(
+    () => new Set(promptStageNodeIds),
+    [promptStageNodeIds],
+  );
+  const stageFocusActive = Boolean(!focusedTraceId && promptStageFocus && stageFocusedNodeSet.size > 0);
+
   const focusedEvents = useMemo(() => {
     if (!focusedTraceId) return [];
     const sourceEvents = replay?.enabled ? activeEvents : events;
@@ -279,33 +766,40 @@ export function CityScene({
   const focusedEdgeSet = useMemo(() => {
     const set = new Set<string>();
     for (const event of focusedEvents) {
-      if (event.to_node) {
-        set.add(`${event.from_node}::${event.to_node}`);
+      const fromId = representativeByNodeId[event.from_node] ?? event.from_node;
+      const toId = event.to_node ? representativeByNodeId[event.to_node] ?? event.to_node : undefined;
+      if (toId) {
+        set.add(`${fromId}::${toId}`);
       }
     }
     return set;
-  }, [focusedEvents]);
+  }, [focusedEvents, representativeByNodeId]);
 
   const activeNodeIds = useMemo(() => {
     const set = new Set<string>();
     const sourceEvents = focusedEvents.length > 0 ? focusedEvents : activeEvents;
     for (const event of sourceEvents) {
-      set.add(event.from_node);
-      if (event.to_node) set.add(event.to_node);
+      const fromId = representativeByNodeId[event.from_node] ?? event.from_node;
+      set.add(fromId);
+      if (event.to_node) {
+        set.add(representativeByNodeId[event.to_node] ?? event.to_node);
+      }
     }
     return set;
-  }, [activeEvents, focusedEvents]);
+  }, [activeEvents, focusedEvents, representativeByNodeId]);
 
   const edgeTraffic = useMemo(() => {
     const counts = new Map<string, number>();
     const sourceEvents = focusedEvents.length > 0 ? focusedEvents : activeEvents;
     for (const event of sourceEvents) {
       if (!event.to_node) continue;
-      const key = `${event.from_node}::${event.to_node}`;
+      const fromId = representativeByNodeId[event.from_node] ?? event.from_node;
+      const toId = representativeByNodeId[event.to_node] ?? event.to_node;
+      const key = `${fromId}::${toId}`;
       counts.set(key, (counts.get(key) ?? 0) + 1);
     }
     return counts;
-  }, [activeEvents, focusedEvents]);
+  }, [activeEvents, focusedEvents, representativeByNodeId]);
 
   const edgeEventStats = useMemo(() => {
     const map = new Map<
@@ -315,7 +809,9 @@ export function CityScene({
     const sourceEvents = focusedEvents.length > 0 ? focusedEvents : activeEvents;
     for (const event of sourceEvents) {
       if (!event.to_node) continue;
-      const key = `${event.from_node}::${event.to_node}`;
+      const fromId = representativeByNodeId[event.from_node] ?? event.from_node;
+      const toId = representativeByNodeId[event.to_node] ?? event.to_node;
+      const key = `${fromId}::${toId}`;
       const prev = map.get(key) ?? { error: 0, retry: 0, fallback: 0, maxLatency: 0, maxQueue: 0 };
       const queueDepth = Number(event.attributes?.queue_depth ?? 0);
       map.set(key, {
@@ -327,7 +823,7 @@ export function CityScene({
       });
     }
     return map;
-  }, [activeEvents, focusedEvents]);
+  }, [activeEvents, focusedEvents, representativeByNodeId]);
 
   const trunkEdgeSet = useMemo(() => {
     const entries = Array.from(edgeTraffic.entries()).sort((a, b) => b[1] - a[1]);
@@ -353,11 +849,11 @@ export function CityScene({
 
   const districtNameById = useMemo(() => {
     const map: Record<string, string> = {};
-    for (const district of topology?.districts ?? []) {
+    for (const district of effectiveTopology?.districts ?? []) {
       map[district.id] = district.name;
     }
     return map;
-  }, [topology?.districts]);
+  }, [effectiveTopology?.districts]);
 
   const nodeActivity = useMemo(() => {
     const map: Record<
@@ -408,23 +904,38 @@ export function CityScene({
 
   const replayFollowTarget = useMemo(() => {
     if (!replay?.enabled || !selectedEvent) return undefined;
-    const nodeId = selectedEvent.to_node ?? selectedEvent.from_node;
+    const nodeId = selectedEvent.to_node
+      ? representativeByNodeId[selectedEvent.to_node] ?? selectedEvent.to_node
+      : representativeByNodeId[selectedEvent.from_node] ?? selectedEvent.from_node;
     const node = nodesById[nodeId];
     if (!node) return undefined;
     return { x: node.position.x, z: node.position.z };
-  }, [nodesById, replay?.enabled, selectedEvent]);
+  }, [nodesById, replay?.enabled, representativeByNodeId, selectedEvent]);
 
   const focusedPathPreview = useMemo(() => {
     if (!focusedEvents.length) return undefined;
     const chain = focusedEvents.slice(0, 5).map((event) => {
-      const from = nodesById[event.from_node]?.name ?? event.from_node.split(".").at(-1) ?? event.from_node;
+      const fromNode = nodesById[event.from_node];
+      const from = fromNode ? nodeDisplayName(fromNode) : (event.from_node.split(".").at(-1) ?? event.from_node);
       const to = event.to_node
-        ? nodesById[event.to_node]?.name ?? event.to_node.split(".").at(-1) ?? event.to_node
+        ? (
+            nodesById[event.to_node]
+              ? nodeDisplayName(nodesById[event.to_node])
+              : event.to_node.split(".").at(-1) ?? event.to_node
+          )
         : "internal";
       return `${from} -> ${to}`;
     });
     return chain.join(" | ");
   }, [focusedEvents, nodesById]);
+
+  const defaultViewTarget = useMemo(() => {
+    const planningDistrict = effectiveTopology?.districts.find((district) => district.type === "planning");
+    return {
+      x: planningDistrict?.position.x ?? 0,
+      z: planningDistrict?.position.z ?? 0,
+    };
+  }, [effectiveTopology?.districts]);
 
   const sceneTone = useMemo(() => {
     if (replay?.enabled) {
@@ -498,6 +1009,12 @@ export function CityScene({
         : replay?.enabled
           ? t("city.modeHint.replay")
           : t("city.modeHint.overview");
+  const nodeDensityLabel =
+    nodeDensity === "aggregate"
+      ? t("city.nodeDensity.aggregate")
+      : nodeDensity === "detail"
+        ? t("city.nodeDensity.detail")
+        : t("city.nodeDensity.balanced");
 
   return (
     <div data-testid="city-scene" className="city-shell h-full w-full">
@@ -516,7 +1033,7 @@ export function CityScene({
           <meshStandardMaterial color="#071120" />
         </mesh>
 
-        {topology?.districts.map((district) => (
+        {effectiveTopology?.districts.map((district) => (
           <DistrictGround
             key={district.id}
             district={district}
@@ -528,12 +1045,18 @@ export function CityScene({
         ))}
 
         {sortedEdges.map((edge) => {
-          const from = nodesById[edge.from];
-          const to = nodesById[edge.to];
+          const fromId = representativeByNodeId[edge.from] ?? edge.from;
+          const toId = representativeByNodeId[edge.to] ?? edge.to;
+          const from = fromId === toId ? sourceNodesById[edge.from] ?? nodesById[fromId] : nodesById[fromId];
+          const to = fromId === toId ? sourceNodesById[edge.to] ?? nodesById[toId] : nodesById[toId];
           if (!from || !to) return null;
-          const pairKey = `${edge.from}::${edge.to}`;
+          const pairKey = `${fromId}::${toId}`;
+          const selectedFrom = selectedEvent ? representativeByNodeId[selectedEvent.from_node] ?? selectedEvent.from_node : undefined;
+          const selectedTo = selectedEvent?.to_node
+            ? representativeByNodeId[selectedEvent.to_node] ?? selectedEvent.to_node
+            : undefined;
           const highlighted =
-            selectedEvent?.from_node === edge.from && selectedEvent?.to_node === edge.to;
+            selectedFrom === fromId && selectedTo === toId;
           const inFocusedPath = focusedEdgeSet.has(pairKey);
           const isTrunkEdge = trunkEdgeSet.has(pairKey) || edge.kind === "invocation";
           const stat = edgeEventStats.get(pairKey);
@@ -550,7 +1073,17 @@ export function CityScene({
                   : diagnosticFocus === "slow"
                     ? hasSlowSignal
                     : hasCongestionSignal;
-          const renderLayer: "primary" | "secondary" | "suppressed" = focusedTraceId
+          const stageLayer: "primary" | "secondary" | "suppressed" =
+            stageFocusActive
+              ? stageFocusedNodeSet.has(edge.from) && stageFocusedNodeSet.has(edge.to)
+                ? "primary"
+                : stageFocusedNodeSet.has(edge.from) || stageFocusedNodeSet.has(edge.to)
+                  ? "secondary"
+                  : "suppressed"
+              : "secondary";
+          const renderLayer: "primary" | "secondary" | "suppressed" = stageFocusActive
+            ? stageLayer
+            : focusedTraceId
             ? inFocusedPath
               ? "primary"
               : "suppressed"
@@ -582,11 +1115,10 @@ export function CityScene({
                   ? "secondary"
                         : "suppressed";
 
-          if (edgeDensity === "focus" && renderLayer === "suppressed" && !highlighted && !inFocusedPath) {
-            return null;
-          }
           const effectiveRenderLayer: "primary" | "secondary" | "suppressed" =
-            edgeDensity === "full" && renderLayer === "suppressed" ? "secondary" : renderLayer;
+            edgeDensity === "full" && renderLayer === "suppressed"
+              ? "secondary"
+              : renderLayer;
 
           return (
             <EdgeRoad
@@ -618,16 +1150,29 @@ export function CityScene({
               key={node.id}
               node={node}
               highlighted={selectedNodeId === node.id}
-              pathHighlighted={focusedTraceId ? activeNodeIds.has(node.id) : false}
+              pathHighlighted={
+                focusedTraceId
+                  ? activeNodeIds.has(node.id)
+                  : stageFocusActive
+                    ? stageFocusedNodeSet.has(node.id)
+                    : false
+              }
               active={activeNodeIds.has(node.id)}
               diagnosticMode={diagnosticMode}
-              dimmed={Boolean(focusedTraceId && !activeNodeIds.has(node.id))}
+              dimmed={
+                focusedTraceId
+                  ? Boolean(!activeNodeIds.has(node.id))
+                  : stageFocusActive
+                    ? Boolean(!stageFocusedNodeSet.has(node.id))
+                    : false
+              }
               activity={{
                 districtName: districtNameById[node.district_id],
                 lastActiveLabel: formatRelativeTime(activity?.latest),
                 inboundTop,
                 outboundTop,
               }}
+              aggregateCount={aggregateCounts[node.id] ?? 1}
               onSelect={onSelectNode}
             />
           );
@@ -647,7 +1192,17 @@ export function CityScene({
         <OrbitControls
           ref={controlsRef}
           makeDefault
-          enablePan={false}
+          enablePan
+          screenSpacePanning={false}
+          mouseButtons={{
+            LEFT: THREE.MOUSE.PAN,
+            MIDDLE: THREE.MOUSE.DOLLY,
+            RIGHT: THREE.MOUSE.ROTATE,
+          }}
+          touches={{
+            ONE: THREE.TOUCH.PAN,
+            TWO: THREE.TOUCH.DOLLY_ROTATE,
+          }}
           minDistance={70}
           maxDistance={240}
           maxPolarAngle={Math.PI / 2.2}
@@ -669,6 +1224,17 @@ export function CityScene({
         <div className="mt-1 text-[10px] text-slate-400">
           {t("metrics.activeFlows")}: {activeEvents.length} | {t("city.edges")}: {edges.length} | {t("filter.trace")}: {focusedTraceId ? focusedTraceId.slice(-8) : t("common.none")}
         </div>
+        <div className="mt-1 text-[10px] text-slate-400">
+          {t("city.nodes")}: {layoutNodes.length} | {t("city.nodeDensity.current")}: {nodeDensityLabel}
+        </div>
+        <div className="mt-1 text-[10px] text-slate-400">
+          {t("city.adaptiveDistrictScale")}: {t("city.runtimeShort")} x{adaptiveTopology.meta.runtimeScale.toFixed(2)} | {t("city.toolsShort")} x{adaptiveTopology.meta.toolsScale.toFixed(2)}
+        </div>
+        {stageFocusActive ? (
+          <div className="mt-1 text-[10px] text-emerald-200">
+            {t("promptFlow.focused")}: {t(`promptFlow.stage.${promptStageFocus}` as MessageKey)}
+          </div>
+        ) : null}
         <div className="pointer-events-auto mt-2 flex items-center gap-1">
           {(["focus", "balanced", "full"] as const).map((mode) => (
             <button
@@ -684,6 +1250,34 @@ export function CityScene({
               {mode === "focus" ? t("city.edgeDensity.focus") : mode === "balanced" ? t("city.edgeDensity.balanced") : t("city.edgeDensity.full")}
             </button>
           ))}
+        </div>
+        <div className="mt-2 flex items-center gap-1">
+          {(["aggregate", "balanced", "detail"] as const).map((mode) => (
+            <span
+              key={mode}
+              className={`rounded border px-1.5 py-0.5 text-[10px] uppercase ${
+                nodeDensity === mode
+                  ? "border-emerald-400 bg-[#143428] text-slate-100"
+                  : "border-line bg-[#0b1a2c] text-slate-500"
+              }`}
+            >
+              {mode === "aggregate"
+                ? t("city.nodeDensity.aggregate")
+                : mode === "balanced"
+                  ? t("city.nodeDensity.balanced")
+                  : t("city.nodeDensity.detail")}
+            </span>
+          ))}
+          <span className="rounded border border-line bg-[#0b1a2c] px-1.5 py-0.5 text-[10px] uppercase text-slate-500">
+            {t("city.nodeDensity.auto")}
+          </span>
+          <button
+            type="button"
+            className="rounded border border-line bg-[#10243a] px-1.5 py-0.5 text-[10px] uppercase text-slate-200 hover:border-sky-400"
+            onClick={() => setNavigationTarget(defaultViewTarget)}
+          >
+            {t("city.resetView")}
+          </button>
         </div>
         {focusedPathPreview ? (
           <div className="mt-2 rounded border border-line bg-[#0b1a2c] px-2 py-1 text-[10px] text-slate-300">{focusedPathPreview}</div>
@@ -708,7 +1302,7 @@ export function CityScene({
       ) : null}
 
       <CityMiniMap
-        topology={topology}
+        topology={effectiveTopology}
         nodes={layoutNodes}
         events={activeEvents}
         replayTraceId={replay?.enabled ? replay.traceId : undefined}

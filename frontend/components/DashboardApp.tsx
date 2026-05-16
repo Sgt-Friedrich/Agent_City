@@ -9,6 +9,7 @@ import { ControlInspector } from "@/components/analysis/ControlInspector";
 import { DiagnosticsCenter } from "@/components/analysis/DiagnosticsCenter";
 import { JobsCenter } from "@/components/analysis/JobsCenter";
 import { ParserAnalysisCenter } from "@/components/analysis/ParserAnalysisCenter";
+import { PromptTaskFlowPanel } from "@/components/analysis/PromptTaskFlowPanel";
 import { RepositoriesCenter } from "@/components/analysis/RepositoriesCenter";
 import { ReportsCenter } from "@/components/analysis/ReportsCenter";
 import { SettingsCenter } from "@/components/analysis/SettingsCenter";
@@ -29,12 +30,36 @@ import { useFilteredTopology } from "@/hooks/useFilteredTopology";
 import { useI18n } from "@/hooks/useI18n";
 import { useLiveFlowSocket } from "@/hooks/useLiveFlowSocket";
 import { useParseJobs } from "@/hooks/useParseJobs";
+import { MessageKey } from "@/i18n/messages";
 import { api } from "@/lib/api";
 import { DashboardMode } from "@/lib/visualTheme";
 import { useDashboardStore } from "@/store/useDashboardStore";
 import { FlowEvent } from "@/types/schema";
 
 type TopRibbonTab = "workspace" | "analysis" | "control" | "parser";
+
+function flowGateMessageKey(flowGate?: string): MessageKey | undefined {
+  if (flowGate?.startsWith("probe_error")) return "flowGate.probeError";
+  switch (flowGate) {
+    case "always_simulated":
+      return "flowGate.alwaysSimulated";
+    case "manual_pause":
+      return "flowGate.manualPause";
+    case "codex_gate_target_mismatch":
+      return "flowGate.codexTargetMismatch";
+    case "waiting_codex_process":
+      return "flowGate.waitingCodexProcess";
+    case "waiting_codex_cpu_low":
+    case "waiting_codex_baseline":
+      return "flowGate.waitingCodexActivity";
+    case "codex_active_cpu":
+      return "flowGate.codexActive";
+    case "probe_error":
+      return "flowGate.probeError";
+    default:
+      return undefined;
+  }
+}
 
 export function DashboardApp() {
   const { t } = useI18n();
@@ -51,6 +76,9 @@ export function DashboardApp() {
   const [ribbonTab, setRibbonTab] = useState<TopRibbonTab>("workspace");
   const [ribbonExpanded, setRibbonExpanded] = useState(false);
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [promptFlowOpen, setPromptFlowOpen] = useState(false);
+  const [timelineExpanded, setTimelineExpanded] = useState(false);
   const ribbonHostRef = useRef<HTMLDivElement | null>(null);
   const previousModeRef = useRef<DashboardMode>("overview");
 
@@ -72,6 +100,8 @@ export function DashboardApp() {
   const traces = useDashboardStore((state) => state.traces);
   const repositories = useDashboardStore((state) => state.repositories);
   const desktopStatus = useDashboardStore((state) => state.desktopStatus);
+  const appSettings = useDashboardStore((state) => state.appSettings);
+  const liveStreamStatus = useDashboardStore((state) => state.liveStreamStatus);
 
   const { topology, nodes, edges, events } = useFilteredTopology();
   const nodesById = useMemo(() => {
@@ -126,10 +156,13 @@ export function DashboardApp() {
   }, [viewMode]);
 
   useEffect(() => {
-    if (viewMode !== "settings") {
-      previousModeRef.current = viewMode;
+    if (viewMode === "settings") {
+      setSettingsOpen(true);
+      setViewMode(previousModeRef.current ?? "overview");
+      return;
     }
-  }, [viewMode]);
+    previousModeRef.current = viewMode;
+  }, [setViewMode, viewMode]);
 
   const handleImported = async (targetId: string) => {
     const targetItems = await api.getTargets();
@@ -159,15 +192,27 @@ export function DashboardApp() {
   const isRepositoriesMode = viewMode === "repositories";
   const isJobsMode = viewMode === "jobs";
   const isReportsMode = viewMode === "reports";
-  const isSettingsMode = viewMode === "settings";
   const isArchitectureMode =
-    !isParserMode && !isReportsMode && !isRepositoriesMode && !isJobsMode && !isSettingsMode;
+    !isParserMode && !isReportsMode && !isRepositoriesMode && !isJobsMode;
   const allowRibbonPanels = isArchitectureMode;
   const shouldShowStartHere = isArchitectureMode && !isDiagnosticsMode && importedRepositoryCount === 0;
   const shellModeText =
     desktopStatus?.shellMode === "desktop" ? t("header.desktopMode") : t("header.browserMode");
   const backendBadge = desktopStatus?.backend.ready ? t("common.ready") : desktopStatus?.backend.message ?? t("common.unknown");
   const frontendBadge = desktopStatus?.frontend.ready ? t("common.ready") : desktopStatus?.frontend.message ?? t("common.unknown");
+  const liveFlowMode = appSettings?.live_flow_mode ?? "codex_real_only";
+  const liveFlowModeLabel =
+    liveFlowMode === "manual"
+      ? t("settings.liveFlowMode.manual")
+      : liveFlowMode === "codex_real_only"
+        ? t("settings.liveFlowMode.codex_real_only")
+        : t("settings.liveFlowMode.always_simulated");
+  const flowGateKey = flowGateMessageKey(liveStreamStatus?.flowGate);
+  const liveGateLabel = flowGateKey
+    ? t(flowGateKey)
+    : liveStreamStatus?.connected
+      ? t("common.ready")
+      : t("common.offline");
 
   const ribbonViewModes: Array<{ id: DashboardMode; label: string }> = [
     { id: "overview", label: t("nav.overview") },
@@ -181,7 +226,7 @@ export function DashboardApp() {
   ];
   const currentModeLabel =
     ribbonViewModes.find((item) => item.id === viewMode)?.label ??
-    (isSettingsMode ? t("nav.settings") : viewMode);
+    viewMode;
 
   const handleRibbonTab = (tab: TopRibbonTab) => {
     if (!allowRibbonPanels) return;
@@ -201,11 +246,9 @@ export function DashboardApp() {
   };
 
   const toggleSettingsMode = () => {
-    if (isSettingsMode) {
-      navigateToMode(previousModeRef.current ?? "overview");
-      return;
-    }
-    navigateToMode("settings");
+    setRibbonExpanded(false);
+    setViewMenuOpen(false);
+    setSettingsOpen((prev) => !prev);
   };
 
   const ribbonTabLabel = (tab: TopRibbonTab): string => {
@@ -304,7 +347,7 @@ export function DashboardApp() {
     if (!viewMenuOpen) return null;
 
     return (
-      <div className="pointer-events-none absolute right-4 top-[calc(100%+10px)] z-40">
+      <div className="pointer-events-none absolute right-4 top-[calc(100%+10px)] z-[1000]">
         <div className="pointer-events-auto w-[340px] rounded-xl border border-cyan-400/25 bg-[#071425b0] shadow-[0_20px_60px_rgba(1,6,18,0.7),0_0_30px_rgba(56,189,248,0.16)] backdrop-blur-xl">
           <div className="flex items-center justify-between rounded-t-xl border-b border-line/80 bg-[#0a1c33b8] px-3 py-2">
             <div className="panel-title text-[11px] uppercase tracking-wide text-cyan-200">{t("filter.workbenchViews")}</div>
@@ -317,10 +360,11 @@ export function DashboardApp() {
             </button>
           </div>
           <div className="grid grid-cols-2 gap-2 p-3">
-            {[...ribbonViewModes, { id: "settings" as DashboardMode, label: t("nav.settings") }].map((item) => (
+            {ribbonViewModes.map((item) => (
               <button
                 key={item.id}
                 type="button"
+                data-testid={`view-mode-${item.id}`}
                 className={`rounded border px-2 py-1.5 text-left text-[11px] uppercase tracking-wide ${
                   viewMode === item.id
                     ? "border-sky-400 bg-[#12324f] text-slate-100"
@@ -342,7 +386,7 @@ export function DashboardApp() {
       <div className="mx-auto flex h-full max-w-[1900px] flex-col border-x border-line">
         <MetricsHeader metrics={metrics} mode={viewMode} diagnosticMode={diagnosticMode} />
 
-        <header className="relative z-20 flex flex-wrap items-center justify-between gap-2 border-b border-line bg-[#071120cc] px-4 py-2 text-xs text-slate-300">
+        <header className="relative z-[1100] flex flex-wrap items-center justify-between gap-2 border-b border-line bg-[#071120d8] px-4 py-2 text-xs text-slate-300 backdrop-blur-md">
           <div>
             <div className="panel-title text-sm uppercase tracking-wide">{t("app.title")}</div>
             <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
@@ -360,6 +404,28 @@ export function DashboardApp() {
                 }`}
               >
                 {t("header.frontend")}: {frontendBadge}
+              </span>
+              <span
+                className={`rounded border px-1.5 py-0.5 ${
+                  liveFlowMode === "always_simulated"
+                    ? "border-amber-500/40 text-amber-300"
+                    : liveFlowMode === "codex_real_only"
+                      ? "border-cyan-500/40 text-cyan-300"
+                      : "border-slate-500/40 text-slate-400"
+                }`}
+              >
+                {t("header.flow")}: {liveFlowModeLabel}
+              </span>
+              <span
+                className={`rounded border px-1.5 py-0.5 ${
+                  liveStreamStatus?.flowGate?.includes("active")
+                    ? "border-emerald-500/40 text-emerald-300"
+                    : liveStreamStatus?.flowGate === "always_simulated"
+                      ? "border-amber-500/40 text-amber-300"
+                      : "border-slate-500/40 text-slate-400"
+                }`}
+              >
+                {t("header.source")}: {liveGateLabel}
               </span>
             </div>
           </div>
@@ -379,12 +445,12 @@ export function DashboardApp() {
               data-testid="header-open-settings"
               onClick={toggleSettingsMode}
               className={`rounded border px-2 py-1 text-xs ${
-                isSettingsMode
+                settingsOpen
                   ? "border-sky-400 bg-[#153250] text-slate-100"
                   : "border-line bg-[#10233a] text-slate-100 hover:bg-[#18395f]"
               }`}
             >
-              {isSettingsMode ? `${t("common.close")} ${t("nav.settings")}` : t("nav.settings")}
+              {settingsOpen ? `${t("common.close")} ${t("nav.settings")}` : t("nav.settings")}
             </button>
             <select
               className="rounded border border-line bg-[#0b1a2b] px-2 py-1 text-xs text-slate-100"
@@ -410,12 +476,13 @@ export function DashboardApp() {
           </div>
         </header>
 
-        <div ref={ribbonHostRef} className="relative z-30 border-b border-line bg-[#06111dcc] px-4 py-2 text-xs">
+        <div ref={ribbonHostRef} className="relative z-[900] border-b border-line bg-[#06111dd8] px-4 py-2 text-xs backdrop-blur-md">
           <div className="flex flex-wrap items-center justify-between gap-2">
             {allowRibbonPanels ? (
               <div className="flex flex-wrap items-center gap-1">
                 <button
                   type="button"
+                  data-testid="ribbon-tab-workspace"
                   className={`rounded border px-2 py-1 text-[11px] uppercase tracking-wide ${
                     ribbonTab === "workspace"
                       ? "border-cyan-400 bg-[#153250] text-slate-100"
@@ -427,6 +494,7 @@ export function DashboardApp() {
                 </button>
                 <button
                   type="button"
+                  data-testid="ribbon-tab-analysis"
                   className={`rounded border px-2 py-1 text-[11px] uppercase tracking-wide ${
                     ribbonTab === "analysis"
                       ? "border-cyan-400 bg-[#153250] text-slate-100"
@@ -438,6 +506,7 @@ export function DashboardApp() {
                 </button>
                 <button
                   type="button"
+                  data-testid="ribbon-tab-control"
                   className={`rounded border px-2 py-1 text-[11px] uppercase tracking-wide ${
                     ribbonTab === "control"
                       ? "border-cyan-400 bg-[#153250] text-slate-100"
@@ -449,6 +518,7 @@ export function DashboardApp() {
                 </button>
                 <button
                   type="button"
+                  data-testid="ribbon-tab-parser"
                   className={`rounded border px-2 py-1 text-[11px] uppercase tracking-wide ${
                     ribbonTab === "parser"
                       ? "border-cyan-400 bg-[#153250] text-slate-100"
@@ -471,6 +541,7 @@ export function DashboardApp() {
               </span>
               <button
                 type="button"
+                data-testid="view-menu-toggle"
                 className={`rounded border px-2 py-0.5 text-[10px] uppercase tracking-wide ${
                   viewMenuOpen
                     ? "border-sky-400 bg-[#12324f] text-slate-100"
@@ -500,7 +571,7 @@ export function DashboardApp() {
           </div>
 
           {allowRibbonPanels && ribbonExpanded ? (
-            <div className="pointer-events-none absolute left-4 top-[calc(100%+10px)] z-40">
+            <div className="pointer-events-none absolute left-4 top-[calc(100%+10px)] z-[1000]">
               <div className="pointer-events-auto w-[min(920px,calc(100vw-2rem))] rounded-xl border border-cyan-400/25 bg-[#071425b0] shadow-[0_20px_60px_rgba(1,6,18,0.7),0_0_36px_rgba(56,189,248,0.18)] backdrop-blur-xl">
                 <div className="flex items-center justify-between rounded-t-xl border-b border-line/80 bg-[#0a1c33b8] px-3 py-2">
                   <div className="panel-title text-[11px] uppercase tracking-wide text-cyan-200">
@@ -523,7 +594,7 @@ export function DashboardApp() {
           {renderViewModeMenu()}
         </div>
 
-        <div data-testid="dashboard-layout" className="relative z-0 grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[1fr_340px]">
+        <div data-testid="dashboard-layout" className="relative z-0 grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px]">
           <section data-testid="city-panel" className="relative z-0 isolate min-h-[42vh] border-r border-line lg:min-h-0">
             {isParserMode ? (
               <ParserAnalysisCenter />
@@ -533,8 +604,6 @@ export function DashboardApp() {
               <JobsCenter />
             ) : isReportsMode ? (
               <ReportsCenter />
-            ) : isSettingsMode ? (
-              <SettingsCenter onClose={() => navigateToMode(previousModeRef.current ?? "overview")} />
             ) : (
               <>
                 <CityScene
@@ -551,6 +620,27 @@ export function DashboardApp() {
                   onSelectEvent={(event) => setSelectedSpan(event.span_id, event.trace_id)}
                   onHoverEvent={(event) => setHoveredEvent(event)}
                 />
+                {isArchitectureMode ? (
+                  <div className="absolute left-3 top-3 z-10 max-w-[calc(100%-1.5rem)]">
+                    {promptFlowOpen ? (
+                      <div className="w-[360px]">
+                        <PromptTaskFlowPanel
+                          nodes={nodes}
+                          events={events}
+                          onClose={() => setPromptFlowOpen(false)}
+                        />
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        className="rounded border border-cyan-400/25 bg-[#061322c8] px-2 py-1 text-[11px] uppercase tracking-wide text-cyan-100 shadow-[0_12px_32px_rgba(1,10,25,0.5)] backdrop-blur-xl hover:border-cyan-300"
+                        onClick={() => setPromptFlowOpen(true)}
+                      >
+                        {t("promptFlow.title")}
+                      </button>
+                    )}
+                  </div>
+                ) : null}
                 {shouldShowStartHere ? (
                   <StartHerePanel onOpenImportWizard={() => setImportWizardOpen(true)} />
                 ) : null}
@@ -568,13 +658,16 @@ export function DashboardApp() {
           ) : isArchitectureMode ? (
             <DetailDrawer hoveredEvent={hoveredEvent} />
           ) : (
-            <ControlInspector />
+            <ControlInspector onOpenSettings={() => setSettingsOpen(true)} />
           )}
         </div>
 
         {isArchitectureMode ? (
-          <div data-testid="timeline-container" className="h-[220px] lg:h-[210px]">
-            <TimelinePanel />
+          <div
+            data-testid="timeline-container"
+            className={`${timelineExpanded ? "h-[220px] lg:h-[210px]" : "h-[74px]"} transition-[height] duration-200`}
+          >
+            <TimelinePanel compact={!timelineExpanded} onToggleCompact={() => setTimelineExpanded((prev) => !prev)} />
           </div>
         ) : (
           <div className="h-[140px] border-t border-line bg-[#070f1bcc] p-2 text-xs text-slate-400">
@@ -590,6 +683,17 @@ export function DashboardApp() {
         onClose={() => setImportWizardOpen(false)}
         onImported={handleImported}
       />
+      {settingsOpen ? (
+        <div
+          data-testid="settings-modal"
+          className="pointer-events-none fixed inset-0 z-[1000] flex items-start justify-center bg-black/42 px-4 py-8 backdrop-blur-md"
+        >
+          <div className="pointer-events-auto max-h-[calc(100vh-4rem)] w-[min(1120px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-cyan-400/25 bg-[#071425e8] shadow-[0_24px_90px_rgba(0,0,0,0.72),0_0_45px_rgba(56,189,248,0.16)]">
+            <SettingsCenter onClose={() => setSettingsOpen(false)} />
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
+
