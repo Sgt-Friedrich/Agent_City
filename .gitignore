@@ -18,9 +18,12 @@ desktop/dist/
 desktop/out/
 desktop/release/
 
-# local
+# local (avoid committing environment-specific secrets)
 .env
-.env.local
+.env.*
+!.env.example
+!.env.sample
+!.env.template
 
 # parser regression references (never commit external repos)
 refs/
