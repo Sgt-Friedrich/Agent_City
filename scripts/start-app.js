@@ -189,7 +189,7 @@ function isUrlHealthy(url, timeoutMs = 1200) {
         },
         (response) => {
           response.resume();
-          resolve(response.statusCode >= 200 && response.statusCode < 500);
+          resolve(response.statusCode >= 200 && response.statusCode < 300);
         },
       );
 
